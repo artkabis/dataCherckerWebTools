@@ -667,7 +667,6 @@ function init() {
         "nos",
       ];
 
-
       words = words.filter((w) => !pronoms.includes(w.toLowerCase()));
       console.log({
         [tagName]: tagContent,
@@ -790,11 +789,17 @@ function init() {
       console.log(
         "----------------------------- Start Check strong & bold valitidy --------------------------------------------"
       );
-      
+
     let cmpBold = 0,
       boldArray = [];
     strongOrBold.each(function (i, t) {
-      const isHnClosest = ($(this)[0].tagName.toLowerCase() === "h1" || $(this)[0].tagName.toLowerCase() === "h2" || $(this)[0].tagName.toLowerCase() === "h3" || $(this)[0].tagName.toLowerCase() === "h4" || $(this)[0].tagName.toLowerCase() === "h5" || $(this)[0].tagName.toLowerCase() === "h6");
+      const isHnClosest =
+        $(this)[0].tagName.toLowerCase() === "h1" ||
+        $(this)[0].tagName.toLowerCase() === "h2" ||
+        $(this)[0].tagName.toLowerCase() === "h3" ||
+        $(this)[0].tagName.toLowerCase() === "h4" ||
+        $(this)[0].tagName.toLowerCase() === "h5" ||
+        $(this)[0].tagName.toLowerCase() === "h6";
       if (t.textContent.length > 1 && t.textContent !== " ") {
         if (!isHnClosest) {
           cmpBold++;
@@ -873,8 +878,11 @@ function init() {
       }
     }
     dataChecker.bold_check.bold_txt = [];
-    dataChecker.bold_check.bold_check_state = (objSansDoublons.length ===0 || objSansDoublons === undefined) ?  false : true;
-    dataChecker.bold_check.bold_check_state
+    dataChecker.bold_check.bold_check_state =
+      objSansDoublons.length === 0 || objSansDoublons === undefined
+        ? false
+        : true;
+    dataChecker.bold_check.bold_check_state;
     const isBoldValid = cmpBold >= 3 && cmpBold <= 5;
     !isBoldValid
       ? console.log(
@@ -888,7 +896,6 @@ function init() {
           "color:green"
         ),
       console.log(objSansDoublons),
-      
       objSansDoublons.map((t) => {
         dataChecker.bold_check.bold_check_state = true;
         (dataChecker.bold_check.nb_bold = objSansDoublons.length),
@@ -897,7 +904,8 @@ function init() {
             bold_txt: t.text,
             bold_nb_words: t.nbWords,
           });
-        dataChecker.bold_check.global_score = (isBoldValid && objSansDoublons.length) ? 5 : 0;
+        dataChecker.bold_check.global_score =
+          isBoldValid && objSansDoublons.length ? 5 : 0;
       }),
       cmpBold > 0 &&
         console.log(
@@ -923,6 +931,8 @@ function init() {
     let ratio_scores = [],
       alt_scores = [],
       size_scores = [];
+
+    let cmpFinal = 0;
     const checkUrlImg = async (args) => {
       let result = false;
       requestInitiatedCount++;
@@ -938,7 +948,7 @@ function init() {
             redirect: "manual", // Permet de suivre les redirections explicitement
             mode: "cors",
           });
-          requestCompletedCount++
+
           if (response.redirected) {
             if (redirectCount >= 2) {
               throw new Error("Trop de redirections");
@@ -962,6 +972,7 @@ function init() {
           }
 
           fsize = response.headers.get("content-length");
+          requestCompletedCount++;
           if (fsize) {
             const ratio = Number(
               ((args[5] / args[7] + args[6] / args[8]) / 2).toFixed(2)
@@ -1081,13 +1092,6 @@ function init() {
                     ? 2.5
                     : 0,
               });
-            //console.log({requestInitiatedCount}, {requestCompletedCount});
-            requestInitiatedCount === requestCompletedCount &&setTimeout(function(){
-              (console.log(
-                " Fin du traitement du check des images size and alt"
-              ),
-              checkUrlImgDuplicate());
-            },300);
           }
         } catch (error) {
           requestCompletedCount++;
@@ -1095,6 +1099,18 @@ function init() {
           console.log(error, error.message);
           result && console.log({ result }, result.target);
         }
+      } else {
+        console.log("url not valid : ", result.url);
+      }
+      //console.log({requestInitiatedCount}, {requestCompletedCount});
+      //console.log('external cmp : ',{cmpFinal});
+      if (requestInitiatedCount === requestCompletedCount && cmpFinal < 1) {
+        setTimeout(function () {
+          cmpFinal++;
+          //console.log({cmpFinal});
+          console.log(" Fin du traitement du check des images size and alt");
+          checkUrlImgDuplicate();
+        }, 300);
       }
     };
 
@@ -1209,7 +1225,8 @@ function init() {
               : window.location.origin + bgimg;
           const isDudaImage =
             bgimg.includes("https://le-de.cdn-website.com/") ||
-            bgimg.includes("https://de.cdn-website.com") || bgimg.includes("dd-cdn.multiscreensite.com")
+            bgimg.includes("https://de.cdn-website.com") ||
+            bgimg.includes("dd-cdn.multiscreensite.com")
               ? true
               : false;
           const detectAnotherOrigin = !bgimg.includes(window.location.origin);
@@ -1272,6 +1289,7 @@ function init() {
       });
 
       const allImg = [...imagesForAnalyseBG, ...imagesForAnalyseImg];
+      cmpAllImg = 0;
       console.log({ allImg });
       for (const item of allImg) {
         const content = item.value;
@@ -1303,7 +1321,6 @@ function init() {
       scoreCheckLink = [];
     dataChecker.link_check.link = [];
     function check(_url, _txt, _node) {
-      
       const response = {
         status: null,
         document: null,
@@ -1314,53 +1331,53 @@ function init() {
       return new Promise(function (resolve, reject) {
         let fetchTimeout = null;
         fetch(_url)
-        .then((res) => {
-          clearTimeout(fetchTimeout);
-          response.status = res.status;
-          response.document = res.responseText;
-  
-          resolve(response);
-          if (res.ok) {
-            console.log(
-              `url: ${_url} %c${_txt} -> %cstatus: %c${response.status}`,
-              "color:cornflowerblue;",
-              "color:white;",
-              "color:green"
-            );
-            scoreCheckLink.push(5);
-          } else {
-            console.log(
-              `url: ${_url} %c${_txt} -> %cstatus: %c${response.status}`,
-              "color:cornflowerblue;",
-              "color:white;",
-              "color:red"
-            );
-            console.log("node: ", _node);
-            scoreCheckLink.push(0);
-          }
-  
-          dataChecker.link_check.link.push({
-            link_state: true,
-            link_status: response.status,
-            link_url: _url,
-            link_text: _txt.replace(",  text : ", "").trim(),
-            link_score: res.ok ? 5 : 0,
-            link_msg: res.ok ? "Lien valide." : "Lien non valide.",
+          .then((res) => {
+            clearTimeout(fetchTimeout);
+            response.status = res.status;
+            response.document = res.responseText;
+
+            resolve(response);
+            if (res.ok) {
+              console.log(
+                `url: ${_url} %c${_txt} -> %cstatus: %c${response.status}`,
+                "color:cornflowerblue;",
+                "color:white;",
+                "color:green"
+              );
+              scoreCheckLink.push(5);
+            } else {
+              console.log(
+                `url: ${_url} %c${_txt} -> %cstatus: %c${response.status}`,
+                "color:cornflowerblue;",
+                "color:white;",
+                "color:red"
+              );
+              console.log("node: ", _node);
+              scoreCheckLink.push(0);
+            }
+
+            dataChecker.link_check.link.push({
+              link_state: true,
+              link_status: response.status,
+              link_url: _url,
+              link_text: _txt.replace(",  text : ", "").trim(),
+              link_score: res.ok ? 5 : 0,
+              link_msg: res.ok ? "Lien valide." : "Lien non valide.",
+            });
+
+            dataChecker.link_check.link_check_state = true;
+          })
+          .catch((error) => {
+            response.status = 404;
+            resolve(response);
           });
-  
-          dataChecker.link_check.link_check_state = true;
-        })
-        .catch((error) => {
-          response.status = 404;
+
+        fetchTimeout = setTimeout(() => {
+          response.status = 408;
           resolve(response);
-        });
-  
-      fetchTimeout = setTimeout(() => {
-        response.status = 408;
-        resolve(response);
-      }, (timeout += 1000));
-    });
-  }
+        }, (timeout += 1000));
+      });
+    }
     let linksAnalyse = [];
     const linksStack = document.querySelector("#Content")
       ? document.querySelectorAll("#Content a, .social-bar a")
@@ -1390,7 +1407,7 @@ function init() {
           !url.includes("client.adhslx.com") &&
           prepubRefonteWPCheck &&
           url.at(0) !== "#";
-        const externalLink = (!url.includes(window.location.origin));
+        const externalLink = !url.includes(window.location.origin);
         const txtContent =
           url &&
           url.at(-4) &&
@@ -1398,30 +1415,41 @@ function init() {
           t.textContent.length > 1
             ? ",  text : " + t.textContent.replace(/(\r\n|\n|\r)/gm, "")
             : "";
-            (verif && url.includes(window.location.origin) || url.includes('de.cdn-website.com')) &&
+        ((verif && url.includes(window.location.origin)) ||
+          url.includes("de.cdn-website.com")) &&
           check(url, txtContent, t, externalLink);
-                  
-           
-          if(verif && externalLink && !url.includes('de.cdn-website.com')&& url.includes('https')) { 
-          (console.log(
+
+        if (
+          verif &&
+          externalLink &&
+          !url.includes("de.cdn-website.com") &&
+          url.includes("https")
+        ) {
+          console.log(
             `%c Vérifier le lien ${t.textContent.replace(
               /(\r\n|\n|\r)/gm,
               ""
             )} manuellement >>>`,
             "color:red"
-          )),console.log(new URL(url).href, t)
-        }else if(verif && externalLink && !url.includes('de.cdn-website.com') && !url.includes('https')){
-           
-          (console.log(
+          ),
+            console.log(new URL(url).href, t);
+        } else if (
+          verif &&
+          externalLink &&
+          !url.includes("de.cdn-website.com") &&
+          !url.includes("https")
+        ) {
+          console.log(
             `%c Vérifier le lien ${t.textContent.replace(
               /(\r\n|\n|\r)/gm,
               ""
             )} manuellement et SECURISEZ LE via "https" si ceci est possible >>>`,
             "color:red"
-          ),console.log(new URL(url).href, t))
+          ),
+            console.log(new URL(url).href, t);
         }
-          
-          verif && check(url, txtContent, t, externalLink);
+
+        verif && check(url, txtContent, t, externalLink);
 
         checkPhoneNumber = new RegExp(
           /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/
@@ -1511,8 +1539,7 @@ function init() {
 
     //Add globale score in dataChecker
     const initDataChecker = () => {
-
-      console.log('initDataChecker started');
+      console.log("initDataChecker started");
 
       dataChecker.img_check.nb_img_duplicate.push(
         trierUrlsRepetees(urlsDuplicate).length
@@ -1609,7 +1636,7 @@ function init() {
           globalScoreWeb.reduce((a, b) => a + b) / globalScoreWeb.length
         ).toFixed(2)
       );
-      console.log({WebData},{CDPData});
+      console.log({ WebData }, { CDPData });
       const globalScoreCDPTotal = Number(
         (
           globalScoreCDP.reduce((a, b) => a + b) / globalScoreCDP.length
@@ -1620,15 +1647,15 @@ function init() {
 
       dataChecker.state_check = true;
       console.log({ dataChecker });
-
+      console.log('%c--------------------------------------------Fin du traitement globale du checkerImages ----------------------------------------------------------------','color:green');
 
       // Écouteur d'événement pour le clic sur le bouton
       chrome.storage.sync.get("corsEnabled", function (result) {
         var corsEnabled = result.corsEnabled;
         chrome.storage.sync.set({ corsEnabled: corsEnabled }, function () {
-          (corsEnabled) && chrome.runtime.sendMessage({ corsEnabled: false });
+          corsEnabled && chrome.runtime.sendMessage({ corsEnabled: false });
         });
-      }) 
+      });
     };
   })(jQuery);
 }
