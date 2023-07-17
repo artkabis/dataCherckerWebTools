@@ -42,6 +42,7 @@
                   .replaceAll("'", "")
               )
             );
+            
             const subNavOk = menuJson.filter((t) => t.subNav.length > 0);
             const nv1OutNav = menuJson.filter((t) => t.inNavigation === false);
             const nv1InNav = menuJson.filter((t) => t.inNavigation === true);
@@ -71,15 +72,15 @@
               );
             });
             // return all links page Duda website
+            const links = [];
             const getAllPathValues = (obj) => {
               var values = [];
 
               const traverse = (obj) => {
                 for (var key in obj) {
                   if (key === "path") {
-                    console.log(
-                      new URL(window.location.origin + obj[key]).href
-                    );
+                    const link = new URL(window.location.origin + obj[key]).href;
+                    links.push(link)
                   } else if (typeof obj[key] === "object") {
                     traverse(obj[key]);
                   }
@@ -92,7 +93,25 @@
             console.log(
               "------------------------------------- All links Duda website ------------------------------"
             );
-            getAllPathValues(menuJson);
+            getAllPathValues(menuJson)
+            const allLinksDom = ()=>{
+              let finalLink = [];
+              links.forEach((t,i)=>{
+                link = t.includes("#") ? t.split('#')[0] : t;
+              finalLink.push(`<a href="${link}">${link}</a><br>`);
+            });
+            
+            return [...new Set(finalLink)];
+          }
+            const newWindow = window.open("", "_blank");
+          newWindow.document.write(
+            "<html><head><title>Sitemap Duda</title>"
+          );
+          newWindow.document.write(
+            "<style>.missing {background-color: white!important;color: orange!important;}.noMissingHeading { background-color:green }.duplicate { background-color: orange }</style>"
+          );
+          newWindow.document.write(`</head><body>${allLinksDom()}<body></html>`);
+          newWindow.document.close();
           }
         },
       });
@@ -244,18 +263,6 @@
       });
     });
   }
-  /*
-    function executeScriptInTabConsole(tab) {
-        console.log(' before executeScriptInTabConsole start',tab);
-        chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            function: function(){
-                console.log('executeScriptInTabConsole start');
-                chrome.devtools.inspectedWindow.eval("DevToolsAPI.showPanel('console')");
-            },
-        });
-    }
-    */
 
   function mainFunction(sitemap) {
     console.log("open sitemap : ", window.location.origin + sitemap);
@@ -334,38 +341,6 @@
     });
   });
 
-  /*
-  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    chrome.windows.getCurrent(function (currentWindow) {
-      chrome.devtools.inspectedWindow.eval(
-        'inspect(window)',
-        function (result, isException) {
-          chrome.windows.update(
-            currentWindow.id,
-            { focused: true },
-            function (window) {
-              chrome.devtools.panels.open(
-                chrome.devtools.panels.elements,
-                function () {
-                  chrome.runtime.sendMessage({ action: 'executeScript' });
-                }
-              );
-            }
-          );
-        }
-      );
-    });
-  });
-  */
-  //Blocage du pop-up afin qu'il reste actif même si j'intérragie avec le tab focus
-  /*document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(()=>{
-        chrome.windows.getLastFocused(function(window) {
-          chrome.windows.update(window.id, { focused: true });
-        });
-      },300);
-    });
-    */
 
   document
     .querySelector("#openGoogleSchemaValidator")
@@ -406,7 +381,6 @@
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       var activeTab = tabs[0];
       var tabId = activeTab.id;
-      var tabUrl = activeTab.url;
       chrome.tabs.get(tabId, function (tab) {
         var tabContent = tab ? tab.content : null;
         console.log(tab, { tabContent });
@@ -480,50 +454,4 @@ var toggleButton = document.getElementById("corsButton");
       });
     });
   });
-  /*
-  document.addEventListener('DOMContentLoaded', () => {
-    const toggleSwitch = document.getElementById('toggleSwitch');
-    const storageKey = 'toggleState';
-  
-    // Récupérer l'état précédent du stockage local
-    chrome.storage.local.get([storageKey], (result) => {
-      toggleSwitch.checked = result[storageKey] || false;
-  
-      // Établir une connexion avec le script de fond
-      const backgroundPort = chrome.runtime.connect({ name: 'popup' });
-  
-      // Envoyer un message au script de fond avec l'état initial du bouton
-      backgroundPort.postMessage({ isEnabled: toggleSwitch.checked });
-  
-      // Ajouter un écouteur d'événement pour les messages provenant du script de fond
-      backgroundPort.onMessage.addListener((message) => {
-        toggleSwitch.checked = message.isEnabled;
-      });
-    });
-  
-    // Ajouter une écoute d'événement au bouton de type toggle
-    toggleSwitch.addEventListener('change', () => {
-      // Obtenir l'état actuel du bouton toggle
-      const isChecked = toggleSwitch.checked;
-  
-      // Enregistrer l'état dans le stockage local
-      chrome.storage.local.set({ [storageKey]: isChecked });
-  
-      // Établir une connexion avec le script de fond
-      const backgroundPort = chrome.runtime.connect({ name: 'popup' });
-  
-      // Envoyer un message au script de fond pour activer ou désactiver la règle
-      backgroundPort.postMessage({ isEnabled: isChecked });
-    });
-  });
-  */
-
-  /*document.addEventListener('DOMContentLoaded', function() {
-    var corsButton = document.getElementById('corsButton');
-
-    corsButton.addEventListener('click', () => {
-      chrome.runtime.sendMessage({ action: 'toggleCORS', enable: corsButton.checked, prefs: {} });
-    });
-  });
-  */
 })(jQuery);
