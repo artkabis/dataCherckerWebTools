@@ -103,7 +103,7 @@
             
             return [...new Set(finalLink)];
           }
-            const newWindow = window.open("", "_blank");
+          const newWindow = window.open("_blank","width=900,height=600,toolbar=no");
           newWindow.document.write(
             "<html><head><title>Sitemap Duda</title>"
           );
@@ -406,19 +406,7 @@
       });
     });
   });
-  document.querySelector("#coffeeLink").addEventListener("click", function () {
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-      chrome.scripting.executeScript({
-        target: { tabId: tabs[0].id },
-        function: () => {
-          window.open(
-            "https://github.com/artkabis/toolsWP/tree/main/Solocal%20tools%2C%20tips%20%26%20fix/tools-cq-checker/Chrome-extension/globalCheckerWebsite",
-            "_blank"
-          );
-        },
-      });
-    });
-  });
+
 //gestion du checkbox des cors à l'ouverture du popup
 var toggleButton = document.getElementById("corsButton");
   document.addEventListener("DOMContentLoaded", function () {
