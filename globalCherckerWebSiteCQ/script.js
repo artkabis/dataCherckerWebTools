@@ -230,6 +230,44 @@ function init() {
           )
         );
       });
+
+
+      //Counter Hn in hovered
+      $(document).on('mouseover','h1,h2,h3,h4,h5,h6',function(){
+        const txt = $(this)[0].innerText;
+        const txtLength = txt.trim().length;
+        $(this).attr('title',$(this)[0].tagName+' - Nombre de caractéres : '+txtLength+ '\nTexte pris en compte : \n'+txt)
+    })
+    
+
+    //Counter words in content page 
+    const countWords = (text) => {
+      // Supprime les espaces en début et en fin de chaîne
+      text = text.trim();
+      // Remplace les sauts de ligne par un espace
+      text = text.replace(/\n/g, ' ');
+      // Remplace les doubles espaces consécutifs par un seul espace
+      text = text.replace(/\s{2,}/g, ' ');
+      text = text.replaceAll('Button','').replaceAll('Afficher davantage','').replaceAll('John Doe','').replaceAll('City skyline','').replaceAll('Photo By:','').replaceAll('Birthday Sparks','').replaceAll('Fashion Magazine','').replaceAll('Blurred Lines','').replaceAll('Photo by:','');
+     
+      // Divise le texte en mots en utilisant les espaces comme séparateurs
+      const words = text.split(' ');
+      // Retourne le nombre de mots
+      console.log('nombre de mot dans la page : ',words.length,'\nTexte regroupé de la page : ',[{text}]);
+      return words.length;
+    }
+
+
+
+    // Obtient le contenu du div avec l'ID "content"
+    const contentDiv = document.getElementById('dm_content');
+    const contentText = contentDiv.textContent;
+    const wordCount = countWords(contentText);
+
+
+
+
+    //Start meta check
     const title = $('meta[property="og:title"]').attr("content");
     const desc = $('meta[name="description"]').attr("content");
     const titleLength = title.length;
@@ -1381,7 +1419,7 @@ function init() {
     let linksAnalyse = [];
     const linksStack = document.querySelector("#Content")
       ? document.querySelectorAll("#Content a, .social-bar a")
-      : document.querySelectorAll("#dm_content a, .dmCall");
+      : document.querySelectorAll("#dm_content a, .dmCall, .dmFooterContainer a");
     $.each(linksStack, function (i, t) {
       let url = t.href;
       if (url) {
