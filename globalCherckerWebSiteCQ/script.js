@@ -231,41 +231,55 @@ function init() {
         );
       });
 
+    //Counter Hn in hovered
+    $(document).on("mouseover", "h1,h2,h3,h4,h5,h6", function () {
+      const txt = $(this) ? $(this)[0].innerText :  false;
+      const txtLength = (txt) ? txt.trim().length : false;
+      txtLength && $(this).attr(
+        "title",
+        $(this)[0].tagName +
+          " - Nombre de caractéres : " +
+          txtLength +
+          "\nTexte pris en compte : \n" +
+          txt
+      );
+    });
 
-      //Counter Hn in hovered
-      $(document).on('mouseover','h1,h2,h3,h4,h5,h6',function(){
-        const txt = $(this)[0].innerText;
-        const txtLength = txt.trim().length;
-        $(this).attr('title',$(this)[0].tagName+' - Nombre de caractéres : '+txtLength+ '\nTexte pris en compte : \n'+txt)
-    })
-    
-
-    //Counter words in content page 
+    //Counter words in content page
     const countWords = (text) => {
       // Supprime les espaces en début et en fin de chaîne
       text = text.trim();
       // Remplace les sauts de ligne par un espace
-      text = text.replace(/\n/g, ' ');
+      text = text.replace(/\n/g, " ");
       // Remplace les doubles espaces consécutifs par un seul espace
-      text = text.replace(/\s{2,}/g, ' ');
-      text = text.replaceAll('Button','').replaceAll('Afficher davantage','').replaceAll('John Doe','').replaceAll('City skyline','').replaceAll('Photo By:','').replaceAll('Birthday Sparks','').replaceAll('Fashion Magazine','').replaceAll('Blurred Lines','').replaceAll('Photo by:','');
-     
+      text = text.replace(/\s{2,}/g, " ");
+      text = text
+        .replaceAll("Button", "")
+        .replaceAll("Afficher davantage", "")
+        .replaceAll("John Doe", "")
+        .replaceAll("City skyline", "")
+        .replaceAll("Photo By:", "")
+        .replaceAll("Birthday Sparks", "")
+        .replaceAll("Fashion Magazine", "")
+        .replaceAll("Blurred Lines", "")
+        .replaceAll("Photo by:", "");
+
       // Divise le texte en mots en utilisant les espaces comme séparateurs
-      const words = text.split(' ');
+      const words = text.split(" ");
       // Retourne le nombre de mots
-      console.log('nombre de mot dans la page : ',words.length,'\nTexte regroupé de la page : ',[{text}]);
+      console.log(
+        "nombre de mot dans la page : ",
+        words.length,
+        "\nTexte regroupé de la page : ",
+        [{ text }]
+      );
       return words.length;
-    }
-
-
+    };
 
     // Obtient le contenu du div avec l'ID "content"
-    const contentDiv = document.getElementById('dm_content');
+    const contentDiv = document.getElementById("dm_content");
     const contentText = contentDiv.textContent;
     const wordCount = countWords(contentText);
-
-
-
 
     //Start meta check
     const title = $('meta[property="og:title"]').attr("content");
@@ -420,6 +434,7 @@ function init() {
       "----------------------------- Check Hn Validity --------------------------------------------"
     );
     let rendu = "",
+      h1Count = 0,
       h2Count = 0,
       h3Count = 0;
     const verifierStructureHn = (HnArray) => {
@@ -453,9 +468,9 @@ function init() {
           );
           continue;
         }
-
-        if (i === 0) {
-          if (balise.nodeName.toLowerCase() === "h1") {
+        if (balise.nodeName.toLowerCase() === "h1") {
+          h1Count++;
+          if (balise.nodeName.toLowerCase() === "h1" && i === 0) {
             rendu += `${balise.nodeName.toLowerCase()} - Valide_`;
             console.log(
               `%c${balise.nodeName.toLowerCase()} - Valide`,
@@ -468,33 +483,34 @@ function init() {
               "color: red"
             );
           }
+          if (h1Count > 1) {
+            if (balise.nodeName.toLowerCase() === "h1") {
+              rendu += `${balise.nodeName.toLowerCase()} - Non valide (doublon)_`;
+              console.log(
+                `%c${balise.nodeName.toLowerCase()} - Non valide (doublon)`,
+                "color: red"
+              );
+            }
+          }
         } else {
-          if (balise.nodeName.toLowerCase() === "h1") {
-            rendu += `${balise.nodeName.toLowerCase()} - Non valide (doublon)_`;
+          // Vérifier si le niveau actuel est inférieur au niveau précédent de plus de 1
+          if (
+            Math.abs(
+              niveauActuel -
+                niveaux.indexOf(HnArray[i - 1].nodeName.toLowerCase())
+            ) > 1
+          ) {
+            rendu += `${balise.nodeName.toLowerCase()} - Non valide_`;
             console.log(
-              `%c${balise.nodeName.toLowerCase()} - Non valide (doublon)`,
+              `%c${balise.nodeName.toLowerCase()} - Non valide`,
               "color: red"
             );
           } else {
-            // Vérifier si le niveau actuel est inférieur au niveau précédent de plus de 1
-            if (
-              Math.abs(
-                niveauActuel -
-                  niveaux.indexOf(HnArray[i - 1].nodeName.toLowerCase())
-              ) > 1
-            ) {
-              rendu += `${balise.nodeName.toLowerCase()} - Non valide_`;
-              console.log(
-                `%c${balise.nodeName.toLowerCase()} - Non valide`,
-                "color: red"
-              );
-            } else {
-              rendu += `${balise.nodeName.toLowerCase()}' - Valide_`;
-              console.log(
-                `%c${balise.nodeName.toLowerCase()} - Valide`,
-                "color: green"
-              );
-            }
+            rendu += `${balise.nodeName.toLowerCase()}' - Valide_`;
+            console.log(
+              `%c${balise.nodeName.toLowerCase()} - Valide`,
+              "color: green"
+            );
           }
         }
       }
@@ -1419,7 +1435,9 @@ function init() {
     let linksAnalyse = [];
     const linksStack = document.querySelector("#Content")
       ? document.querySelectorAll("#Content a, .social-bar a")
-      : document.querySelectorAll("#dm_content a, .dmCall, .dmFooterContainer a");
+      : document.querySelectorAll(
+          "#dm_content a, .dmCall, .dmFooterContainer a"
+        );
     $.each(linksStack, function (i, t) {
       let url = t.href;
       if (url) {
@@ -1685,7 +1703,10 @@ function init() {
 
       dataChecker.state_check = true;
       console.log({ dataChecker });
-      console.log('%c--------------------------------------------Fin du traitement globale du checkerImages ----------------------------------------------------------------','color:green');
+      console.log(
+        "%c--------------------------------------------Fin du traitement globale du checkerImages ----------------------------------------------------------------",
+        "color:green"
+      );
 
       // Écouteur d'événement pour le clic sur le bouton
       chrome.storage.sync.get("corsEnabled", function (result) {
