@@ -277,7 +277,7 @@ function init() {
     };
 
     // Obtient le contenu du div avec l'ID "content"
-    const contentDiv = $("#dm_content, #Content");
+    const contentDiv = $("#dm_content, #Content")[0];
     const contentText = (contentDiv) ? contentDiv.textContent : false;
     contentText && countWords(contentText);
 
@@ -1468,7 +1468,7 @@ function init() {
           t.textContent.length > 1
             ? ",  text : " + t.textContent.replace(/(\r\n|\n|\r)/gm, "")
             : "";
-        ((verif && url.includes(window.location.origin)) ||
+        ((verif && url.includes(window.location.origin) && url.includes("https")) ||
           url.includes("de.cdn-website.com")) &&
           check(url, txtContent, t, externalLink);
 
@@ -1502,7 +1502,7 @@ function init() {
             console.log(new URL(url).href, t);
         }
 
-        verif && check(url, txtContent, t, externalLink);
+        (verif && url.includes("https")) && check(url, txtContent, t, externalLink);
 
         checkPhoneNumber = new RegExp(
           /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/
