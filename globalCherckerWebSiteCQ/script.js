@@ -277,9 +277,9 @@ function init() {
     };
 
     // Obtient le contenu du div avec l'ID "content"
-    const contentDiv = document.getElementById("dm_content");
-    const contentText = contentDiv.textContent;
-    const wordCount = countWords(contentText);
+    const contentDiv = $("#dm_content, #Content");
+    const contentText = (contentDiv) ? contentDiv.textContent : false;
+    contentText && countWords(contentText);
 
     //Start meta check
     const title = $('meta[property="og:title"]').attr("content");
@@ -831,9 +831,6 @@ function init() {
 
     console.log(
       "----------------------------- END check Hn outline validity -----------------------------"
-    );
-    console.log(
-      "----------------------------- END Check Hn Validity --------------------------------------------"
     );
 
     const strongOrBold = $(
