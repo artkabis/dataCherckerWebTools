@@ -1537,7 +1537,7 @@ function init() {
           url.includes(window.location.origin) &&
           url.includes("https")) ||
           url.includes("de.cdn-website.com")) &&
-          check(new URL(url).origin, txtContent, t, externalLink);
+          check(new URL(url).href, txtContent, t, externalLink);
 
         if (
           verif &&
@@ -1571,7 +1571,7 @@ function init() {
 
         verif &&
           url.includes("https") &&
-          check(new URL(url).origin, txtContent, t, externalLink);
+          check(new URL(url).href, txtContent, t, externalLink);
 
         checkPhoneNumber = new RegExp(
           /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/
