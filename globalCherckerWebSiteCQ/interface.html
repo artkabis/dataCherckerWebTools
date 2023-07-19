@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>DataChecker WebTools</title>
+
+    <style>
+        body,
+        html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        #layout {
+            display: flex;
+            height: 100%;
+        }
+
+        #sidebar {
+            width: 15%;
+            border-right: 1px solid #ccc;
+            box-shadow: 2px 0 4px rgba(0, 0, 0, 0.2);
+            background-color: #0a68f1;
+        }
+
+        #main_container {
+            width: 100%;
+            height: 100%;
+        }
+
+        header {
+            display: flex;
+            background-color: #0a68f1;
+            width: 100%;
+            height: 80px;
+            align-items: center;
+        }
+
+        #logo img {
+            height: 32px;
+            width: 32px;
+            margin-left: 15px;
+        }
+
+        #title {
+            font-size: 35px;
+            color: white;
+            margin-left: 15px;
+        }
+
+        #main_card_container {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+        }
+
+        .main_card {
+            margin-top: 20px;
+            padding-left: 10px;
+            width: 80%;
+            height: 70px;
+            box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .2), 0 1px 5px 0 rgba(0, 0, 0, .12);
+            align-items: center;
+            justify-content: center;
+            display: flex;
+            font-size: 18px;
+        }
+
+        .url_span {
+            margin-left: 5px;
+            margin-right: 15px;
+        }
+
+        .score_span {
+            margin-left: 25px;
+        }
+
+        #resume_card_container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #resume_card {
+            margin-top: 20px;
+            padding-left: 10px;
+            width: 90%;
+            height: 150px;
+            box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .2), 0 1px 5px 0 rgba(0, 0, 0, .12);
+            display: flex;
+            font-size: 18px;
+        }
+
+        #resume_title {
+            padding-top: 5px;
+        }
+
+
+        #card_container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            margin: 1%;
+            margin-top: 5%;
+        }
+
+        .card_Check {
+            width: 49%;
+            height: auto;
+            box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .2), 0 1px 5px 0 rgba(0, 0, 0, .12);
+            font-size: 18px;
+            margin-bottom: 2%;
+        }
+
+        .header_card_check {
+            display: block;
+            width: 100%;
+            align-items: center;
+            padding-bottom: 5px;
+        }
+
+        .infos_header_card {
+            display: flex;
+            width: 100%;
+            align-items: center;
+            padding-top: 5px;
+        }
+
+        .arrow_button {
+            position: relative;
+            width: 20px;
+            height: 20px;
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            margin-left: auto;
+            padding-right: 2%;
+
+        }
+
+        .arrow_button::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(45deg);
+            width: 10px;
+            height: 10px;
+            border-top: none;
+            border-right: 2px solid black;
+            border-bottom: 2px solid black;
+            border-left: none;
+        }
+
+        .title_card_check {
+            margin-left: 2%;
+        }
+
+        .icon_state {
+            margin-left: auto;
+            padding-right: 1%;
+        }
+
+        .icon_score {
+            margin-left: 2%;
+        }
+
+        .icon_state_ok,
+        icon_state_ko {
+            width: 20px;
+            height: 20px;
+            border-radius: 25px;
+            display: block;
+        }
+
+        .icon_state_ok {
+            background-color: yellow;
+        }
+
+        .icon_state_ko {
+            background-color: red;
+        }
+
+        .check_card_container {
+            height: 250px;
+            background-color: aquamarine;
+        }
+
+        /************ toogle button **************/
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 24px;
+  margin-bottom: 4px;
+  margin-top: 15px;
+  margin-left:20%;
+}
+
+.toggle-switch input[type="checkbox"] {
+  display: none;
+}
+
+.toggle-slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 2px;
+  bottom: 2px;
+  background-color: #fff;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+}
+
+input[type="checkbox"]:checked + .toggle-slider {
+  background-color: #3f51b5;
+}
+
+input[type="checkbox"]:checked + .toggle-slider:before {
+  transform: translateX(24px);
+}
+
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="element_header" id="logo"></div>
+        <div class="element_header" id="title">DataChecker WebTools</div>
+        <label class="toggle-switch">
+            <input type="checkbox" id="toggleButton" onclick="toggle()">
+            <span class="toggle-slider"></span>
+          </label>
+    </header>
+    <div id="layout">
+        <!-- <div id="sidebar">
+    
+  </div> -->
+
+        <div id="main_container">
+
+            <div id="main_card_container"></div>
+            <div id="resume_card_container">
+                <div id="resume_card"><span id="resume_title">Apperçu général:</span></div>
+
+            </div>
+            <div id="card_container"></div>
+        </div>
+
+    </div>
+
+    <script src="/interface.js"></script>
+</body>
+
+</html>

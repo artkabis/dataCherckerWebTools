@@ -1769,6 +1769,7 @@ function init() {
 
       dataChecker.state_check = true;
       console.log({ dataChecker });
+      chrome.runtime.sendMessage({ action: 'open_interface', data :JSON.stringify(dataChecker) });
       console.log(
         "%c--------------------------------------------Fin du traitement globale du checkerImages ----------------------------------------------------------------",
         "color:green"
