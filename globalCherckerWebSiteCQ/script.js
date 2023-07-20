@@ -285,28 +285,41 @@ function init() {
     //Start meta check
     const title = $('meta[property="og:title"]').attr("content");
     const desc = $('meta[name="description"]').attr("content");
-    const titleLength = title.length;
-    const checkTitle = titleLength > 0;
-    const recoTitle = " Entre 50 et 60 caractères.";
-    const checkValideTitle =
-      titleLength >= 50 && titleLength <= 65 ? true : false;
-    const scoreTitle = checkValideTitle ? 2.5 : 0;
+    let titleLength,checkTitle, recoTitle = " Entre 50 et 60 caractères.",checkValideTitle,scoreTitle;
+    if (title) {
+      titleLength = (title.length) ? title.length : 0;
+      checkTitle = titleLength > 0;
+   
+      checkValideTitle =
+        titleLength >= 50 && titleLength <= 65 ? true : false;
+      scoreTitle = checkValideTitle ? 2.5 : 0;
 
-    //data title
-    dataChecker.meta_check.meta[0].meta_state =
+      //data title
+      dataChecker.meta_check.meta[0].meta_state =
+        title && titleLength ? true : false;
+      dataChecker.meta_check.meta[0].meta_txt = checkTitle && title;
+      dataChecker.meta_check.meta[0].meta_size = checkTitle && titleLength;
+      dataChecker.meta_check.meta[0].meta_reco = recoTitle;
+      dataChecker.meta_check.meta[0].meta_score = scoreTitle;
+    }else{
+      dataChecker.meta_check.meta[0].meta_state =
       title && titleLength ? true : false;
     dataChecker.meta_check.meta[0].meta_txt = checkTitle && title;
     dataChecker.meta_check.meta[0].meta_size = checkTitle && titleLength;
     dataChecker.meta_check.meta[0].meta_reco = recoTitle;
-    dataChecker.meta_check.meta[0].meta_score = scoreTitle;
+    dataChecker.meta_check.meta[0].meta_score = 0;  
+    }
 
     // desc
+    const recoDesc = " Entre 140 et 156 caractères.";
+    let scoreDesc = 0;
+    if (desc) {
     const descLength = desc.length;
     const checkDesc = descLength > 0;
-    const recoDesc = " Entre 140 et 156 caractères.";
+    
     const checkValideDesc =
       descLength >= 140 && descLength <= 156 ? true : false;
-    const scoreDesc = checkValideDesc ? 2.5 : 0;
+    scoreDesc = checkValideDesc ? 2.5 : 0;
 
     //data desc
     dataChecker.meta_check.meta[1].meta_state =
@@ -315,6 +328,14 @@ function init() {
     dataChecker.meta_check.meta[1].meta_size = checkDesc && descLength;
     dataChecker.meta_check.meta[1].meta_reco = recoDesc;
     dataChecker.meta_check.meta[1].meta_score = scoreDesc;
+    }else{
+      dataChecker.meta_check.meta[1].meta_state =
+      desc && descLength ? true : false;
+    dataChecker.meta_check.meta[1].meta_txt = 'Aucune meta description';
+    dataChecker.meta_check.meta[1].meta_size = '0'
+    dataChecker.meta_check.meta[1].meta_reco = recoDesc;
+    dataChecker.meta_check.meta[1].meta_score = 0;
+    }
 
     //Data global meta
     dataChecker.meta_check.global_score = Number(
@@ -323,10 +344,10 @@ function init() {
     dataChecker.meta_check.meta_check_state =
       checkTitle && checkDesc ? true : false;
     let nbMeta = 0;
-    if (checkDesc && checkTitle) {
-      nbMeta = 2;
-    } else if (!checkDesc && !checkTitle) {
-      nbMeta = 0;
+    if (desc && title) {
+      nbMeta = (checkDesc && checkTitle) && 2;
+    } else if (!title && !desc ) {
+      nbMeta =  0;
     } else {
       nbMeta = 1;
     }
@@ -340,7 +361,7 @@ function init() {
           `%c Meta title : ${title} -> caractère : ${titleLength} ----- (de 50 à 65)`,
           `color:${checkValideTitle ? "green" : "red"}`
         )
-      : console.log(`%c Meta title non présent !!!`, `color:red`);
+      : console.log(`%c Meta title non présente !!!`, `color:red`);
     desc && desc.length > 0
       ? console.log(
           `%c Meta description : ${desc} -> caractère : ${descLength} ----- (de 140 à 156)`,
@@ -901,17 +922,17 @@ function init() {
       console.log(
         "----------------------------- Start Check strong & bold valitidy --------------------------------------------"
       );
-
     let cmpBold = 0,
       boldArray = [];
     strongOrBold.each(function (i, t) {
-      const isHnClosest =
-        $(this)[0].tagName.toLowerCase() === "h1" ||
-        $(this)[0].tagName.toLowerCase() === "h2" ||
-        $(this)[0].tagName.toLowerCase() === "h3" ||
-        $(this)[0].tagName.toLowerCase() === "h4" ||
-        $(this)[0].tagName.toLowerCase() === "h5" ||
-        $(this)[0].tagName.toLowerCase() === "h6";
+      console.log('parent tag Hn : ',$(this).parent()[0].tagName.toLowerCase())
+      const isHnClosest = 
+      $(this)[0].tagName.toLowerCase() === "h1" || $(this).parent()[0].tagName.toLowerCase() === "h1" ||
+      $(this)[0].tagName.toLowerCase() === "h2" || $(this).parent()[0].tagName.toLowerCase() === "h2" ||
+      $(this)[0].tagName.toLowerCase() === "h3" || $(this).parent()[0].tagName.toLowerCase() === "h3" ||
+      $(this)[0].tagName.toLowerCase() === "h4" || $(this).parent()[0].tagName.toLowerCase() === "h4" ||
+      $(this)[0].tagName.toLowerCase() === "h5" || $(this).parent()[0].tagName.toLowerCase() === "h5" ||
+      $(this)[0].tagName.toLowerCase() === "h6" || $(this).parent()[0].tagName.toLowerCase() === "h6" ;
       if (t.textContent.length > 1 && t.textContent !== " ") {
         if (!isHnClosest) {
           cmpBold++;
@@ -938,13 +959,19 @@ function init() {
           ? true
           : false;
       let target = isMultiSpan ? $(this).children() : $(this);
+      const isHnClosest = 
+      target[0].tagName.toLowerCase() === "h1" || target.parent()[0].tagName.toLowerCase() === "h1" ||
+      target[0].tagName.toLowerCase() === "h3" || target.parent()[0].tagName.toLowerCase() === "h3" ||
+      target[0].tagName.toLowerCase() === "h2" || target.parent()[0].tagName.toLowerCase() === "h2" ||
+      target[0].tagName.toLowerCase() === "h4" || target.parent()[0].tagName.toLowerCase() === "h4" ||
+      target[0].tagName.toLowerCase() === "h5" || target.parent()[0].tagName.toLowerCase() === "h5" ||
+      target[0].tagName.toLowerCase() === "h6" || target.parent()[0].tagName.toLowerCase() === "h6" ;
       const duplicateBold =
-        isMultiSpan &&
+        (isMultiSpan ) &&
         $(this)[0]
           .textContent.trim()
           .includes($(this).children()[0].textContent.trim());
-
-      isMultiSpan &&
+      (isMultiSpan && !isHnClosest) &&
         console.log(
           { target },
           "  isBold : ",
@@ -956,7 +983,7 @@ function init() {
           " text length",
           $(this)[0].textContent.trim().length
         );
-      isBold(target) &&
+      (isBold(target) && !isHnClosest) &&
         target[0].textContent !== "\n" &&
         target[0].textContent !== "" &&
         target[0].textContent.length > 1 &&
