@@ -313,12 +313,12 @@ function init() {
 
     // desc
     const recoDesc = " Entre 140 et 156 caractères.";
-    let scoreDesc = 0;
+    let scoreDesc = 0, checkDesc,descLength=0,checkValideDesc=false;
     if (desc) {
-    const descLength = desc.length;
-    const checkDesc = descLength > 0;
+    descLength = desc.length;
+    checkDesc = descLength > 0;
     
-    const checkValideDesc =
+    checkValideDesc =
       descLength >= 140 && descLength <= 156 ? true : false;
     scoreDesc = checkValideDesc ? 2.5 : 0;
 
