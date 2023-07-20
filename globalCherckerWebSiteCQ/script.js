@@ -929,7 +929,6 @@ function init() {
     let cmpBold = 0,
       boldArray = [];
     strongOrBold.each(function (i, t) {
-      console.log('parent tag Hn : ',$(this).parent()[0].tagName.toLowerCase())
       const isHnClosest = 
       $(this)[0].tagName.toLowerCase() === "h1" || $(this).parent()[0].tagName.toLowerCase() === "h1" ||
       $(this)[0].tagName.toLowerCase() === "h2" || $(this).parent()[0].tagName.toLowerCase() === "h2" ||
@@ -1088,7 +1087,7 @@ function init() {
         try {
           response = await fetch(args[1], {
             method: "GET",
-            redirect: "manual", // Permet de suivre les redirections explicitement
+            //redirect: "manual", // Permet de suivre les redirections explicitement
             mode: "cors",
           });
 
@@ -1460,8 +1459,7 @@ function init() {
     }
     let timeout = 30000;
 
-    let nbLinks = 0,
-      scoreCheckLink = [];
+    scoreCheckLink = [];
     dataChecker.link_check.link = [];
     function check(_url, _txt, _node) {
       const response = {
@@ -1469,8 +1467,7 @@ function init() {
         document: null,
       };
       //_url = (_url.includes('solocaldudaadmin.eu-responsivesiteeditor.com'))? window.location.href.split('?')[0]+_url.split('solocaldudaadmin.eu-responsivesiteeditor.com')[1] : _url
-      nbLinks++;
-      dataChecker.link_check.nb_link = nbLinks;
+      //dataChecker.link_check.nb_link = nbLinks;
       return new Promise(function (resolve, reject) {
         let fetchTimeout = null;
         fetch(_url, {
@@ -1568,7 +1565,7 @@ function init() {
           url.includes(window.location.origin) &&
           url.includes("https")) ||
           url.includes("de.cdn-website.com")) &&
-          check(new URL(url).origin, txtContent, t, externalLink);
+          check(new URL(url).href, txtContent, t, externalLink);
 
         if (
           verif &&
@@ -1602,7 +1599,7 @@ function init() {
 
         verif &&
           url.includes("https") &&
-          check(new URL(url).origin, txtContent, t, externalLink);
+          check(new URL(url).href, txtContent, t, externalLink);
 
         checkPhoneNumber = new RegExp(
           /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/
