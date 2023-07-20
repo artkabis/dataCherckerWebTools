@@ -403,18 +403,19 @@ function init() {
             (nb_alt_imgs_wrong += 1),
             dataChecker.alt_img_check.alt_img.push({
               alt_img_state: "true",
-              alt_img_src: src,
+              alt_img_src: src ? src : $(this).attr('src'),
               alt_img_score: 0,
             }),
             scoreTabAltImg.push(0))
           : dataChecker.alt_img_check.alt_img.push(
               {
                 alt_img_state: "true",
-                alt_img_src: src,
+                alt_img_src: src ? src : $(this).attr('src'),
                 alt_img_score: 5,
               },
               scoreTabAltImg.push(5)
             );
+            console.log('------------------------------------------', {src});
       } else if (
         this.tagName == "svg" &&
         this.getAttribute("alt") &&
@@ -439,19 +440,25 @@ function init() {
       ) {
         dataChecker.alt_img_check.alt_img.push({
           alt_img_state: "true",
-          alt_img_src: src,
+          alt_img_src: src ? src : $(this).attr('src'),
           alt_img_score: 5,
         });
         scoreTabAltImg.push(0);
       }
     });
+    nbImg = dataChecker.alt_img_check.alt_img.length;
     console.log({nbImg});
-    const scoreAlt = nb_alt_imgs_wrong > 0 ? 0 : 5;
+    
     dataChecker.alt_img_check.alt_img_check_state = nbImg ? true : false;
     dataChecker.alt_img_check.nb_alt_img = nbImg;
-    console.log('dataChecker.alt_img_check.alt_img.lenght : ',dataChecker.alt_img_check.alt_img.lenght,dataChecker.alt_img_check.alt_img)
-    dataChecker.alt_img_check.global_score =
-      scoreTabAltImg.reduce((a, b) => a + b) / dataChecker.alt_img_check.alt_img.length;
+    console.log('****************************************************************',{scoreTabAltImg})
+    
+    const tabGlobalAltScore = dataChecker.alt_img_check.alt_img;
+    let score = [];
+    tabGlobalAltScore.forEach((t,i)=>{
+        score.push(t.alt_img_score)
+    })
+    dataChecker.alt_img_check.global_score =  score.reduce((a, b) => a + b) / tabGlobalAltScore.length;
 
     console.log(
       "----------------------------- END Check ALT images --------------------------------------------"
@@ -1196,11 +1203,12 @@ function init() {
                 ? 2.5
                 : 0
             );
+            console.log('############################################### alt img check :',result.url); 
             dataChecker.img_check.alt_img.push({
               alt_img_state: true,
-              alt_img_src: result.url,
+              alt_img_src: result.url ? result.url : args[1],
               alt_img_score: result.alt[2] !== false ? 5 : 0,
-            }),
+            }), 
               dataChecker.img_check.size_img.push({
                 size_img_state: "true",
                 size_img_src: result.url,
