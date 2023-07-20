@@ -427,7 +427,7 @@ function init() {
         nb_alt_imgs_wrong += 1;
         dataChecker.alt_img_check.alt_img.push({
           alt_img_state: "true",
-          alt_img_src: src,
+          alt_img_src: src ? src : 'bgimage',
           alt_img_score: 0,
         });
         scoreTabAltImg.push(0);
@@ -445,11 +445,13 @@ function init() {
         scoreTabAltImg.push(0);
       }
     });
+    console.log({nbImg});
     const scoreAlt = nb_alt_imgs_wrong > 0 ? 0 : 5;
     dataChecker.alt_img_check.alt_img_check_state = nbImg ? true : false;
     dataChecker.alt_img_check.nb_alt_img = nbImg;
+    console.log('dataChecker.alt_img_check.alt_img.lenght : ',dataChecker.alt_img_check.alt_img.lenght,dataChecker.alt_img_check.alt_img)
     dataChecker.alt_img_check.global_score =
-      scoreTabAltImg.reduce((a, b) => a + b) / nbImg;
+      scoreTabAltImg.reduce((a, b) => a + b) / dataChecker.alt_img_check.alt_img.length;
 
     console.log(
       "----------------------------- END Check ALT images --------------------------------------------"
