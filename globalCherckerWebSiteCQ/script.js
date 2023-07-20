@@ -410,12 +410,11 @@ function init() {
           : dataChecker.alt_img_check.alt_img.push(
               {
                 alt_img_state: "true",
-                alt_img_src: src ? src : $(this).attr('src'),
+                alt_img_src: src ? src : $(this).attr('background-image').split('url(')[1].split(')')[0],
                 alt_img_score: 5,
               },
               scoreTabAltImg.push(5)
             );
-            console.log('------------------------------------------', {src});
       } else if (
         this.tagName == "svg" &&
         this.getAttribute("alt") &&
@@ -440,7 +439,7 @@ function init() {
       ) {
         dataChecker.alt_img_check.alt_img.push({
           alt_img_state: "true",
-          alt_img_src: src ? src : $(this).attr('src'),
+          alt_img_src: src ? src : $(this).attr("class"), 
           alt_img_score: 5,
         });
         scoreTabAltImg.push(0);
@@ -1203,7 +1202,6 @@ function init() {
                 ? 2.5
                 : 0
             );
-            console.log('############################################### alt img check :',result.url); 
             dataChecker.img_check.alt_img.push({
               alt_img_state: true,
               alt_img_src: result.url ? result.url : args[1],
