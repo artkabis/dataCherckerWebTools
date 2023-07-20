@@ -116,3 +116,18 @@ let n = 0;
 chrome.declarativeNetRequest.onRuleMatchedDebug.addListener(
   (e) => console.log(e, ++n)
 );
+
+
+chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
+  if (message.action === 'open_interface') {
+    var dataCheckerJSON = JSON.parse(message.data);
+    var interfacePopupUrl = chrome.runtime.getURL('interface.html');
+
+    chrome.windows.create({
+      url: `${interfacePopupUrl}?data=${encodeURIComponent(JSON.stringify(dataCheckerJSON))}`,
+      type: "popup",
+      width: 1000,
+      height: 1000,
+    });
+  }
+});

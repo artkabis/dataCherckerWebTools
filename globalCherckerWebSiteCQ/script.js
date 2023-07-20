@@ -308,6 +308,7 @@ function init() {
     dataChecker.meta_check.meta[0].meta_size = checkTitle && titleLength;
     dataChecker.meta_check.meta[0].meta_reco = recoTitle;
     dataChecker.meta_check.meta[0].meta_score = 0;  
+    scoreTitle =0;
     }
 
     // desc
@@ -335,10 +336,11 @@ function init() {
     dataChecker.meta_check.meta[1].meta_size = '0'
     dataChecker.meta_check.meta[1].meta_reco = recoDesc;
     dataChecker.meta_check.meta[1].meta_score = 0;
+    scoreDesc = 0;
     }
 
     //Data global meta
-    dataChecker.meta_check.global_score = Number(
+    dataChecker.meta_check.global_score = (scoreTitle === 0 && scoreDesc ===0) ? 0 : Number(
       (scoreTitle + scoreDesc).toFixed(2)
     );
     dataChecker.meta_check.meta_check_state =
@@ -1710,7 +1712,6 @@ function init() {
           3
         ).toFixed(2)
       );
-
       dataChecker.img_check.img_check_state = true;
 
       //Calculate global scores
@@ -1796,6 +1797,7 @@ function init() {
 
       dataChecker.state_check = true;
       console.log({ dataChecker });
+      chrome.runtime.sendMessage({ action: 'open_interface', data :JSON.stringify(dataChecker) });
       console.log(
         "%c--------------------------------------------Fin du traitement globale du checkerImages ----------------------------------------------------------------",
         "color:green"
