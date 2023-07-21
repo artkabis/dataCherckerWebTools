@@ -1053,14 +1053,16 @@ function init() {
       let nbBold = dataChecker.bold_check.bold_txt.length;
       if  (nbBold === 1){ scroreBold = 1 ;}
       else if (nbBold ===2){ scroreBold = 2 }
-      else if (nbBold == 3){ scroreBold = 5 }
+      else if (nbBold === 3){ scroreBold = 3 }
       else if (nbBold ===6){ scroreBold = 4 }
+      else if (nbBold >= 3 && nbBold <= 5){ scroreBold = 5 }
       else if (nbBold ===7) {scroreBold = 3 }
       else if (nbBold === 8) {scroreBold = 2 }
       else if (nbBold === 9) {scroreBold = 2 }
       else if (nbBold === 10) {scroreBold = 1 }
       else if (nbBold <1 && nbBold>10){ scroreBold = 0}
       dataChecker.bold_check.global_score = (scroreBold) ? scroreBold : 0;
+      console.log({nbBold},{scroreBold})
       cmpBold > 0 &&
         console.log(
           "----------------------------- End Check strong & bold valitidy --------------------------------------------"
