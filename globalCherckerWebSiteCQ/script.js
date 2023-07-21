@@ -377,13 +377,9 @@ function init() {
       "----------------------------- Check ALT images --------------------------------------------"
     );
     let nb_alt_imgs_wrong = 0;
-    let nbImg = 0;
     let scoreTabAltImg = [];
-    dataChecker.alt_img_check.alt_img = [];
-    console.log(
-      "______________________alt img : ",
-      dataChecker.alt_img_check.alt_img
-    );
+    dataChecker.alt_img_check.alt_img=[];
+    
     $("img, svg").each(function (i, t) {
       const src = $(this).attr("src")
         ? $(this).attr("src")
@@ -394,16 +390,15 @@ function init() {
         !src.includes("mappy") &&
         !src.includes("cdn.manager.solocal.com") &&
         !src.includes("static.cdn-website");
-      if (filterDomain) {
+     if (filterDomain) {
         const alt = $(this).attr("alt");
-        nbImg++;
-
         !alt && alt === ""
           ? (console.log(`%cNO ALT >>> ${src}`, "color:red"),
             (nb_alt_imgs_wrong += 1),
             dataChecker.alt_img_check.alt_img.push({
               alt_img_state: true,
               alt_img_src: src ? src : $(this).attr('src'),
+              alt_img_text: 'ALT non valide.',
               alt_img_score: 0,
             }),
             scoreTabAltImg.push(0))
@@ -411,6 +406,7 @@ function init() {
               {
                 alt_img_state: true,
                 alt_img_src: src ? src : $(this).attr('background-image').split('url(')[1].split(')')[0],
+                alt_img_text: alt,
                 alt_img_score: 5,
               },
               scoreTabAltImg.push(5)
@@ -428,10 +424,10 @@ function init() {
         dataChecker.alt_img_check.alt_img.push({
           alt_img_state: true,
           alt_img_src: src ? src : 'bgimage',
+          alt_img_text: alt,
           alt_img_score: 0,
         });
         scoreTabAltImg.push(0);
-        console.log(this);
       } else if (
         this.tagName == "svg" &&
         this.getAttribute("alt") &&
@@ -439,18 +435,19 @@ function init() {
       ) {
         dataChecker.alt_img_check.alt_img.push({
           alt_img_state: true,
-          alt_img_src: src ? src : $(this).attr("class"), 
+          alt_img_src: src ? src : $(this).attr("class"),
+          alt_img_text: alt, 
           alt_img_score: 5,
         });
         scoreTabAltImg.push(0);
       }
     });
-    nbImg = scoreTabAltImg.length;
-    console.log({nbImg});
-    
-    dataChecker.alt_img_check.alt_img_check_state = nbImg ? true : false;
-    //dataChecker.alt_img_check.nb_alt_img = nbImg;
-    
+    dataChecker.alt_img_check.alt_img_check_state =  true;    
+    dataChecker.alt_img_check.alt_img = dataChecker.alt_img_check.alt_img.filter(element => Object.keys(element).length > 1);
+    console.log(
+      "______________________alt img : ",
+      dataChecker.alt_img_check.alt_img
+    );
     dataChecker.alt_img_check.global_score =  scoreTabAltImg.reduce((a, b) => a + b) / scoreTabAltImg.length;
 
     console.log(
@@ -1008,9 +1005,6 @@ function init() {
     for (let i = 0; i < boldArray.length; i++) {
       const element = boldArray[i];
       const { target, text, nbWords } = element;
-
-      console.log({target},{text},text.length, target.closest('.slide-inner'));
-
       // Vérifier si les propriétés "text" et "nbWords" sont identiques
       const isDuplicate = objSansDoublons.some(
         (item) => item.text === text && item.nbWords === nbWords
