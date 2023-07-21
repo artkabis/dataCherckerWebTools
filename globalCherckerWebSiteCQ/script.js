@@ -402,14 +402,14 @@ function init() {
           ? (console.log(`%cNO ALT >>> ${src}`, "color:red"),
             (nb_alt_imgs_wrong += 1),
             dataChecker.alt_img_check.alt_img.push({
-              alt_img_state: "true",
+              alt_img_state: true,
               alt_img_src: src ? src : $(this).attr('src'),
               alt_img_score: 0,
             }),
             scoreTabAltImg.push(0))
           : dataChecker.alt_img_check.alt_img.push(
               {
-                alt_img_state: "true",
+                alt_img_state: true,
                 alt_img_src: src ? src : $(this).attr('background-image').split('url(')[1].split(')')[0],
                 alt_img_score: 5,
               },
@@ -426,7 +426,7 @@ function init() {
         );
         nb_alt_imgs_wrong += 1;
         dataChecker.alt_img_check.alt_img.push({
-          alt_img_state: "true",
+          alt_img_state: true,
           alt_img_src: src ? src : 'bgimage',
           alt_img_score: 0,
         });
@@ -438,26 +438,20 @@ function init() {
         this.getAttribute("alt").length > 2
       ) {
         dataChecker.alt_img_check.alt_img.push({
-          alt_img_state: "true",
+          alt_img_state: true,
           alt_img_src: src ? src : $(this).attr("class"), 
           alt_img_score: 5,
         });
         scoreTabAltImg.push(0);
       }
     });
-    nbImg = dataChecker.alt_img_check.alt_img.length;
+    nbImg = scoreTabAltImg.length;
     console.log({nbImg});
     
     dataChecker.alt_img_check.alt_img_check_state = nbImg ? true : false;
-    dataChecker.alt_img_check.nb_alt_img = nbImg;
-    console.log('****************************************************************',{scoreTabAltImg})
+    //dataChecker.alt_img_check.nb_alt_img = nbImg;
     
-    const tabGlobalAltScore = dataChecker.alt_img_check.alt_img;
-    let score = [];
-    tabGlobalAltScore.forEach((t,i)=>{
-        score.push(t.alt_img_score)
-    })
-    dataChecker.alt_img_check.global_score =  score.reduce((a, b) => a + b) / tabGlobalAltScore.length;
+    dataChecker.alt_img_check.global_score =  scoreTabAltImg.reduce((a, b) => a + b) / scoreTabAltImg.length;
 
     console.log(
       "----------------------------- END Check ALT images --------------------------------------------"
@@ -933,7 +927,7 @@ function init() {
         "----------------------------- Start Check strong & bold valitidy --------------------------------------------"
       );
     let cmpBold = 0,
-      boldArray = [];
+      boldArray = [],isSlide = false;
     strongOrBold.each(function (i, t) {
       const isHnClosest = 
       $(this)[0].tagName.toLowerCase() === "h1" || $(this).parent()[0].tagName.toLowerCase() === "h1" ||
@@ -942,8 +936,9 @@ function init() {
       $(this)[0].tagName.toLowerCase() === "h4" || $(this).parent()[0].tagName.toLowerCase() === "h4" ||
       $(this)[0].tagName.toLowerCase() === "h5" || $(this).parent()[0].tagName.toLowerCase() === "h5" ||
       $(this)[0].tagName.toLowerCase() === "h6" || $(this).parent()[0].tagName.toLowerCase() === "h6" ;
+      isSlide = $(this).closest('.slide-inner');
       if (t.textContent.length > 1 && t.textContent !== " ") {
-        if (!isHnClosest) {
+        if (!isHnClosest || !isSlide) {
           cmpBold++;
           boldArray.push({
             target: t,
@@ -956,6 +951,7 @@ function init() {
       }
     });
     $("#dm_content span").each(function (t) {
+      isSlide = $(this).closest('.slide-inner');
       const isBold = (el) =>
         el.attr("style") &&
         (el.attr("style").includes("font-weight: bold") ||
@@ -1013,11 +1009,13 @@ function init() {
       const element = boldArray[i];
       const { target, text, nbWords } = element;
 
+      console.log({target},{text},text.length, target.closest('.slide-inner'));
+
       // Vérifier si les propriétés "text" et "nbWords" sont identiques
       const isDuplicate = objSansDoublons.some(
         (item) => item.text === text && item.nbWords === nbWords
       );
-      if (!isDuplicate) {
+      if (!isDuplicate && text.length>2 && !target.closest('.slide-inner')) {
         objSansDoublons.push({
           target, // Modification : Ne pas accéder à [0] pour conserver l'élément DOM
           text,

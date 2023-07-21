@@ -7,6 +7,7 @@
   console.log(dataChecker);
 
   const mainCardContainer = document.getElementById("main_card_container");
+  const cardContainer = document.getElementById('card_container');
 
   //function for mainCard
   const constructMainCard = () => {
@@ -28,10 +29,11 @@
 
     mainCard.appendChild(titleMainCard);
     mainCard.appendChild(urlContainer);
+    mainCard.appendChild(scoreContainer);
     mainCard.appendChild(createIconScore(dataChecker.global_score));
     // mainCard.appendChild(displayState(monObjetJSON.state_check));
 
-    mainCard.appendChild(scoreContainer);
+  
     mainCardContainer.appendChild(mainCard);
   };
 
@@ -44,19 +46,19 @@
     const numericScore = parseFloat(score);
 
     if (!isNaN(numericScore)) {
-      if (numericScore >= 1 && numericScore < 2) {
+      if (numericScore >= 0 && numericScore < 1.5) {
         iconSrc = "interface_icons/note_1.png";
         tooltipText = "Très Mauvais " + score + "/5";
-      } else if (numericScore >= 2 && numericScore < 3) {
+      } else if (numericScore >= 1.5 && numericScore < 2.5) {
         iconSrc = "interface_icons/note_2.png";
         tooltipText = "Mauvais " + score + "/5";
-      } else if (numericScore >= 3 && numericScore < 4) {
+      } else if (numericScore >= 2.5 && numericScore < 3.5) {
         iconSrc = "interface_icons/note_3.png";
         tooltipText = "Moyen " + score + "/5";
-      } else if (numericScore >= 4 && numericScore < 5) {
+      } else if (numericScore >= 3.5 && numericScore < 4) {
         iconSrc = "interface_icons/note_4.png";
         tooltipText = "Bon " + score + "/5";
-      } else if (numericScore >= 5) {
+      } else if (numericScore > 4) {
         iconSrc = "interface_icons/note_5.png";
         tooltipText = "Excellent " + score + "/5";
       } else {
@@ -115,4 +117,153 @@
   }
 
   $("#toggleButton").on("click", toggle);
+
+  function creerBarreNotation(note) {
+    const noteMax = 5; // Note maximale
+    const noteMin = 0; // Note minimale
+  
+    const noteClamped = Math.min(Math.max(note, noteMin), noteMax);
+  
+    const barContainer = document.createElement('div');
+    barContainer.className = 'bar-container';
+  
+    const barFill = document.createElement('div');
+    barFill.className = 'bar-fill';
+    barFill.style.width = ((noteClamped / (noteMax - noteMin)) * 100) + '%';
+  
+    barContainer.appendChild(barFill);
+  
+    return barContainer;
+  }
+
+  const createTotalResumeCheck = (object) =>{
+
+      const barre = creerBarreNotation(object.global_score);
+
+      const barCheck = document.createElement('div');
+      barCheck.className = 'bar_check';
+
+      const barTitle = document.createElement('div');
+      barTitle.className = 'bar_title';
+      barTitle.innerHTML = object.check_title+':';
+
+      const barNote = document.createElement('div');
+      barNote.className = 'bar_note';
+      barNote.innerHTML = object.global_score+'/5';
+
+      const barContainer = document.getElementById('container_bar_check');
+      barCheck.appendChild(barTitle);
+      barCheck.appendChild(barre);
+      barCheck.appendChild(barNote);
+      /*barCheck.appendChild(createIconScore(object.global_score));*/
+
+      barContainer.appendChild(barCheck);
+  }
+
+
+  const createResumeCheck = () =>{
+
+    if(dataChecker.meta_check){
+      createTotalResumeCheck(dataChecker.meta_check);
+    }
+
+    if(dataChecker.alt_img_check){
+      createTotalResumeCheck(dataChecker.alt_img_check);
+    }
+   
+    if(dataChecker.hn){
+      createTotalResumeCheck(dataChecker.hn);
+    }
+    if(dataChecker.img_check){
+      createTotalResumeCheck(dataChecker.img_check);
+    }
+    if(dataChecker.link_check){
+      createTotalResumeCheck(dataChecker.link_check);
+    }
+    if(dataChecker.bold_check){
+      createTotalResumeCheck(dataChecker.bold_check);
+    }
+
+  }
+
+  createResumeCheck();
+
+  const createCardCheck = (object) => {
+
+    const containerCardCheck = document.createElement('div');
+    containerCardCheck.className = 'card_Check';
+
+    const headerCardCheck = document.createElement('div');
+    headerCardCheck.className = 'header_card_check';
+    const titleCardCheck = document.createElement('div');
+    titleCardCheck.className = 'title_card_check';
+    titleCardCheck.innerHTML = object.check_title+':';
+
+    const headerNoteContainer = document.createElement('div');
+    headerNoteContainer.className = 'header_note_container';
+    headerNoteContainer.innerHTML = object.global_score+'/5';
+
+    const contentCardCheck = document.createElement('div');
+    contentCardCheck.className = 'content_card_check';
+    contentCardCheck.style.display = 'none'; // Cacher le contenu par défaut
+// ... Autres configurations du contenu
+
+const toggleDiv = document.createElement('div');
+toggleDiv.className = 'toggle_button';
+toggleDiv.classList.add('reversed'); // Ajouter la classe "reversed" pour que les flèches pointent vers le bas au début
+
+toggleDiv.addEventListener('click', () => {
+  if (contentCardCheck.style.display === 'none') {
+    contentCardCheck.style.display = 'block';
+    toggleDiv.classList.remove('reversed'); // Retirer la classe "reversed" pour que les flèches pointent vers le bas
+  } else {
+    contentCardCheck.style.display = 'none';
+    toggleDiv.classList.add('reversed'); // Ajouter la classe "reversed" pour que les flèches pointent vers le haut
+  }
+});
+
+    headerCardCheck.appendChild(titleCardCheck);
+    headerCardCheck.appendChild(headerNoteContainer);
+    headerCardCheck.appendChild(createIconScore(object.global_score));
+    headerCardCheck.appendChild(toggleDiv);
+    containerCardCheck.appendChild(headerCardCheck);
+    containerCardCheck.appendChild(contentCardCheck);
+
+    return containerCardCheck;
+
+  }
+
+ 
+
+  if(dataChecker.meta_check){
+
+    cardContainer.appendChild(createCardCheck(dataChecker.meta_check));
+   
+  }
+  if(dataChecker.alt_img_check){
+
+    cardContainer.appendChild(createCardCheck(dataChecker.alt_img_check));
+   
+  }
+  if(dataChecker.hn){
+
+    cardContainer.appendChild(createCardCheck(dataChecker.hn));
+   
+  }
+  if(dataChecker.img_check){
+
+    cardContainer.appendChild(createCardCheck(dataChecker.img_check));
+   
+  }
+  if(dataChecker.link_check){
+
+    cardContainer.appendChild(createCardCheck(dataChecker.link_check));
+   
+  }
+  if(dataChecker.bold_check){
+
+    cardContainer.appendChild(createCardCheck(dataChecker.bold_check));
+   
+  }
+
 })(jQuery);
