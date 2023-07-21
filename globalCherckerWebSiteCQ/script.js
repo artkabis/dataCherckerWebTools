@@ -448,7 +448,7 @@ function init() {
       "______________________alt img : ",
       dataChecker.alt_img_check.alt_img
     );
-    dataChecker.alt_img_check.global_score =  scoreTabAltImg.reduce((a, b) => a + b) / scoreTabAltImg.length;
+    dataChecker.alt_img_check.global_score =  Number(scoreTabAltImg.reduce((a, b) => a + b) / scoreTabAltImg.length).toFixed(2);
 
     console.log(
       "----------------------------- END Check ALT images --------------------------------------------"
@@ -1060,7 +1060,7 @@ function init() {
       else if (nbBold === 9) {scroreBold = 2 }
       else if (nbBold === 10) {scroreBold = 1 }
       else if (nbBold <1 && nbBold>10){ scroreBold = 0}
-      dataChecker.bold_check.global_score = (isBoldValid) ? scroreBold : 0;
+      dataChecker.bold_check.global_score = (scroreBold) ? scroreBold : 0;
       cmpBold > 0 &&
         console.log(
           "----------------------------- End Check strong & bold valitidy --------------------------------------------"
@@ -1736,7 +1736,7 @@ function init() {
       const globalScore = Number(
         (
           Number(
-            dataChecker.alt_img_check.global_score +
+              global_alt_scores +
               dataChecker.hn.global_score +
               dataChecker.meta_check.global_score +
               dataChecker.img_check.global_score +
