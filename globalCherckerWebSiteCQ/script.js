@@ -1716,10 +1716,14 @@ function init() {
       global_ratio_scores = Number(
         (ratio_scores.reduce((a, b) => a + b) / ratio_scores.length).toFixed(2)
       );
-      global_alt_scores = Number(
+      const global_alt_scores = Number(
         (alt_scores.reduce((a, b) => a + b) / alt_scores.length).toFixed(2)
       );
-      dataChecker.img_check.global_score = Number(
+      console.log({global_alt_scores})
+      dataChecker.alt_img_check.global_score = global_alt_scores;
+      
+      
+       dataChecker.img_check.global_score = Number(
         (
           (global_ratio_scores + global_size_scores + global_alt_scores) /
           3
