@@ -55,10 +55,10 @@
       } else if (numericScore >= 2.5 && numericScore < 3.5) {
         iconSrc = "interface_icons/note_3.png";
         tooltipText = "Moyen " + score + "/5";
-      } else if (numericScore >= 3.5 && numericScore < 4) {
+      } else if (numericScore >= 3.5 && numericScore < 4.5) {
         iconSrc = "interface_icons/note_4.png";
         tooltipText = "Bon " + score + "/5";
-      } else if (numericScore > 4) {
+      } else if (numericScore > 4.5) {
         iconSrc = "interface_icons/note_5.png";
         tooltipText = "Excellent " + score + "/5";
       } else {

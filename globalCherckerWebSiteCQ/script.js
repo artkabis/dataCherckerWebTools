@@ -436,7 +436,7 @@ function init() {
         dataChecker.alt_img_check.alt_img.push({
           alt_img_state: true,
           alt_img_src: src ? src : $(this).attr("class"),
-          alt_img_text: alt, 
+          alt_img_text: this.getAttribute("alt"), 
           alt_img_score: 5,
         });
         scoreTabAltImg.push(0);
@@ -454,7 +454,7 @@ function init() {
       "----------------------------- END Check ALT images --------------------------------------------"
     );
     console.log(
-      "----------------------------- Check Hn Validity --------------------------------------------"
+      "----------------------------- START check Hn outline validity -----------------------------"
     );
 
     let rendu = "";
@@ -869,8 +869,9 @@ function init() {
       }
     });
     console.log(
-      "----------------------------- START check Hn outline validity -----------------------------"
+      "----------------------------- END check Hn outline validity -----------------------------"
     );
+
 
 
     rendu = rendu.replaceAll('"', "").replaceAll("'", "").slice(0, -1);
@@ -912,9 +913,7 @@ function init() {
 
     dataChecker.hn.nb_hn = nbHn;
 
-    console.log(
-      "----------------------------- END check Hn outline validity -----------------------------"
-    );
+
 
     const strongOrBold = $(
       "#Content b, #Content strong, #Content STRONG, #dm_content b, #dm_content B, #dm_content strong, #dm_content STRONG"
@@ -1035,7 +1034,9 @@ function init() {
             objSansDoublons.length,
           "color:green"
         ),
-      console.log(objSansDoublons),
+      console.log(objSansDoublons);
+
+      
       objSansDoublons.map((t) => {
         dataChecker.bold_check.bold_check_state = true;
         (dataChecker.bold_check.nb_bold = objSansDoublons.length),
@@ -1044,9 +1045,22 @@ function init() {
             bold_txt: t.text,
             bold_nb_words: t.nbWords,
           });
-        dataChecker.bold_check.global_score =
-          isBoldValid && objSansDoublons.length ? 5 : 0;
-      }),
+
+          
+          //(isBoldValid) && objSansDoublons.length ? 5 : 0;
+      });
+      let scroreBold=0;
+      let nbBold = dataChecker.bold_check.bold_txt.length;
+      if  (nbBold === 1){ scroreBold = 1 ;}
+      else if (nbBold ===2){ scroreBold = 2 }
+      else if (nbBold == 3){ scroreBold = 5 }
+      else if (nbBold ===6){ scroreBold = 4 }
+      else if (nbBold ===7) {scroreBold = 3 }
+      else if (nbBold === 8) {scroreBold = 2 }
+      else if (nbBold === 9) {scroreBold = 2 }
+      else if (nbBold === 10) {scroreBold = 1 }
+      else if (nbBold <1 && nbBold>10){ scroreBold = 0}
+      dataChecker.bold_check.global_score = (isBoldValid) ? scroreBold : 0;
       cmpBold > 0 &&
         console.log(
           "----------------------------- End Check strong & bold valitidy --------------------------------------------"
