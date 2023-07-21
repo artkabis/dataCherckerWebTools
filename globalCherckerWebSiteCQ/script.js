@@ -443,6 +443,7 @@ function init() {
       }
     });
     dataChecker.alt_img_check.alt_img_check_state =  true;    
+    dataChecker.alt_img_check.nb_alt_img = dataChecker.alt_img_check.alt_img.length;
     dataChecker.alt_img_check.alt_img = dataChecker.alt_img_check.alt_img.filter(element => Object.keys(element).length > 1);
     console.log(
       "______________________alt img : ",
@@ -1710,16 +1711,16 @@ function init() {
           ? trierUrlsRepetees(urlsDuplicate)
           : "OK"
       );
-      global_size_scores = Number(
-        (size_scores.reduce((a, b) => a + b) / size_scores.length).toFixed(2)
+      const globalSizeScore = Number(
+        (size_scores.length>0) ? (size_scores.reduce((a, b) => a + b) / size_scores.length).toFixed(2) : 5 
       );
-      global_ratio_scores = Number(
+      global_size_scores = (globalSizeScore) ? globalSizeScore : 5;
+      global_ratio_scores = (size_scores.length>0) ? Number(
         (ratio_scores.reduce((a, b) => a + b) / ratio_scores.length).toFixed(2)
-      );
-      const global_alt_scores = Number(
+      ) : 5;
+      const global_alt_scores = (size_scores.length>0) ? Number(
         (alt_scores.reduce((a, b) => a + b) / alt_scores.length).toFixed(2)
-      );
-      console.log({global_alt_scores})
+      ) :5;
       dataChecker.alt_img_check.global_score = global_alt_scores;
       
       
