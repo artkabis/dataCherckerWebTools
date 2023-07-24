@@ -26,6 +26,7 @@
     scoreContainer.classList.add("score_span");
     scoreContainer.innerHTML =
       "Score Global: " + dataChecker.global_score + "/5";
+   
 
     mainCard.appendChild(titleMainCard);
     mainCard.appendChild(urlContainer);
@@ -76,7 +77,6 @@
     const iconScoreImg = document.createElement("img");
     iconScoreImg.src = iconSrc;
     iconScoreElm.appendChild(iconScoreImg);
-
     return iconScoreElm;
   };
 
@@ -183,7 +183,6 @@
     if(dataChecker.bold_check){
       createTotalResumeCheck(dataChecker.bold_check);
     }
-
   }
 
   createResumeCheck();
@@ -265,5 +264,7 @@ toggleDiv.addEventListener('click', () => {
     cardContainer.appendChild(createCardCheck(dataChecker.bold_check));
    
   }
+
+    //(dataChecker.global_score === 5) && alert("Bravo tu a atteint l'excellence !!!! T'as note est de "+dataChecker.global_score + "/5")
 
 })(jQuery);

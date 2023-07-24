@@ -1023,7 +1023,7 @@ function init() {
         ? false
         : true;
     dataChecker.bold_check.bold_check_state;
-    const isBoldValid = cmpBold >= 3 && cmpBold <= 5;
+    const isBoldValid = objSansDoublons.length >= 3 && objSansDoublons.length <= 5;
     !isBoldValid
       ? console.log(
           "%c Attention le nombre déléments mis en gras ne respect pas le standard (3 à 5 expressions), ici >>> " +
@@ -1227,7 +1227,25 @@ function init() {
                     ? 2.5
                     : 5,
                 check_title: "Images size",
-              }),
+              });
+              const imgcheckRation =  result.ratio < 2 &&
+              result.Imgheight < 150 &&
+              result.Imgwidth < 150 ||
+              result.ratio == "image cachée" ;
+              let ratioScoreImg;
+
+              if (imgcheckRation){
+                ratioScoreImg = 5
+              }else if(result.ratio >= 2 && (result.Imgheight < 500 || result.Imgwidth > 500)){
+                ratioScoreImg =  2.5;
+              }else if(result.ratio > 4){
+                ratioScoreImg = 0;
+              }else if(result.ratio === 1){
+                ratioScoreImg = 5;
+              }
+
+  
+
               dataChecker.img_check.ratio_img.push({
                 ratio_img_state: "true",
                 ratio_img_src: result.url,
@@ -1239,15 +1257,8 @@ function init() {
                 ratio_parent_img_height: result.ratioHeight,
                 ratio_parent_img_width: result.ratioWidth,
                 ratio_img: result.ratio,
-                ratio_img_score:
-                  result.ratio < 2 ||
-                  result.ratio == "image cachée" ||
-                  result.Imgheight < 150 ||
-                  result.Imgwidth < 150
-                    ? 5
-                    : result.ratio >= 4
-                    ? 2.5
-                    : 0,
+                ratio_img_score:ratioScoreImg
+                 
               });
           }
         } catch (error) {
