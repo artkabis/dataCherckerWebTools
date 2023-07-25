@@ -246,41 +246,61 @@ function init() {
         );
     });
 
-    //Counter words in content page
-    const countWords = (text) => {
-      // Supprime les espaces en début et en fin de chaîne
-      text = text.trim();
-      // Remplace les sauts de ligne par un espace
-      text = text.replace(/\n/g, " ");
-      // Remplace les doubles espaces consécutifs par un seul espace
-      text = text.replace(/\s{2,}/g, " ");
-      text = text
-        .replaceAll("Button", "")
-        .replaceAll("Afficher davantage", "")
-        .replaceAll("John Doe", "")
-        .replaceAll("City skyline", "")
-        .replaceAll("Photo By:", "")
-        .replaceAll("Birthday Sparks", "")
-        .replaceAll("Fashion Magazine", "")
-        .replaceAll("Blurred Lines", "")
-        .replaceAll("Photo by:", "");
-
-      // Divise le texte en mots en utilisant les espaces comme séparateurs
-      const words = text.split(" ");
-      // Retourne le nombre de mots
-      console.log(
-        "nombre de mot dans la page : ",
-        words.length,
-        "\nTexte regroupé de la page : ",
-        [{ text }]
-      );
-      return words.length;
-    };
-
-    // Obtient le contenu du div avec l'ID "content"
-    const contentDiv = $("#dm_content, #Content")[0];
-    const contentText = contentDiv ? contentDiv.textContent : false;
-    contentText && countWords(contentText);
+      const replaceWords = [
+        "Button",
+        "Afficher davantage",
+        "John Doe",
+        "City skyline",
+        "Photo By:",
+        "Birthday Sparks",
+        "Fashion Magazine",
+        "Blurred Lines",
+        "Photo by:",
+      ];
+    
+       const replaceRegex = new RegExp(replaceWords.join("|"), "gi");
+    
+      // Supprimer le texte entre les caractères { et }
+      const removeTextInsideBraces = (text) => {
+        return text.replace(/\{.*?\}/g, "");
+      };
+    
+     // Supprimer le texte JSON avec les clés
+      const removeJSON = (text) => {
+        return text.replace(/(\{[^{}]*\}|\[[^\[\]]*\])/g, "");
+      };
+    
+      // Compter les mots dans le contenu de la page
+      const countWords = (text) => {
+        // Supprimer le texte JSON
+        text = removeJSON(text);
+        // Supprimer le texte entre les caractères { et }
+        text = removeTextInsideBraces(text);
+          // Supprimer les mots spécifiés dans replaceWords
+        text = text.replace(replaceRegex, "");
+    
+        // Supprimer les espaces en début et en fin de chaîne
+        text = text.trim();
+        // Remplacer les sauts de ligne et les doubles espaces consécutifs par un seul espace
+        text = text.replace(/\n|\s{2,}/g, " ");
+        // Retirer les mots spécifiés
+        const filteredWords = text
+          .split(" ")
+          .filter((word) => !replaceWords.includes(word));
+          const nombre_de_mots = filteredWords.length;
+          const texte_complet = filteredWords.join(" ");
+          console.log({nombre_de_mots},{texte_complet})
+        // Retourner le nombre de mots
+         
+      };
+    
+      // Obtient le contenu du div avec l'ID "content"
+      const contentDiv = $("#dm_content, #Content")[0];
+      const contentText = contentDiv ? contentDiv.textContent : false;
+    
+      if (contentText) {
+          countWords(contentText)
+      }
 
     //Start meta check
     const title = $('meta[property="og:title"]').attr("content");

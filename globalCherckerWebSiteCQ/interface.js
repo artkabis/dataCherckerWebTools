@@ -1,10 +1,12 @@
+
+
 (($) => {
   console.log("------------ in interface script -----------");
   const queryString = window.location.search;
   const params = new URLSearchParams(queryString);
   const data = params.get("data");
   const dataChecker = JSON.parse(decodeURIComponent(data));
-  console.log(dataChecker);
+  window['dataCheck'] = dataChecker;
 
   const mainCardContainer = document.getElementById("main_card_container");
   const cardContainer = document.getElementById('card_container');
@@ -40,7 +42,6 @@
 
   //function for create IconScore
   const createIconScore = (score) => {
-    console.log(score);
     let iconSrc = "";
     let tooltipText = "";
 
@@ -188,7 +189,6 @@
   createResumeCheck();
 
   const createCardCheck = (object) => {
-
     const containerCardCheck = document.createElement('div');
     containerCardCheck.className = 'card_Check';
 
@@ -205,21 +205,24 @@
     const contentCardCheck = document.createElement('div');
     contentCardCheck.className = 'content_card_check';
     contentCardCheck.style.display = 'none'; // Cacher le contenu par défaut
-// ... Autres configurations du contenu
 
-const toggleDiv = document.createElement('div');
-toggleDiv.className = 'toggle_button';
-toggleDiv.classList.add('reversed'); // Ajouter la classe "reversed" pour que les flèches pointent vers le bas au début
+    contentCardCheck.innerHTML = JSON.stringify(object);
 
-toggleDiv.addEventListener('click', () => {
-  if (contentCardCheck.style.display === 'none') {
-    contentCardCheck.style.display = 'block';
-    toggleDiv.classList.remove('reversed'); // Retirer la classe "reversed" pour que les flèches pointent vers le bas
-  } else {
-    contentCardCheck.style.display = 'none';
-    toggleDiv.classList.add('reversed'); // Ajouter la classe "reversed" pour que les flèches pointent vers le haut
-  }
-});
+    // ... Autres configurations du contenu
+
+    const toggleDiv = document.createElement('div');
+    toggleDiv.className = 'toggle_button';
+    toggleDiv.classList.add('reversed'); // Ajouter la classe "reversed" pour que les flèches pointent vers le bas au début
+
+    toggleDiv.addEventListener('click', () => {
+      if (contentCardCheck.style.display === 'none') {
+        contentCardCheck.style.display = 'block';
+        toggleDiv.classList.remove('reversed'); // Retirer la classe "reversed" pour que les flèches pointent vers le bas
+      } else {
+        contentCardCheck.style.display = 'none';
+        toggleDiv.classList.add('reversed'); // Ajouter la classe "reversed" pour que les flèches pointent vers le haut
+      }
+    });
 
     headerCardCheck.appendChild(titleCardCheck);
     headerCardCheck.appendChild(headerNoteContainer);
@@ -268,3 +271,6 @@ toggleDiv.addEventListener('click', () => {
     //(dataChecker.global_score === 5) && alert("Bravo tu a atteint l'excellence !!!! T'as note est de "+dataChecker.global_score + "/5")
 
 })(jQuery);
+const CHECK = window['dataCheck'];
+const {webdesigner_global_score:WEB, cdp_global_score:CDP} = CHECK;//rename webdesigner_global_score & cdp_global_score to WEB & CDP
+console.log({CHECK},{WEB},{CDP});//CHECK global value in window scope.
