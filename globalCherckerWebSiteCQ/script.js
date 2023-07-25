@@ -1262,6 +1262,8 @@ function init() {
                 ratioScoreImg = 0;
               }else if(result.ratio === 1){
                 ratioScoreImg = 5;
+              }else{
+                ratioScoreImg = 5;
               }
 
   
