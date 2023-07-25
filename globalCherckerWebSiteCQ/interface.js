@@ -5,7 +5,10 @@
   const queryString = window.location.search;
   const params = new URLSearchParams(queryString);
   const data = params.get("data");
-  const dataChecker = JSON.parse(decodeURIComponent(data));
+  console.log({data},{queryString},{params},JSON.parse(data));
+  // const decodeURI = decodeURIComponent(data);
+  // console.log({decodeURI})
+  const dataChecker = JSON.parse(data);
   window['dataCheck'] = dataChecker;
 
   const mainCardContainer = document.getElementById("main_card_container");
