@@ -1,3 +1,5 @@
+//test ESM import
+notJquery = typeof jQuery == "undefined";
 dataChecker = {
   url_site: window.location.href,
   global_score: "2",
@@ -172,7 +174,8 @@ dataChecker = {
   },
 };
 
-notJquery = typeof jQuery == "undefined";
+//export const APP_CHECKER = () =>{
+
 window["dataResult"] = [{ data: { key: "value" } }];
 function addJquery() {
   console.log("jQuery n'est pas installé, lancement de cette librairie ...");
@@ -200,7 +203,8 @@ function init() {
     );
     const url = window.location.href;
     const device =
-      "mobile"; /*prompt('Veuillez indiquer le device à tester (mobile ou desktop) : '); */
+      "mobile"; 
+      //prompt('Veuillez indiquer le device à tester (mobile ou desktop) : '); 
     const apiCall = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${url}&strategy=${device}&category=pwa&category=seo&category=performance&category=accessibility`;
     fetch(apiCall)
       .then((response) => response.json())
@@ -271,6 +275,7 @@ function init() {
       };
     
       // Compter les mots dans le contenu de la page
+      let fullText = []
       const countWords = (text) => {
         // Supprimer le texte JSON
         text = removeJSON(text);
@@ -289,18 +294,20 @@ function init() {
           .filter((word) => !replaceWords.includes(word));
           const nombre_de_mots = filteredWords.length;
           const texte_complet = filteredWords.join(" ");
-          console.log({nombre_de_mots},{texte_complet})
-        // Retourner le nombre de mots
-         
+          fullText.push(texte_complet)         
       };
+      
     
       // Obtient le contenu du div avec l'ID "content"
-      const contentDiv = $("#dm_content, #Content")[0];
+      const contentDiv =  $("#dm_content .dmNewParagraph:not(.proliveContainer), #Content");
       const contentText = contentDiv ? contentDiv.textContent : false;
-    
-      if (contentText) {
-          countWords(contentText)
-      }
+      contentDiv.each(function(){
+        countWords($(this)[0].textContent);
+      });
+      const allTxt = (fullText.length >1) ? fullText.join(',') : fullText;
+      const lenghtTxt = allTxt.split(' ').length;
+      console.log('texte comptabilisé: ' + allTxt)
+      console.log({lenghtTxt},{allTxt})
 
     //Start meta check
     const title = $('meta[property="og:title"]').attr("content");
@@ -1154,7 +1161,7 @@ function init() {
             const ratio = Number(
               ((args[5] / args[7] + args[6] / args[8]) / 2).toFixed(2)
             );
-
+            let sizeInKb = (fsize / 1024).toFixed(2);
             result = {
               target: args[0],
               url: new URL(args[1]).href,
@@ -1181,7 +1188,7 @@ function init() {
                 "%c Warning SRC ALT not working : " + new URL(args[1]).href,
                 "color: red"
               );
-            } else if (ratio > 3 && String(ratio) !== "Infinity") {
+            } else if (ratio > 3 && String(ratio) !== "Infinity" && sizeInKb > 70) {
               console.log(
                 "%c Warning : ratio supérieur à 3 : " + ratio,
                 "color: orange"
@@ -1189,7 +1196,7 @@ function init() {
             } else if (
               ratio > 2 &&
               String(ratio) !== "Infinity" &&
-              (args[5] > 900 || args[6] > 900)
+              (args[5] >= 900 || args[6] >= 900 && sizeInKb > 70)
             ) {
               console.log(
                 "%c Warning : ratio supérieur à 2 : " +
@@ -1201,14 +1208,14 @@ function init() {
             /*256000 Bytes = 250 KB*/
             if (fsize > 256000 && fsize < 317435) {
               console.log(
-                `%c Warning File size exceeds 250 KB : ${formatBytes(
+                `%c Warning - la taille de l'image dépasse 250 KB : ${formatBytes(
                   fsize
                 )}  url : ${result.url}`,
                 "color: orange"
               );
             } /*317435 Bytes = 310 KB*/ else if (fsize > 317435) {
               console.log(
-                `%c Warning File size exceeds 310 KB : ${formatBytes(
+                `%c Warning - la taille de l'image dépasse 310 KB : ${formatBytes(
                   fsize
                 )}  url : ${result.url}`,
                 "color: red"
@@ -1224,13 +1231,7 @@ function init() {
               fsize > 317435 ? 0 : fsize > 256000 && fsize < 317435 ? 2.5 : 5
             );
             alt_scores.push(result.alt[2] !== false ? 5 : 0);
-            ratio_scores.push(
-              result.ratio < 2 || result.ratio == "image cachée"
-                ? 5
-                : result.ratio > 2 && result.ratio < 3
-                ? 2.5
-                : 0
-            );
+            
             dataChecker.img_check.alt_img.push({
               alt_img_state: true,
               alt_img_src: result.url ? result.url : args[1],
@@ -1248,28 +1249,27 @@ function init() {
                     : 5,
                 check_title: "Images size",
               });
-              const imgcheckRation =  result.ratio < 2 &&
+              const imgcheckRatio =  result.ratio < 2 &&
               result.Imgheight < 150 &&
               result.Imgwidth < 150 ||
               result.ratio == "image cachée" ;
               let ratioScoreImg;
 
-              if (imgcheckRation){
+              if (imgcheckRatio || result.ratio === 1){
                 ratioScoreImg = 5
-              }else if(result.ratio >= 2 && (result.Imgheight < 500 || result.Imgwidth > 500)){
+              }else if(result.ratio >= 2 && (result.Imgheight >= 500 || result.Imgwidth >= 500) && sizeInKb > 70){
                 ratioScoreImg =  2.5;
-              }else if(result.ratio > 4){
+              }else if(result.ratio > 4 && sizeInKb > 70){
                 ratioScoreImg = 0;
-              }else if(result.ratio === 1){
-                ratioScoreImg = 5;
               }else{
                 ratioScoreImg = 5;
               }
+              ratio_scores.push(ratioScoreImg);
 
   
 
               dataChecker.img_check.ratio_img.push({
-                ratio_img_state: "true",
+                ratio_img_state: true,
                 ratio_img_src: result.url,
                 type_img: result.type,
                 img_height: result.Imgheight,
@@ -1479,7 +1479,7 @@ function init() {
       });
 
       const allImg = [...imagesForAnalyseBG, ...imagesForAnalyseImg];
-      cmpAllImg = 0;
+      let cmpAllImg = 0;
       console.log({ allImg });
       for (const item of allImg) {
         const content = item.value;
@@ -1507,7 +1507,7 @@ function init() {
     }
     let timeout = 30000;
 
-    scoreCheckLink = [];
+    let scoreCheckLink = [], isLinkedin,txtLinkedin;
     dataChecker.link_check.link = [];
     function check(_url, _txt, _node) {
       const response = {
@@ -1527,17 +1527,18 @@ function init() {
             clearTimeout(fetchTimeout);
             response.status = res.status;
             response.document = res.responseText;
-
+            isLinkedin = res.status === 999;
+            txtLinkedin = isLinkedin ? "Lien Linkedin : " : ""
             resolve(response);
-            if (res.ok) {
+            if (res.ok || isLinkedin) {
               console.log(
-                `url: ${_url} %c${_txt} -> %cstatus: %c${response.status}`,
+                `url: ${txtLinkedin} ${_url} %c${_txt} -> %cstatus: %c${response.status}`,
                 "color:cornflowerblue;",
                 "color:white;",
                 "color:green"
               );
               scoreCheckLink.push(5);
-            } else {
+            } else if(!isLinkedin) {
               console.log(
                 `url: ${_url} %c${_txt} -> %cstatus: %c${response.status}`,
                 "color:cornflowerblue;",
@@ -1576,6 +1577,7 @@ function init() {
       : document.querySelectorAll(
           "#dm_content a, .dmCall, .dmFooterContainer a"
         );
+        dataChecker.link_check.nb_link = linksStack.length;
     $.each(linksStack, function (i, t) {
       let url = t.href;
       if (url) {
@@ -1622,7 +1624,7 @@ function init() {
           url.includes("https")
         ) {
           console.log(
-            `%c Vérifier le lien ${t.textContent.replace(
+            `%c Vérifier le lien ${url.includes('linkedin.com') ? "Linkedin" : ""}${t.textContent.replace(
               /(\r\n|\n|\r)/gm,
               ""
             )} manuellement >>>`,
@@ -1636,7 +1638,7 @@ function init() {
           !url.includes("https")
         ) {
           console.log(
-            `%c Vérifier le lien ${t.textContent.replace(
+            `%c Vérifier le lien ${url.includes('linkedin.com') ? "Linkedin" : ""} ${t.textContent.replace(
               /(\r\n|\n|\r)/gm,
               ""
             )} manuellement et SECURISEZ LE via "https" si ceci est possible >>>`,
@@ -1694,7 +1696,7 @@ function init() {
         );
       }
     });
-    linksCounts = {};
+    let linksCounts = {};
     $("#Content a, #dm_content a").each(function (i, t) {
       href = $(this).attr("href");
       href &&
@@ -1865,3 +1867,7 @@ function init() {
   })(jQuery);
 }
 !notJquery && init();
+// };
+// export const dataCheckerFunc = ()=>{
+//   return dataChecker;
+// }

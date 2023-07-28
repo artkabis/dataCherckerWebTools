@@ -115,7 +115,7 @@
               let finalLink = [];
               links.forEach((t,i)=>{
                 link = t.includes("#") ? t.split('#')[0] : t;
-              finalLink.push(`<a href="${link}">${link}</a><br>`);
+              (link.includes('/site')) && finalLink.push(`<a href="${link}">${link}</a><br>`);
             });
             
             return [...new Set(finalLink)];

@@ -1,6 +1,9 @@
 
 
-console.log('start background');
+// Importer le module ESM
+import HnOutlineValidity from './Functions/HnOutlineValidity.js';
+
+console.log('start background',{HnOutlineValidity});
 
 // Événement d'installation du service worker
 chrome.runtime.onInstalled.addListener(() => {
@@ -16,6 +19,15 @@ chrome.runtime.onInstalled.addListener(() => {
   }
 });
 
+
+// Écoute les messages provenant du contenu ou du script d'extension
+chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
+  // Vérifiez si le message provient du contenu et a une action spécifique
+  if (message.from === 'content_script' && message.action === 'getHnOutlineValidity') {
+    // Envoi des données HnOutlineValidity au script popup.js
+    sendResponse({ HnOutlineValidity });
+  }
+});
 // Événement fetch pour permettre au service worker de gérer les requêtes réseau
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Vérifiez si le message provient de votre contenu ou de votre script d'arrière-plan

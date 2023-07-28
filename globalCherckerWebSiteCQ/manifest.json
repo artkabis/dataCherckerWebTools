@@ -30,6 +30,9 @@
     "webRequest",
     "debugger"
   ],
+"options_page": 
+  "options.html",
+
   "host_permissions": [
     "<all_urls>",
     "*://*/*",
