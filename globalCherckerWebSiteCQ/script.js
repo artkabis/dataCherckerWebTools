@@ -275,7 +275,7 @@ function init() {
       };
     
       // Compter les mots dans le contenu de la page
-      let fullText = [],cmpFullText = 0
+      let fullText = [],cmpFullText = 0,nombre_de_mots= 0
       const countWords = (text) => {
         cmpFullText ++;
         // Supprimer le texte JSON
@@ -293,23 +293,20 @@ function init() {
         const filteredWords = text
           .split(" ")
           .filter((word) => !replaceWords.includes(word));
-          const nombre_de_mots = filteredWords.length;
-          const texte_complet = filteredWords.join(" ");
-          fullText.push(texte_complet)         
+          fullText.push(filteredWords.join(" "))         
       };
       
     
       // Obtient le contenu du div avec l'ID "content"
       const contentDiv =  $("#dm_content .dmNewParagraph:not(.proliveContainer), #Content");
-      const contentText = contentDiv ? contentDiv.textContent : false;
       contentDiv.each(function(){
         countWords($(this)[0].textContent);
       });
-      const allTxt = (fullText.length >1) ? fullText.join(',') : fullText;
+      const texte_complet = (fullText.length >1) ? fullText.join(',') : fullText;
       console.log({fullText},'   fullText.lenght : ',{cmpFullText});
-      const lenghtTxt = cmpFullText===1 ? fullText[0].split(' ').length : allTxt.split(' ').length;
-      console.log('texte comptabilisé: ' + allTxt)
-      console.log({lenghtTxt},{allTxt})
+      nombre_de_mots = cmpFullText===1 ? fullText[0].split(' ').length : texte_complet.split(' ').length;
+      console.log('texte comptabilisé: ' + texte_complet)
+      console.log({nombre_de_mots},{texte_complet})
 
     //Start meta check
     const title = $('meta[property="og:title"]').attr("content");
