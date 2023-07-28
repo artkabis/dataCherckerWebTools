@@ -275,8 +275,9 @@ function init() {
       };
     
       // Compter les mots dans le contenu de la page
-      let fullText = []
+      let fullText = [],cmpFullText = 0
       const countWords = (text) => {
+        cmpFullText ++;
         // Supprimer le texte JSON
         text = removeJSON(text);
         // Supprimer le texte entre les caractères { et }
@@ -305,7 +306,8 @@ function init() {
         countWords($(this)[0].textContent);
       });
       const allTxt = (fullText.length >1) ? fullText.join(',') : fullText;
-      const lenghtTxt = allTxt.split(' ').length;
+      console.log({fullText},'   fullText.lenght : ',{cmpFullText});
+      const lenghtTxt = cmpFullText===1 ? fullText[0].split(' ').length : allTxt.split(' ').length;
       console.log('texte comptabilisé: ' + allTxt)
       console.log({lenghtTxt},{allTxt})
 
