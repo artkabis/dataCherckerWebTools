@@ -1,6 +1,6 @@
- const HnOutlineValidity =() =>{
 
-    
+
+    console.log(" ------------------------------- HnOutlineValidity starting");
     const isHeadingValid = (currentHn, previousHn) => {
         const currentHnIndex = parseInt(currentHn.charAt(1));
         const previousHnIndex = parseInt(previousHn.charAt(1));
@@ -119,6 +119,3 @@
       );
       newWindow.document.write(`</head><body>${structure}<body></html>`);
       newWindow.document.close();
-}
-
-export default HnOutlineValidity;

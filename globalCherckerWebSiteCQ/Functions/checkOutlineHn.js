@@ -1,0 +1,457 @@
+(($) => {
+  console.log(
+    "----------------------------- START check Hn outline validity -----------------------------"
+  );
+
+  let rendu = "";
+  let h1Count = 0;
+  let h2Count = 0;
+  let h3Count = 0;
+  const h1Indexes = [];
+
+  const verifierStructureHn = (HnArray) => {
+    const niveaux = ["h1", "h2", "h3", "h4", "h5", "h6"];
+    let hasH1 = false;
+    let hasH2 = false;
+    let hasH3 = false;
+    let validStructure = true;
+
+    for (let i = 0; i < HnArray.length; i++) {
+      const balise = HnArray[i];
+      const niveauActuel = niveaux.indexOf(balise.nodeName.toLowerCase());
+
+      if (balise.nodeName.toLowerCase() === "h1") {
+        h1Count++;
+        if (!h1Indexes.includes(i)) {
+          h1Indexes.push(i);
+          if (i === 0) {
+            rendu += `${balise.nodeName.toLowerCase()} - Valide_`;
+            console.log(
+              `%c${balise.nodeName.toLowerCase()} - Valide`,
+              "color: green"
+            );
+            hasH1 = true;
+          } else if (i === 0 && niveauActuel !== "h1") {
+            rendu += `${balise.nodeName.toLowerCase()} - Non valide (premier tag doit être h1)_`;
+            console.log(
+              `%c${balise.nodeName.toLowerCase()} - Non valide (premier tag doit être h1)`,
+              "color: red"
+            );
+            validStructure = false;
+          }
+        } else {
+          rendu += `${balise.nodeName.toLowerCase()} - Non valide (doublon)_`;
+          console.log(
+            `%c${balise.nodeName.toLowerCase()} - Non valide (doublon)`,
+            "color: red"
+          );
+          validStructure = false;
+        }
+
+        if (h1Count > 1 && i > 0) {
+          if (balise.nodeName.toLowerCase() === "h1") {
+            rendu += `${balise.nodeName.toLowerCase()} - Non valide (doublon)_`;
+            console.log(
+              `%c${balise.nodeName.toLowerCase()} - Non valide (doublon)`,
+              "color: red"
+            );
+            validStructure = false;
+          }
+        }
+      } else if (balise.nodeName.toLowerCase() === "h2") {
+        if (!hasH1) {
+          rendu += `${balise.nodeName.toLowerCase()} - Non valide (h1 manquant)_`;
+          console.log(
+            `%c${balise.nodeName.toLowerCase()} - Non valide (h1 manquant)`,
+            "color: red"
+          );
+          validStructure = false;
+        } else {
+          h2Count++;
+          rendu += `${balise.nodeName.toLowerCase()} - Valide_`;
+          console.log(
+            `%c${balise.nodeName.toLowerCase()} - Valide`,
+            "color: green"
+          );
+          hasH2 = true;
+        }
+      } else if (balise.nodeName.toLowerCase() === "h3") {
+        if (!hasH1 || !hasH2) {
+          rendu += `${balise.nodeName.toLowerCase()} - Non valide (h1 ou h2 manquant)_`;
+          console.log(
+            `%c${balise.nodeName.toLowerCase()} - Non valide (h1 ou h2 manquant)`,
+            "color: red"
+          );
+          validStructure = false;
+        } else {
+          h3Count++;
+          rendu += `${balise.nodeName.toLowerCase()} - Valide_`;
+          console.log(
+            `%c${balise.nodeName.toLowerCase()} - Valide`,
+            "color: green"
+          );
+          hasH3 = true;
+        }
+      } else if (balise.nodeName.toLowerCase() === "h4") {
+        if (!hasH1 || !hasH2 || !hasH3) {
+          rendu += `${balise.nodeName.toLowerCase()} - Non valide (h1, h2 ou h3 manquant)_`;
+          console.log(
+            `%c${balise.nodeName.toLowerCase()} - Non valide (h1, h2 ou h3 manquant)`,
+            "color: red"
+          );
+          validStructure = false;
+        } else {
+          rendu += `${balise.nodeName.toLowerCase()} - Valide_`;
+          console.log(
+            `%c${balise.nodeName.toLowerCase()} - Valide`,
+            "color: green"
+          );
+        }
+      } else {
+        // Vérifier si le niveau actuel est inférieur au niveau précédent ou a des niveaux intermédiaires manquants
+        const niveauPrecedent = niveaux.indexOf(
+          HnArray[i - 1].nodeName.toLowerCase()
+        );
+        if (niveauActuel <= niveauPrecedent) {
+          rendu += `${balise.nodeName.toLowerCase()} - Non valide_`;
+          console.log(
+            `%c${balise.nodeName.toLowerCase()} - Non valide`,
+            "color: red"
+          );
+          validStructure = false;
+        } else if (niveauActuel - niveauPrecedent > 1) {
+          for (let j = niveauPrecedent + 1; j < niveauActuel; j++) {
+            rendu += `${niveaux[j]} - Non valide (niveau manquant)_`;
+            console.log(
+              `%c${niveaux[j]} - Non valide (niveau manquant)`,
+              "color: red"
+            );
+            validStructure = false;
+          }
+        } else {
+          rendu += `${balise.nodeName.toLowerCase()} - Valide_`;
+          console.log(
+            `%c${balise.nodeName.toLowerCase()} - Valide`,
+            "color: green"
+          );
+        }
+      }
+    }
+
+    if (validStructure) {
+      console.log("Structure des Hn valide.");
+    } else {
+      console.log("Structure des Hn invalide.");
+    }
+  };
+  const allTagHn = document.querySelectorAll("h1,h2,h3,h4,h5,h6");
+  const HnArray = Array.from(allTagHn, (element) => element);
+  verifierStructureHn(HnArray);
+  let globalScoreHnReco = [],
+    nbHn = 0;
+  dataChecker.hn.hn_reco.hn.length = 0;
+  allTagHn.forEach((t, i) => {
+    nbHn++;
+    const nbLetters = t.textContent.length;
+    const tagName = t.tagName;
+    const tagContent = t.textContent
+      .replaceAll("\n", " ")
+      .replaceAll(",", " ")
+      .replaceAll("\t", "")
+      .replaceAll("'", "’")
+      .replaceAll("l'", "")
+      .replaceAll("l’", "")
+      .replaceAll("t’", "")
+      .replaceAll("  ", " ");
+    let words = tagContent.split(" ");
+    const pronoms = [
+      "&",
+      "?",
+      ":",
+      "je",
+      "me",
+      "m’",
+      "moi",
+      "tu",
+      "te",
+      "t’",
+      "l'",
+      "toi",
+      "par",
+      "nous",
+      "vous",
+      "il",
+      "de",
+      "des",
+      "près",
+      "pour",
+      "vers",
+      "selon",
+      "vos",
+      "et",
+      "aux",
+      "ou",
+      "où",
+      "votre",
+      "notre",
+      "à",
+      "a",
+      "sur",
+      "dans",
+      "alentours",
+      "elle",
+      "ils",
+      "elles",
+      "se",
+      "en",
+      "y",
+      "le",
+      "la",
+      "l’",
+      "les",
+      "lui",
+      "soi",
+      "leur",
+      "eux",
+      "lui",
+      "leur",
+      "celui",
+      "celui-ci",
+      "celui-là",
+      "celle",
+      "celle-ci",
+      "celle-là",
+      "ceux",
+      "ceux-ci",
+      "ceux-là",
+      "celles",
+      "celles-ci",
+      "celles-là",
+      "ce",
+      "ceci",
+      "cela",
+      "ça",
+      "le mien",
+      "le tien",
+      "le sien",
+      "la mienne",
+      "la tienne",
+      "la sienne",
+      "les miens",
+      "les tiens",
+      "les siens",
+      "les miennes",
+      "les tiennes",
+      "les siennes",
+      "le nôtre",
+      "le vôtre",
+      "le leur",
+      "la nôtre",
+      "la vôtre",
+      "la leur",
+      "les nôtres",
+      "les vôtres",
+      "les leurs",
+      "qui",
+      "que",
+      "quoi",
+      "dont",
+      "où",
+      "lequel",
+      "auquel",
+      "duquel",
+      "laquelle",
+      "à laquelle",
+      "de laquelle",
+      "lesquels",
+      "auxquels",
+      "desquels",
+      "lesquelles",
+      "auxquelles",
+      "desquelles",
+      "qui",
+      "que",
+      "quoi",
+      "qu'est-ce",
+      "lequel",
+      "auquel",
+      "duquel",
+      "laquelle",
+      "à laquelle",
+      "de laquelle",
+      "lesquels",
+      "auxquels",
+      "desquels",
+      "lesquelles",
+      "auxquelles",
+      "desquelles",
+      "on",
+      "tout",
+      "un",
+      "une",
+      "l'un",
+      "l'une",
+      "les uns",
+      "les unes",
+      "un autre",
+      "une autre",
+      "d'autres",
+      "l'autre",
+      "les autres",
+      "aucun",
+      "aucune",
+      "aucuns",
+      "aucunes",
+      "certains",
+      "certaine",
+      "certains",
+      "certaines",
+      "tel",
+      "telle",
+      "tels",
+      "telles",
+      "tout",
+      "toute",
+      "tous",
+      "toutes",
+      "le même",
+      "la même",
+      "les mêmes",
+      "nul",
+      "nulle",
+      "nuls",
+      "nulles",
+      "quelqu'un",
+      "quelqu'une",
+      "quelques uns",
+      "quelques unes",
+      "personne (aucun)",
+      "autrui",
+      "quiconque",
+      "d’aucun",
+      "autrui",
+      "on",
+      "personne",
+      "quelque chose",
+      "quiconque",
+      "rien",
+      "chacun",
+      "chacune",
+      "plusieurs",
+      "d’aucuns",
+      "Quelles",
+      "quelles",
+      "quelles",
+      "sont",
+      "Quels",
+      "quels",
+      "encore",
+      "Encore",
+      "Nos",
+      "nos",
+    ];
+
+    words = words.filter((w) => !pronoms.includes(w.toLowerCase()));
+    console.log({
+      [tagName]: tagContent,
+      " nb lettres": nbLetters,
+      "nombre de mots comptabilisés (de 5 à 8) ": Number(words.length),
+      "mots comptabilisés": words.join(",").replaceAll("\n", " "),
+      node: t,
+      index: i,
+    });
+
+    if (
+      ((tagName === "H1" || tagName === "H2") && nbLetters < 50) ||
+      nbLetters > 90
+    ) {
+      dataChecker.hn.hn_reco.hn.push({
+        hn_type: tagName,
+
+        hn_letters_count: nbLetters,
+
+        hn_txt: tagContent,
+
+        hn_index: i,
+
+        hn_words_sliced: words,
+
+        hn_words_count: Number(words.length),
+
+        hn_preco: "Nombre de mots comptabilisés (de 5 à 8)",
+
+        hn_score: 0,
+      });
+      globalScoreHnReco.push(0);
+      console.log(
+        "%c" +
+          tagName +
+          " : " +
+          tagContent +
+          " ------ Erreur -> nombre de caractères : " +
+          nbLetters +
+          ", ne rentre pas dans la préco de 50 -> 90 caractères",
+        "color:red"
+      );
+    } else {
+      dataChecker.hn.hn_reco.hn.push({
+        hn_type: tagName,
+
+        hn_letters_count: nbLetters,
+
+        hn_txt: tagContent,
+
+        hn_index: i,
+
+        hn_words_sliced: words,
+
+        hn_words_count: Number(words.length),
+
+        hn_preco: "Nombre de mots comptabilisés (de 5 à 8)",
+
+        hn_score: 5,
+      });
+      globalScoreHnReco.push(5);
+    }
+  });
+  console.log('---------------------------------- HnReco',dataChecker.hn.hn_reco.hn);
+
+  rendu = rendu.replaceAll('"', "").replaceAll("'", "").slice(0, -1);
+  const renduTab = rendu.split("_");
+  let scoreOutlineHn = [];
+  dataChecker.hn.hn_outline.hn = [];
+  renduTab.forEach((t, i) => {
+    let validity = String(t.split(" - ")[1]).includes("Non") ? false : true;
+    const score = validity ? 5 : 0;
+    dataChecker.hn.hn_outline.hn.push({
+      hn_type: t.split(" - ")[0],
+      hn_validity: validity,
+      hn_validity_message: t.split(" - ")[1],
+      hn_validity_score: score,
+    });
+    scoreOutlineHn.push(score);
+  });
+  const scoreHnOutline = Number(
+    (scoreOutlineHn.reduce((a, b) => a + b) / scoreOutlineHn.length).toFixed(2)
+  );
+  const scoreHnReco =
+    globalScoreHnReco.length > 1
+      ? Number(
+          (
+            globalScoreHnReco.reduce((a, b) => a + b) / globalScoreHnReco.length
+          ).toFixed(2)
+        )
+      : globalScoreHnReco[0];
+  dataChecker.hn.hn_reco.hn_check_state = true;
+  dataChecker.hn.hn_reco.global_score = scoreHnReco;
+  dataChecker.hn.hn_outline.global_score = scoreHnOutline;
+  dataChecker.hn.hn_check_state = true;
+  dataChecker.hn.global_score = Number(
+    ((scoreHnReco + scoreHnOutline) / 2).toFixed(2)
+  );
+
+  dataChecker.hn.nb_hn = nbHn;
+  console.log(
+    "----------------------------- END check Hn outline validity -----------------------------"
+  );
+})(jQuery);

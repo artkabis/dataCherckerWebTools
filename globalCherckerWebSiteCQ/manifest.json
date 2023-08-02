@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Full check Solocal Website",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "background": {
     "service_worker": "background.js",
     "type": "module"
@@ -39,6 +39,17 @@
     "*://le-de.cdn-website.com/*",
     "*://site-privilege.pagesjaunes.fr/*"
   ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [{
+    "resources": ["./Functions/HnOutlineValidity.js"],
+    "matches": ["<all_urls>"]
+  }],
   "declarative_net_request" : {
     "rule_resources" : [{
       "id": "overwrite-origin",

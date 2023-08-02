@@ -1,4 +1,8 @@
-(function ($) {
+import {getActiveTabURL} from './Functions/utils.js';
+
+
+
+//HnOutlineValidity()
 
   // Utilisez l'API chrome.runtime.getManifest() pour accéder aux informations du manifest
   const manifest = chrome.runtime.getManifest();
@@ -153,131 +157,24 @@
     });
   }
 
-  function executeScriptHnValidity(tab) {
+ async function executeScriptHnValidity(tab) {
+    const activeTab = await getActiveTabURL();
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-      chrome.scripting.executeScript({
-        target: { tabId: tabs[0].id },
-        function: () => {
-          const isHeadingValid = (currentHn, previousHn) => {
-            const currentHnIndex = parseInt(currentHn.charAt(1));
-            const previousHnIndex = parseInt(previousHn.charAt(1));
-
-            if (currentHn === previousHn) {
-              return false;
-            }
-
-            if (currentHnIndex !== previousHnIndex + 1) {
-              return false;
-            }
-
-            return true;
-          };
-          const hasDuplicateH1 = () => {
-            const h1Tags = document.querySelectorAll("h1");
-            const h1Texts = Array.from(h1Tags).map((h1) =>
-              h1.textContent.toLowerCase()
-            );
-            const uniqueH1Texts = new Set(h1Texts);
-
-            return h1Texts.length !== uniqueH1Texts.size;
-          };
-          const getHeadingStyle = (isValid, currentHnIndex, parentStyle) => {
-            const backgroundColor = isValid
-              ? parentStyle.backgroundColor
-              : "orange";
-            const margin = currentHnIndex * 50;
-
-            return `margin-left: ${margin}px; color: green; display: flex; align-items: center; background-color: ${backgroundColor};`;
-          };
-
-          const getSpanStyle = (parentStyle, isValid, isMissingHeading) => {
-            let backgroundColor = isMissingHeading
-              ? "orange"
-              : isValid
-              ? "green"
-              : "green";
-            return `color: white; background: ${backgroundColor}; text-transform: uppercase; padding: 5px 20px;`;
-          };
-
-          let hnTagArray = [],
-            hnTagContentArray = [];
-          document
-            .querySelectorAll("h1, h2, h3, h4, h5, h6")
-            .forEach(function (t, i) {
-              hnTagArray.push(t.tagName.toLowerCase());
-              hnTagContentArray.push(t.textContent);
-            });
-
-          let structure = "",
-            previousHn = null;
-
-          hnTagArray.forEach(function (currentHn, index) {
-            const currentHnContent = hnTagContentArray[index];
-            const currentHnIndex = parseInt(currentHn.charAt(1));
-            const parentStyle = window.getComputedStyle(
-              document.querySelector(currentHn)
-            );
-
-            if (index > 0) {
-              const isValid = isHeadingValid(currentHn, previousHn);
-
-              if (!isValid) {
-                const missingHeadingsCount =
-                  currentHnIndex - (parseInt(previousHn.charAt(1)) + 1);
-
-                for (let i = 1; i <= missingHeadingsCount; i++) {
-                  const missingHnIndex = parseInt(previousHn.charAt(1)) + i;
-                  const missingHn = `h${missingHnIndex}`;
-                  const missingHnContent = `Missing Heading - ${missingHn}`;
-                  const missingHeadingStyle = getHeadingStyle(
-                    false,
-                    missingHnIndex,
-                    parentStyle
-                  );
-                  structure += `<${missingHn} class="missing" style="${missingHeadingStyle}"><span style="${getSpanStyle(
-                    parentStyle,
-                    false,
-                    true
-                  )}">${missingHn}</span> - ${missingHnContent}</${missingHn}><br>`;
-                }
-              }
-              if (currentHn === "h1" && hasDuplicateH1()) {
-                structure += `<${currentHn} class="duplicate" style="${getHeadingStyle(
-                  false,
-                  currentHnIndex,
-                  parentStyle
-                )}"><span style="${getSpanStyle(
-                  parentStyle,
-                  false,
-                  false
-                )}">Warning: Duplicate H1</span> - ${currentHnContent}</${currentHn}><br>`;
-              }
-            }
-
-            const headingStyle = getHeadingStyle(
-              true,
-              currentHnIndex,
-              parentStyle
-            );
-            structure += `<${currentHn} style="${headingStyle}"><span style="${getSpanStyle(
-              parentStyle,
-              true,
-              false
-            )}">${currentHn}</span> - ${currentHnContent}</${currentHn}><br>`;
-            previousHn = currentHn;
-          });
-          console.log({ structure });
-          const newWindow = window.open("", "_blank");
-          newWindow.document.write(
-            "<html><head><title>Structure corrigée</title>"
-          );
-          newWindow.document.write(
-            "<style>.missing {background-color: white!important;color: orange!important;}.noMissingHeading { background-color:green }.duplicate { background-color: orange }</style>"
-          );
-          newWindow.document.write(`</head><body>${structure}<body></html>`);
-          newWindow.document.close();
+      chrome.scripting.executeScript(
+        {
+          target: { tabId: activeTab.id },
+          //function:CheckerImgFunc
+          files: [
+            "./Functions/HnOutlineValidity.js",
+          ], 
         },
-      });
+        function (results) {
+          //DevToolsAPI.showPanel('console');
+          // window.open('result.html','_blank');
+          //CheckerImg();
+          //window.close();
+        }
+      );
     });
   }
 
@@ -329,13 +226,16 @@
       });
     });
   }
-  $(".openSitemap").on("click", function () {
+    document
+    .querySelector(".openSitemap")
+    .addEventListener("click", function () {
     console.log("btn sitemap : ", this);
     let sitemap = String(this.id).includes("sitemapWP")
       ? "/page-sitemap.xml"
       : "/sitemap.xml";
     if (window.location.origin.includes("responsivesiteeditor")) {
-      const domainRoot = $('link[rel="alternate"]')
+      const domainRoot =  document
+      .querySelector('link[rel="alternate"]')
         .attr("href")
         .split("/site")[0];
       console.log("sitemap Duda prepup : ", domainRoot + "sitemap.xml");
@@ -346,13 +246,17 @@
       executeScriptInTab(tabs[0], sitemap);
     });
   });
-  $("#openConsole").on("click", function () {
-    console.log("clicked : ", this.id);
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-      executeScriptOpenConsole(tabs[0]);
-    });
-  });
-  $("#copyExpressionsSoprod").on("click", function (me) {
+  // document
+  //   .querySelector("#openConsole")
+  //   .addEventListener("click", function () {
+  //   console.log("clicked : ", this.id);
+  //   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+  //     executeScriptOpenConsole(tabs[0]);
+  //   });
+  // });
+  document
+    .querySelector("#copyExpressionsSoprod")
+    .addEventListener("click", function () {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       executeScriptcopyExpressionsSoprod(tabs[0]);
     });
@@ -390,10 +294,12 @@
       });
     });
   // Dans popup.js
-  async function CheckerImgFunc() {
-    const { CheckerImg } = await import("Functions/CheckerImg.js");
-    CheckerImg();
+ /* async function CheckerImgFunc() {
+    const { CheckerImg } = await import("./Functions/CheckerImg.js");
+    CheckerImg.CheckerImg();
   }
+  CheckerImgFunc()
+  */
   document.querySelector("#analyserBtn").addEventListener("click", function () {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       var activeTab = tabs[0];
@@ -408,8 +314,18 @@
               //function:CheckerImgFunc
               files: [
                 "./jquery-3.6.4.min.js",
-                "./script.js",
-                "./result.js",
+                "./Functions/checkAndAddJquery.js",
+                "./Functions/dataCheckerSchema.js",
+
+                "./Functions/initLighthouse.js",
+                "./Functions/counterWords.js",
+                "./Functions/checkMetas.js",
+                "./Functions/checkAltImages.js",
+                "./Functions/checkOutlineHn.js",
+                "./Functions/checkBold.js",
+                "./Functions/counterLettersHn.js",
+                "./Functions/initDataChecker.js",
+                "./Functions/checkLinkAndImages.js",
               ], //,'./contentScript.js'],
             },
             function (results) {
@@ -459,4 +375,5 @@ var toggleButton = document.getElementById("corsButton");
       });
     });
   });
-})(jQuery);
+
+
