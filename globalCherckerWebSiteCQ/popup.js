@@ -157,26 +157,12 @@ import {getActiveTabURL} from './Functions/utils.js';
     });
   }
 
- async function executeScriptHnValidity(tab) {
-    const activeTab = await getActiveTabURL();
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-      chrome.scripting.executeScript(
-        {
-          target: { tabId: activeTab.id },
-          //function:CheckerImgFunc
-          files: [
-            "./Functions/HnOutlineValidity.js",
-          ], 
-        },
-        function (results) {
-          //DevToolsAPI.showPanel('console');
-          // window.open('result.html','_blank');
-          //CheckerImg();
-          //window.close();
-        }
-      );
-    });
-  }
+//  async function executeScriptHnValidity(tab) {
+//     const activeTab = await getActiveTabURL();
+//     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      
+//     });
+//   }
 
   function mainFunction(sitemap) {
     console.log("open sitemap : ", window.location.origin + sitemap);
@@ -290,16 +276,25 @@ import {getActiveTabURL} from './Functions/utils.js';
     .querySelector("#openHnValidity")
     .addEventListener("click", function () {
       chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        executeScriptHnValidity(tabs[0]);
+        var activeTab = tabs[0];
+        chrome.scripting.executeScript(
+          {
+            target: { tabId: activeTab.id },
+            //function:CheckerImgFunc
+            files: [
+              "./Functions/HnOutlineValidity.js",
+            ], 
+          },
+          function (results) {
+            //DevToolsAPI.showPanel('console');
+            // window.open('result.html','_blank');
+            //CheckerImg();
+            //window.close();
+          }
+        );
       });
     });
-  // Dans popup.js
- /* async function CheckerImgFunc() {
-    const { CheckerImg } = await import("./Functions/CheckerImg.js");
-    CheckerImg.CheckerImg();
-  }
-  CheckerImgFunc()
-  */
+
   document.querySelector("#analyserBtn").addEventListener("click", function () {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       var activeTab = tabs[0];
@@ -326,12 +321,9 @@ import {getActiveTabURL} from './Functions/utils.js';
                 "./Functions/counterLettersHn.js",
                 "./Functions/initDataChecker.js",
                 "./Functions/checkLinkAndImages.js",
-              ], //,'./contentScript.js'],
+              ], 
             },
             function (results) {
-              //DevToolsAPI.showPanel('console');
-              // window.open('result.html','_blank');
-              //CheckerImg();
               window.close();
             }
           );

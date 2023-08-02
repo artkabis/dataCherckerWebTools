@@ -1,5 +1,4 @@
-(($) => {
-  const formatBytes = (bytes) => {
+  let formatBytes = (bytes) => {
     return bytes < 1024
       ? bytes + " Bytes"
       : bytes < 1048576
@@ -642,4 +641,3 @@
     //$("#Wrapper").length &&
     checkerImageWP();
   }, document.querySelectorAll("a").length * 210);
-})(jQuery);

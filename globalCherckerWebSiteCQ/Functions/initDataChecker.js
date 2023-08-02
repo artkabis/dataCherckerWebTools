@@ -1,6 +1,6 @@
-(() => {
+
   //Add globale score in dataChecker
-  const initDataChecker = () => {
+  initDataChecker = () => {
     console.log("initDataChecker started");
 
     dataChecker.img_check.nb_img_duplicate.push(
@@ -138,4 +138,3 @@
       });
     });
   };
-})();
