@@ -113,10 +113,8 @@
 
     if (toggleButton.checked) {
       toggleSlider.style.backgroundColor = "#3f51b5";
-      toggleSlider.style.transform = "translateX(24px)";
     } else {
       toggleSlider.style.backgroundColor = "#ccc";
-      toggleSlider.style.transform = "translateX(0)";
     }
   }
 

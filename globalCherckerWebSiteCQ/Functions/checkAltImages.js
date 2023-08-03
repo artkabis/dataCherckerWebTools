@@ -1,15 +1,34 @@
+
 (($) => {
+    async function getImageAsBase64(imageUrl) {
+        try {
+          const response = await fetch(imageUrl);
+          const blob = await response.blob();
+          const base64Data = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+          });
+          return base64Data;
+        } catch (error) {
+          console.error('Erreur lors de la conversion de l\'image en base64 :', error);
+          return null;
+        }
+      }
   console.log(
     "----------------------------- Check ALT images --------------------------------------------"
   );
   let nb_alt_imgs_wrong = 0;
   let scoreTabAltImg = [];
   dataChecker.alt_img_check.alt_img = [];
-
+    let isWP = $('#Content').length;
   $("img, svg").each(function (i, t) {
-    const src = $(this).attr("src")
+
+    let src = $(this).attr("src")
       ? $(this).attr("src")
       : $(this).attr("data-src");
+      src = ( src && src.at(0) === "/") ? window.location.origin + src : src;
+      let alt;
     const filterDomain =
       src &&
       this.tagName !== "svg" &&
@@ -17,7 +36,7 @@
       !src.includes("cdn.manager.solocal.com") &&
       !src.includes("static.cdn-website");
     if (filterDomain) {
-      const alt = $(this).attr("alt");
+      alt = $(this).attr("alt");
       !alt && alt === ""
         ? (console.log(`%cNO ALT >>> ${src}`, "color:red"),
           (nb_alt_imgs_wrong += 1),
@@ -48,13 +67,13 @@
       this.getAttribute("alt").length < 1
     ) {
       console.log(
-        `%cNO ALT SVG >>> ${(this.getAttribute("data-icon-name"), this)}`,
+        `%cNO ALT SVG >>> ${(this.getAttribute("alt"), this)}`,
         "color:red"
       );
       nb_alt_imgs_wrong += 1;
       dataChecker.alt_img_check.alt_img.push({
         alt_img_state: true,
-        alt_img_src: src ? src : "bgimage",
+        alt_img_src: src && src ,
         alt_img_text: alt,
         alt_img_score: 0,
       });
@@ -72,6 +91,20 @@
       });
       scoreTabAltImg.push(0);
     }
+    (this.tagName !== "svg" && src && !src.includes('mappy')) ? getImageAsBase64(src)
+    .then((base64Data) => {
+      if (base64Data) {
+        console.log(`%c   %c${new URL(src).href}  %c${alt ? alt : 'ALT MANQUANT'}`,
+        `background-image:url("${base64Data}");background-size:contain;background-repeat: no-repeat;padding:50px;height:50pxwidth:50px`,
+        'color:white',
+        `${alt ? "color:green" : "color:red"}`,
+        );
+        
+      } else {
+        console.log('Erreur lors de la conversion de l\'image en base64.');
+      }
+    }): (this.tagName === "svg")&&console.log(`%cFichier SVG :  %c${(!this.getAttribute("alt")) ? this.getAttribute("data-icon-name") : this.getAttribute("alt")}`,'color:white;',
+    'color:green');
   });
   dataChecker.alt_img_check.alt_img_check_state = true;
   dataChecker.alt_img_check.nb_alt_img =
@@ -83,6 +116,7 @@
     "______________________alt img : ",
     dataChecker.alt_img_check.alt_img
   );
+
   dataChecker.alt_img_check.global_score = Number(
     scoreTabAltImg.reduce((a, b) => a + b) / scoreTabAltImg.length
   ).toFixed(2);

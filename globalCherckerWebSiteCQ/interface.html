@@ -254,9 +254,12 @@
 input[type="checkbox"]:checked + .toggle-slider {
   background-color: #3f51b5;
 }
-
 input[type="checkbox"]:checked + .toggle-slider:before {
-  transform: translateX(24px);
+    transform: translateX(24px);
+}
+
+input[type="checkbox"] + .toggle-slider:before {
+  transform: translateX(0);
 }
 
 /**** bar ****/

@@ -164,7 +164,7 @@
       .replaceAll("t’", "")
       .replaceAll("  ", " ");
     let words = tagContent.split(" ");
-    const pronoms = [
+    const stopWords = [
       "&",
       "?",
       ":",
@@ -351,7 +351,7 @@
       "nos",
     ];
 
-    words = words.filter((w) => !pronoms.includes(w.toLowerCase()));
+    words = words.filter((w) => !stopWords.includes(w.toLowerCase()));
     console.log({
       [tagName]: tagContent,
       " nb lettres": nbLetters,
@@ -454,4 +454,105 @@
   console.log(
     "----------------------------- END check Hn outline validity -----------------------------"
   );
+
+
+  /*** checker outline Hn fonctionnel
+   * 
+   * 
+   * 
+   * 
+   * console.log(" ------------------------------- HnOutlineValidity starting");
+
+const isHeadingValid = (currentHn, previousHn) => {
+  const currentHnIndex = parseInt(currentHn.charAt(1));
+  const previousHnIndex = parseInt(previousHn.charAt(1));
+
+  if (currentHn === previousHn) {
+    return false;
+  }
+
+  if (currentHnIndex !== previousHnIndex + 1) {
+    return false;
+  }
+
+  return true;
+};
+
+const hasDuplicateH1 = () => {
+  const h1Tags = document.querySelectorAll("h1");
+  const h1Texts = Array.from(h1Tags).map((h1) => h1.textContent.toLowerCase());
+  const uniqueH1Texts = new Set(h1Texts);
+
+  return h1Texts.length !== uniqueH1Texts.size;
+};
+
+const getHeadingStyle = (isValid, currentHnIndex, parentStyle) => {
+  const backgroundColor = isValid ? parentStyle.backgroundColor : "orange";
+  const margin = currentHnIndex * 50;
+
+  return `margin-left: ${margin}px; color: green; display: flex; align-items: center; background-color: ${backgroundColor};`;
+};
+
+const getSpanStyle = (parentStyle, isValid, isMissingHeading) => {
+  let backgroundColor = isMissingHeading ? "orange" : isValid ? "green" : "green";
+  return `color: white; background: ${backgroundColor}; text-transform: uppercase; padding: 5px 20px;`;
+};
+
+let hnTagArray = [],
+  hnTagContentArray = [];
+document
+  .querySelectorAll("h1, h2, h3, h4, h5, h6")
+  .forEach(function (t, i) {
+    hnTagArray.push(t.tagName.toLowerCase());
+    hnTagContentArray.push(t.textContent);
+  });
+
+let previousHn = null;
+let messageValidity = "";
+let isHierarchyValid = true;
+
+hnTagArray.forEach(function (currentHn, index) {
+  const currentHnContent = hnTagContentArray[index];
+  const currentHnIndex = parseInt(currentHn.charAt(1));
+  const parentStyle = window.getComputedStyle(document.querySelector(currentHn));
+
+  if (index > 0) {
+    const isValid = isHeadingValid(currentHn, previousHn);
+
+    if (!isValid) {
+      const missingHeadingsCount = currentHnIndex - (parseInt(previousHn.charAt(1)) + 1);
+
+      for (let i = 1; i <= missingHeadingsCount; i++) {
+        const missingHnIndex = parseInt(previousHn.charAt(1)) + i;
+        const missingHn = `h${missingHnIndex}`;
+        const missingHnContent = `Missing Heading - ${missingHn}`;
+        const missingHeadingStyle = getHeadingStyle(false, missingHnIndex, parentStyle);
+        messageValidity = `Heading ${missingHn} is missing between ${previousHn} and ${currentHn}`;
+        console.log(`%c ${messageValidity}`, 'color: red');
+      }
+
+      isHierarchyValid = false; // Marquer la hiérarchie comme invalide
+    }
+
+    if (currentHn === "h1" && hasDuplicateH1()) {
+      messageValidity = `Warning: Duplicate H1 - ${currentHnContent}`;
+      console.log(`%c ${messageValidity}`, 'color: red');
+      isHierarchyValid = false; 
+    }
+  }
+
+  messageValidity = `Valid: ${currentHn} - ${currentHnContent}`;
+  console.log(`%c ${messageValidity}`, 'color: green');
+
+  previousHn = currentHn;
+});
+
+// Calcul de la note sur 5 en fonction de la validité de la hiérarchie
+const maxScore = 5;
+const finalScore = isHierarchyValid ? maxScore : 0;
+console.log(`%c Global Score: ${finalScore}/5`, `color: ${finalScore === maxScore ? 'green' : 'red'}`);
+
+   * 
+   * 
+   */
 })(jQuery);
