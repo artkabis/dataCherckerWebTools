@@ -1,13 +1,7 @@
 //Add globale score in dataChecker
-initDataChecker = () => {
+initDataChecker = (size_scores, ratio_scores, alt_scores, scoreCheckLink) => {
   console.log("initDataChecker started");
-  
 
-  dataChecker.img_check.nb_img_duplicate.push(
-    trierUrlsRepetees(urlsDuplicate).length
-      ? trierUrlsRepetees(urlsDuplicate)
-      : "OK"
-  );
   const globalSizeScore = Number(
     size_scores.length > 0
       ? (size_scores.reduce((a, b) => a + b) / size_scores.length).toFixed(2)

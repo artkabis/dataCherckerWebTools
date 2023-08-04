@@ -305,7 +305,7 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
             //function:CheckerImgFunc
             files: [
               "./assets/jquery-3.6.4.min.js",
-              "./console.image.min.js",
+              "./assets/console.image.min.js",
               "./Functions/checkAndAddJquery.js",
               "./Functions/dataCheckerSchema.js",
 
@@ -319,7 +319,6 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
               "./Functions/checkLinkAndImages.js",
               "./Functions/checkDataBindingDuda.js",
               "./Functions/initDataChecker.js",
-
             ],
           },
           function (results) {

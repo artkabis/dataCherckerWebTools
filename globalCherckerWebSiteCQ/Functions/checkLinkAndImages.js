@@ -1,4 +1,27 @@
-    formatBytes = (bytes) => {
+    
+function initcheckerLinksAndImages(){
+  let urlsDuplicate = [],
+  requestInitiatedCount = 0,
+  requestCompletedCount = 0,
+  imagesForAnalyseImg = [],
+  imagesForAnalyseBG = [],
+  cmpFinal = 0;
+
+   //reset datachecker nodes
+ dataChecker.img_check.alt_img = [];
+ dataChecker.img_check.size_img = [];
+ dataChecker.img_check.ratio_img = [];
+ let ratio_scores = [],
+   alt_scores = [],
+   size_scores = [],
+   ratioScoreImg;
+
+   let scoreCheckLink = [],
+   isLinkedin,
+   txtLinkedin;
+ dataChecker.link_check.link = [];
+
+  formatBytes = (bytes) => {
     return bytes < 1024
       ? bytes + " Bytes"
       : bytes < 1048576
@@ -7,22 +30,35 @@
       ? (bytes / 1048576).toFixed(2) + " MB"
       : (bytes / 1073741824).toFixed(2) + " GB";
   };
-    urlsDuplicate = [],
-    requestInitiatedCount = 0,
-    requestCompletedCount = 0,
-    imagesForAnalyseImg = [],
-    imagesForAnalyseBG = [];
+  const trierUrlsRepetees = (items) => {
+    const occurences = {};
+    items.forEach((item) => {
+      const isValidUrl =
+        item.url.includes("/uploads/") ||
+        item.url.includes("le-de.cdn-website");
+      if (isValidUrl) {
+        occurences[item.url] = occurences[item.url]
+          ? occurences[item.url] + 1
+          : 1;
+        occurences[item.target] = occurences[item.target] || 0;
+      }
+    });
+    const urlsRepetees = Object.keys(occurences)
+      .filter((key) => occurences[key] > 1)
+      .map((key) => ({
+        url: key,
+        target: items.find((item) => item.url === key)?.target,
+        iteration: occurences[key],
+      }));
 
-  //reset datachecker nodes
-  dataChecker.img_check.alt_img = [];
-  dataChecker.img_check.size_img = [];
-  dataChecker.img_check.ratio_img = [];
-  let ratio_scores = [],
-    alt_scores = [],
-    size_scores = [];
+    return urlsRepetees;
+  };
 
-  let cmpFinal = 0;
+
   const checkUrlImg = async (args) => {
+
+
+  
     let result = false;
     requestInitiatedCount++;
     let response;
@@ -158,7 +194,7 @@
               result.Imgheight < 150 &&
               result.Imgwidth < 150) ||
             result.ratio == "image cachée";
-          let ratioScoreImg;
+
 
           if (imgcheckRatio || result.ratio === 1) {
             ratioScoreImg = 5;
@@ -173,7 +209,7 @@
           } else {
             ratioScoreImg = 5;
           }
-          ratio_scores.push(ratioScoreImg);
+          
 
           dataChecker.img_check.ratio_img.push({
             ratio_img_state: true,
@@ -205,35 +241,13 @@
         cmpFinal++;
         //console.log({cmpFinal});
         console.log(" Fin du traitement du check des images size and alt");
+        ratio_scores.push(ratioScoreImg);
         checkUrlImgDuplicate();
       }, 300);
     }
   };
 
-  const trierUrlsRepetees = (items) => {
-    const occurences = {};
-    items.forEach((item) => {
-      const isValidUrl =
-        item.url.includes("/uploads/") ||
-        item.url.includes("le-de.cdn-website");
-      if (isValidUrl) {
-        occurences[item.url] = occurences[item.url]
-          ? occurences[item.url] + 1
-          : 1;
-        occurences[item.target] = occurences[item.target] || 0;
-      }
-    });
-    const urlsRepetees = Object.keys(occurences)
-      .filter((key) => occurences[key] > 1)
-      .map((key) => ({
-        url: key,
-        target: items.find((item) => item.url === key)?.target,
-        iteration: occurences[key],
-      }));
-
-    return urlsRepetees;
-  };
-  let global_size_scores, global_alt_scores, global_ratio_scores;
+  
   const checkUrlImgDuplicate = () => {
     console.log(
       "url duplicate length : ",
@@ -252,7 +266,12 @@
         "----------------------------- End Check duplicate images --------------------------------------------"
       );
     }
-    initDataChecker();
+    dataChecker.img_check.nb_img_duplicate.push(
+      trierUrlsRepetees(urlsDuplicate).length
+        ? trierUrlsRepetees(urlsDuplicate)
+        : "OK"
+    );
+    initDataChecker(size_scores,ratio_scores, alt_scores, scoreCheckLink);
   };
 
   const checkerImageWP = () => {
@@ -413,10 +432,7 @@
   }
   let timeout = 30000;
 
-  let scoreCheckLink = [],
-    isLinkedin,
-    txtLinkedin;
-  dataChecker.link_check.link = [];
+
   function check(_url, _txt, _node) {
     const response = {
       status: null,
@@ -643,3 +659,5 @@
     //$("#Wrapper").length &&
     checkerImageWP();
   }, document.querySelectorAll("a").length * 210);
+}
+initcheckerLinksAndImages();
