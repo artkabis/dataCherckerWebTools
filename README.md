@@ -14,6 +14,7 @@
 - Check content text links.
 - Check image size (KB, MB, GB), ratio (image vs container), alt, title, and image format: background-image, img tag, base64, svg.
 - Check duplicate images (do not count logo images and cloned owl images).
+- Check databinding in Duda builder.
 - Launch runPagespeed and return FCP, LCP, TTI, performance score, alt images KO, and stack website.
 
 ## Other tools:
