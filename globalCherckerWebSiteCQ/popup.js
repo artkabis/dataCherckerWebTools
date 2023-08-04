@@ -309,7 +309,6 @@ import {getActiveTabURL} from './Functions/utils.js';
               //function:CheckerImgFunc
               files: [
                 "./jquery-3.6.4.min.js",
-                "./Functions/imageToB64.js",
                 "./console.image.min.js",
                 "./Functions/checkAndAddJquery.js",
                 "./Functions/dataCheckerSchema.js",
@@ -323,6 +322,7 @@ import {getActiveTabURL} from './Functions/utils.js';
                 "./Functions/counterLettersHn.js",
                 "./Functions/initDataChecker.js",
                 "./Functions/checkLinkAndImages.js",
+                "./Functions/checkDataBindingDuda.js"
               ], 
             },
             function (results) {
