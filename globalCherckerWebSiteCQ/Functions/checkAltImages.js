@@ -118,11 +118,14 @@
     "______________________alt img : ",
     dataChecker.alt_img_check.alt_img
   );
+  let scoreTabAltImg2 = [];
+  dataChecker.alt_img_check.alt_img.forEach((i,t)=>scoreTabAltImg2.push(i.alt_img_score))
 
   dataChecker.alt_img_check.global_score = Number(
-    scoreTabAltImg.reduce((a, b) => a + b) / scoreTabAltImg.length
+    scoreTabAltImg2.reduce((a, b) => a + b) / scoreTabAltImg.length
   ).toFixed(2);
-
+  
+  console.log({scoreTabAltImg2},'   score moyen des alt :',dataChecker.alt_img_check.global_score);
   console.log(
     "----------------------------- END Check ALT images --------------------------------------------"
   );

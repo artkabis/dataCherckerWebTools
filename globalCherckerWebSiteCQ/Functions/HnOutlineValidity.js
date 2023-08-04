@@ -22,7 +22,7 @@
         );
         const uniqueH1Texts = new Set(h1Texts);
 
-        return h1Texts.length !== uniqueH1Texts.size;
+        return h1Texts.length >1;
       };
       const getHeadingStyle = (isValid, currentHnIndex, parentStyle) => {
         const backgroundColor = isValid

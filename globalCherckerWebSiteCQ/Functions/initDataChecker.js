@@ -22,10 +22,13 @@
             ).toFixed(2)
           )
         : 5;
+        let altScore = [];;
+        dataChecker.img_check.alt_img.forEach((t,i) => altScore.push(t.alt_img_score));
+        console.log({altScore})
     const global_alt_scores =
-      size_scores.length > 0
+      alt_scores.length > 0
         ? Number(
-            (alt_scores.reduce((a, b) => a + b) / alt_scores.length).toFixed(2)
+            (altScore.reduce((a, b) => a + b) / altScore.length).toFixed(2)
           )
         : 5;
     dataChecker.alt_img_check.global_score = global_alt_scores;
@@ -36,7 +39,11 @@
         3
       ).toFixed(2)
     );
+    console.log({global_ratio_scores} ,{global_size_scores},{global_alt_scores});
     dataChecker.img_check.img_check_state = true;
+    dataChecker.img_check.global_ratio_scores = global_ratio_scores;
+    dataChecker.img_check.global_size_scores = global_size_scores;
+    dataChecker.img_check.global_alt_scores = global_alt_scores;
 
     //Calculate global scores
     dataChecker.link_check.global_score = scoreCheckLink.length

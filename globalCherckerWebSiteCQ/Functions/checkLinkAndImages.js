@@ -141,7 +141,7 @@
           dataChecker.img_check.alt_img.push({
             alt_img_state: true,
             alt_img_src: result.url ? result.url : args[1],
-            alt_img_score: result.alt[2] !== false ? 5 : 0,
+            alt_img_score: (result.alt !== false) ? 5 : 0,
           }),
             dataChecker.img_check.size_img.push({
               size_img_state: "true",
