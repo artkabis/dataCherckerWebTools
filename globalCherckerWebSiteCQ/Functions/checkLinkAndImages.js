@@ -1,4 +1,3 @@
-  (()=>{
     formatBytes = (bytes) => {
     return bytes < 1024
       ? bytes + " Bytes"
@@ -8,7 +7,7 @@
       ? (bytes / 1048576).toFixed(2) + " MB"
       : (bytes / 1073741824).toFixed(2) + " GB";
   };
-  let urlsDuplicate = [],
+    urlsDuplicate = [],
     requestInitiatedCount = 0,
     requestCompletedCount = 0,
     imagesForAnalyseImg = [],
@@ -644,4 +643,3 @@
     //$("#Wrapper").length &&
     checkerImageWP();
   }, document.querySelectorAll("a").length * 210);
-})();

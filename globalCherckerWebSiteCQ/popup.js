@@ -316,9 +316,10 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
               "./Functions/checkOutlineHn.js",
               "./Functions/checkBold.js",
               "./Functions/counterLettersHn.js",
-              "./Functions/initDataChecker.js",
               "./Functions/checkLinkAndImages.js",
               "./Functions/checkDataBindingDuda.js",
+              "./Functions/initDataChecker.js",
+
             ],
           },
           function (results) {

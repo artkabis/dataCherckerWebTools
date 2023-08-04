@@ -1,6 +1,7 @@
 //Add globale score in dataChecker
 initDataChecker = () => {
   console.log("initDataChecker started");
+  
 
   dataChecker.img_check.nb_img_duplicate.push(
     trierUrlsRepetees(urlsDuplicate).length
