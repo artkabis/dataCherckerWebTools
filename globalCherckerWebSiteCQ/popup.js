@@ -308,7 +308,7 @@ import {getActiveTabURL} from './Functions/utils.js';
               target: { tabId: tab.id },
               //function:CheckerImgFunc
               files: [
-                "./jquery-3.6.4.min.js",
+                "./assets/jquery-3.6.4.min.js",
                 "./console.image.min.js",
                 "./Functions/checkAndAddJquery.js",
                 "./Functions/dataCheckerSchema.js",

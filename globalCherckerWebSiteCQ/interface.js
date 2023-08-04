@@ -1,6 +1,7 @@
 
 
-(($) => {
+  import * as confetti from './assets/canvas-confetti.mjs';
+
   console.log("------------ in interface script -----------");
   const queryString = window.location.search;
   const params = new URLSearchParams(queryString);
@@ -32,6 +33,35 @@
     scoreContainer.innerHTML =
       "Score Global: " + dataChecker.global_score + "/5";
    
+    console.log({confetti});
+  
+    if(dataChecker.global_score ===5) {
+        // do this for 30 seconds
+    var myCanvas = document.createElement('canvas');
+    myCanvas.classList.add("score_canvas");
+    document.body.appendChild(myCanvas);
+    
+    var myConfetti = confetti.create(myCanvas, {
+      resize: true,
+      useWorker: true
+    });
+    myConfetti({
+      particleCount: 300,
+      startVelocity: 30,
+      spread: 360,
+      origin: {
+        x: 0.5,
+        // since they fall down, start a bit higher than random
+        y: 0.5
+      }
+      // any other options from the global
+      // confetti function
+    });
+
+      // setTimeout(() => {
+      //   myConfetti.reset();
+      // }, 1000);
+    }
 
     mainCard.appendChild(titleMainCard);
     mainCard.appendChild(urlContainer);
@@ -271,7 +301,6 @@
 
     //(dataChecker.global_score === 5) && alert("Bravo tu a atteint l'excellence !!!! T'as note est de "+dataChecker.global_score + "/5")
 
-})(jQuery);
 const CHECK = window['dataCheck'];
 const {webdesigner_global_score:WEB, cdp_global_score:CDP} = CHECK;//rename webdesigner_global_score & cdp_global_score to WEB & CDP
 console.log({CHECK},{WEB},{CDP});//CHECK global value in window scope.
