@@ -35,7 +35,7 @@
    
     console.log({confetti});
   
-    if(dataChecker.global_score ===5) {
+    if(dataChecker.global_score >4.8) {
         // do this for 30 seconds
     var myCanvas = document.createElement('canvas');
     myCanvas.classList.add("score_canvas");
@@ -46,8 +46,8 @@
       useWorker: true
     });
     myConfetti({
-      particleCount: 300,
-      startVelocity: 30,
+      particleCount: 600,
+      startVelocity: 40,
       spread: 360,
       origin: {
         x: 0.5,
@@ -58,9 +58,9 @@
       // confetti function
     });
 
-      // setTimeout(() => {
-      //   myConfetti.reset();
-      // }, 1000);
+      setTimeout(() => {
+        myCanvas.remove();
+      }, 3000);
     }
 
     mainCard.appendChild(titleMainCard);
