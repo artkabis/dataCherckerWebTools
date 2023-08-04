@@ -1,4 +1,5 @@
-   formatBytes = (bytes) => {
+  (()=>{
+    formatBytes = (bytes) => {
     return bytes < 1024
       ? bytes + " Bytes"
       : bytes < 1048576
@@ -12,6 +13,8 @@
     requestCompletedCount = 0,
     imagesForAnalyseImg = [],
     imagesForAnalyseBG = [];
+
+  //reset datachecker nodes
   dataChecker.img_check.alt_img = [];
   dataChecker.img_check.size_img = [];
   dataChecker.img_check.ratio_img = [];
@@ -641,3 +644,4 @@
     //$("#Wrapper").length &&
     checkerImageWP();
   }, document.querySelectorAll("a").length * 210);
+})();
