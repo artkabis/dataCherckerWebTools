@@ -131,8 +131,8 @@ initDataChecker = (size_scores, ratio_scores, alt_scores, scoreCheckLink) => {
   );
 
   // Écouteur d'événement pour le clic sur le bouton
-  browser.storage.sync.get("corsEnabled", function (result) {
-    var corsEnabled = result.corsEnabled;
+  browser.storage.sync.get("corsEnabled", function () {
+    var corsEnabled = browser.storage.sync.get('corsEnabled');  
     browser.storage.sync.set({ corsEnabled: corsEnabled }, function () {
       corsEnabled && browser.runtime.sendMessage({ corsEnabled: false });
     });

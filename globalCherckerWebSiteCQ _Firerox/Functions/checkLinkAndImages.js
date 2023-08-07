@@ -304,6 +304,7 @@ function initcheckerLinksAndImages(){
           !srcV.includes("cdn.manager.solocal.com") &&
           !srcV.includes("gravityforms") &&
           !srcV.includes("static.cdn-website") &&
+          !$(this).hasClass('leaflet-marker-icon') &&
           imagesForAnalyseImg.push({
             key: "src-img-" + i,
             value: [

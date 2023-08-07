@@ -29,7 +29,7 @@
       : $(this).attr("data-src");
       src = ( src && src.at(0) === "/") ? window.location.origin + src : src;
       let alt;
-      const excludes = this.tagName !== "svg" && this.getAttribute("class") !=="lb-image";
+      const excludes = this.tagName !== "svg" && this.getAttribute("class") !=="lb-image" && !$(this).hasClass("leaflet-marker-icon");
     const filterDomain =
       src &&
       !src.includes("mappy") &&
@@ -96,7 +96,7 @@
     .then((base64Data) => {
       if (base64Data) {
         console.log(`%c   %c%o  %c${alt ? alt : 'ALT MANQUANT'}`,
-        `background-image:url("${base64Data}");background-size:contain;background-repeat: no-repeat;padding:100px;height:100pxwidth:100px;min-height:100px;`,
+        `background-image:url("${base64Data}");background-size:contain;background-repeat: no-repeat;padding:50px;height:50pxwidth:50px`,
         'color:white',
         {'href':[new URL(src).href]},
         `${alt ? "color:green" : "color:red"}`,

@@ -44,5 +44,11 @@
       "enabled": false,
       "path": "rulesets/overwrite-origin.json"
     }]
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "artkabis@hotmail.fr  ",
+      "strict_min_version": "42.0"
+    }
   }
 }

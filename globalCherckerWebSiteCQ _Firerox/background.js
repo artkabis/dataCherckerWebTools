@@ -1,6 +1,7 @@
 
 
 
+
 // Événement d'installation du service worker
 browser.runtime.onInstalled.addListener(() => {
   // Enregistrement du service worker
@@ -132,4 +133,27 @@ browser.runtime.onMessage.addListener(function(message, sender, sendResponse) {
       height: 1000,
     });
   }
+});
+self.addEventListener("message", e=>{
+  if(e.data && 'open_interface' === e.data.type ){
+    var dataCheckerJSON = JSON.parse(message.data);
+    var interfacePopupUrl = browser.runtime.getURL('interface.html');
+
+    browser.windows.create({
+      url: `${interfacePopupUrl}?data=${encodeURIComponent(JSON.stringify(dataCheckerJSON))}`,
+      type: "popup",
+      width: 1000,
+      height: 1000,
+    });
+  }
+
+}
+),
+self.addEventListener("install", function(e) {
+  console.log("sw install event"),
+  e.waitUntil(self.skipWaiting())
+}),
+self.addEventListener("activate", function(e) {
+  console.log("sw activate event"),
+  e.waitUntil(self.clients.claim())
 });

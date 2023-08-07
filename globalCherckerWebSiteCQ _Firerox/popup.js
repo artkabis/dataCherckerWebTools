@@ -2,8 +2,8 @@ import { getActiveTabURL } from "./Functions/utils.js";
 
 //HnOutlineValidity()
 
-// Utilisez l'API browser.runtime.getManifest() pour accéder aux informations du manifest
-const manifest = browser.runtime.getManifest();
+// Utilisez l'API chrome.runtime.getManifest() pour accéder aux informations du manifest
+const manifest = chrome.runtime.getManifest();
 const version = manifest.version;
 document.addEventListener("DOMContentLoaded", function () {
   // Utilisez la valeur récupérée comme bon vous semble
@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 function executeScriptInTabGoogle(tab) {
-  browser.scripting.executeScript({
+  chrome.scripting.executeScript({
     target: { tabId: tab.id },
     function: function () {
       window.open(
@@ -30,7 +30,7 @@ function executeScriptInTabGoogle(tab) {
   });
 }
 function executeScriptDesignModeToggle(tab) {
-  browser.scripting.executeScript({
+  chrome.scripting.executeScript({
     target: { tabId: tab.id },
     function: function () {
       let dn = document.designMode;
@@ -39,8 +39,8 @@ function executeScriptDesignModeToggle(tab) {
   });
 }
 function executeScriptDudaPages(tab) {
-  browser.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    browser.scripting.executeScript({
+  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    chrome.scripting.executeScript({
       target: { tabId: tabs[0].id },
       function: () => {
         if (document.querySelector("#dm")) {
@@ -129,8 +129,8 @@ function executeScriptDudaPages(tab) {
 }
 function executeScriptOpenConsole(tab) {
   console.log("Execution de openConsole sur le tag : ", tab);
-  browser.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    browser.scripting.executeScript({
+  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    chrome.scripting.executeScript({
       target: { tabId: tabs[0].id },
       function: () => {
         const event = new KeyboardEvent("keydown", {
@@ -148,14 +148,14 @@ function executeScriptOpenConsole(tab) {
 
 //  async function executeScriptHnValidity(tab) {
 //     const activeTab = await getActiveTabURL();
-//     browser.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+//     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
 
 //     });
 //   }
 
 function executeScriptcopyExpressionsSoprod() {
-  browser.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    browser.scripting.executeScript({
+  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    chrome.scripting.executeScript({
       target: { tabId: tabs[0].id },
       function: () => {
         console.log(
@@ -193,56 +193,28 @@ function executeScriptcopyExpressionsSoprod() {
     });
   });
 }
-function mainFunction(sitemap) {
-  console.log("open sitemap : ", window.location.origin + sitemap);
-  window.open(
-    window.location.origin + sitemap,
-    "_blank",
-    "width=500,height=800,toolbar=no"
-  );
-}
-function executeScriptInTab(tab, sitemap) {
-  console.log("open sitemap : ", sitemap);
-  browser.scripting.executeScript({
-    target: { tabId: tab.id },
-    function: mainFunction,
-    args: [sitemap],
-  });
-}
+
+
 document.querySelector(".openSitemap").addEventListener("click", function () {
   console.log("btn sitemap : ", this);
-  let sitemap = String(this.id).includes("sitemapWP")
-    ? "/page-sitemap.xml"
-    : "/sitemap.xml";
-  if (window.location.origin.includes("responsivesiteeditor")) {
-    const domainRoot = document
-      .querySelector('link[rel="alternate"]')
-      .attr("href")
-      .split("/site")[0];
-    console.log("sitemap Duda prepup : ", domainRoot + "sitemap.xml");
-    sitemap = domainRoot + "sitemap.xml";
-  } else {
-    sitemap = window.location.origin + sitemap;
-  }
-  console.log("_________________________________________________________", {
-    sitemap,
-  });
-  browser.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    executeScriptInTab(tabs[0], sitemap);
+  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    chrome.scripting.executeScript({
+      target: { tabId: tabs[0].id },
+      function(){
+        let sitemap = window.location.origin+"/page-sitemap.xml";
+         window.open(sitemap,
+          "_blank",
+          "width=900,height=600,toolbar=no"
+        );
+      }
+    });
   });
 });
-// document
-//   .querySelector("#openConsole")
-//   .addEventListener("click", function () {
-//   console.log("clicked : ", this.id);
-//   browser.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-//     executeScriptOpenConsole(tabs[0]);
-//   });
-// });
+
 document
   .querySelector("#copyExpressionsSoprod")
   .addEventListener("click", function () {
-    browser.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       executeScriptcopyExpressionsSoprod(tabs[0]);
     });
   });
@@ -250,7 +222,7 @@ document
 document
   .querySelector("#openGoogleSchemaValidator")
   .addEventListener("click", function () {
-    browser.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       executeScriptInTabGoogle(tabs[0]);
     });
   });
@@ -260,12 +232,12 @@ document
     !this.classList.contains("actif")
       ? this.classList.add("actif")
       : this.classList.remove("actif");
-    browser.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       executeScriptDesignModeToggle(tabs[0]);
     });
   });
 document.querySelector("#linksDuda").addEventListener("click", function () {
-  browser.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     executeScriptDudaPages(tabs[0]);
   });
 });
@@ -273,9 +245,9 @@ document.querySelector("#linksDuda").addEventListener("click", function () {
 document
   .querySelector("#openHnValidity")
   .addEventListener("click", function () {
-    browser.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       var activeTab = tabs[0];
-      browser.scripting.executeScript(
+      chrome.scripting.executeScript(
         {
           target: { tabId: activeTab.id },
           //function:CheckerImgFunc
@@ -292,14 +264,14 @@ document
   });
 
 document.querySelector("#analyserBtn").addEventListener("click", function () {
-  browser.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     var activeTab = tabs[0];
     var tabId = activeTab.id;
-    browser.tabs.get(tabId, function (tab) {
+    chrome.tabs.get(tabId, function (tab) {
       var tabContent = tab ? tab.content : null;
       console.log(tab, { tabContent });
       if (tab) {
-        browser.scripting.executeScript(
+        chrome.scripting.executeScript(
           {
             target: { tabId: tab.id },
             //function:CheckerImgFunc
@@ -333,18 +305,18 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
 //gestion du checkbox des cors à l'ouverture du popup
 var toggleButton = document.getElementById("corsButton");
 document.addEventListener("DOMContentLoaded", function () {
-  browser.storage.sync.set({ corsEnabled: true }, function () {
+  chrome.storage.sync.set({ corsEnabled: true }, function () {
     // Mise à jour de l'état de la case à cocher
     let corsEnabled = true;
     toggleButton.checked = corsEnabled;
     toggleButton.textContent = corsEnabled ? "Désactiver" : "Activer";
     console.log("click toggle cors : ", { corsEnabled });
     // Envoi d'un message à l'arrière-plan pour mettre à jour l'état des règles
-    browser.runtime.sendMessage({ corsEnabled: true });
+    chrome.runtime.sendMessage({ corsEnabled: true });
   });
 
   // Récupération de l'état actuel des règles lors du chargement de la page
-  browser.storage.sync.get("corsEnabled", function (result) {
+  chrome.storage.sync.get("corsEnabled", function (result) {
     var corsEnabled = result.corsEnabled;
     console.log("état du corsEnabled : ", corsEnabled);
     toggleButton.checked = corsEnabled; // Met à jour l'état de la case à cocher
@@ -354,13 +326,13 @@ document.addEventListener("DOMContentLoaded", function () {
     toggleButton.addEventListener("click", function () {
       // Inversion de l'état et sauvegarde dans le stockage
       corsEnabled = !corsEnabled;
-      browser.storage.sync.set({ corsEnabled: corsEnabled }, function () {
+      chrome.storage.sync.set({ corsEnabled: corsEnabled }, function () {
         // Mise à jour de l'état de la case à cocher
         toggleButton.checked = corsEnabled;
         toggleButton.textContent = corsEnabled ? "Désactiver" : "Activer";
         console.log("click toggle cors : ", { corsEnabled });
         // Envoi d'un message à l'arrière-plan pour mettre à jour l'état des règles
-        browser.runtime.sendMessage({ corsEnabled: corsEnabled });
+        chrome.runtime.sendMessage({ corsEnabled: corsEnabled });
       });
     });
   });
