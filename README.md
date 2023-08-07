@@ -1,4 +1,4 @@
-# Global checker website - chrome extension
+# Global checker website - chrome & Edge extension (Firefox console only)
 
 
 ## Checklist:
