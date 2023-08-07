@@ -193,52 +193,24 @@ function executeScriptcopyExpressionsSoprod() {
     });
   });
 }
-function mainFunction(sitemap) {
-  console.log("open sitemap : ", window.location.origin + sitemap);
-  window.open(
-    window.location.origin + sitemap,
-    "_blank",
-    "width=500,height=800,toolbar=no"
-  );
-}
-function executeScriptInTab(tab, sitemap) {
-  console.log("open sitemap : ", sitemap);
-  chrome.scripting.executeScript({
-    target: { tabId: tab.id },
-    function: mainFunction,
-    args: [sitemap],
-  });
-}
+
+
 document.querySelector(".openSitemap").addEventListener("click", function () {
   console.log("btn sitemap : ", this);
-  let sitemap = String(this.id).includes("sitemapWP")
-    ? "/page-sitemap.xml"
-    : "/sitemap.xml";
-  if (window.location.origin.includes("responsivesiteeditor")) {
-    const domainRoot = document
-      .querySelector('link[rel="alternate"]')
-      .attr("href")
-      .split("/site")[0];
-    console.log("sitemap Duda prepup : ", domainRoot + "sitemap.xml");
-    sitemap = domainRoot + "sitemap.xml";
-  } else {
-    sitemap = window.location.origin + sitemap;
-  }
-  console.log("_________________________________________________________", {
-    sitemap,
-  });
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    executeScriptInTab(tabs[0], sitemap);
+    chrome.scripting.executeScript({
+      target: { tabId: tabs[0].id },
+      function(){
+        let sitemap = window.location.origin+"/page-sitemap.xml";
+         window.open(sitemap,
+          "_blank",
+          "width=900,height=600,toolbar=no"
+        );
+      }
+    });
   });
 });
-// document
-//   .querySelector("#openConsole")
-//   .addEventListener("click", function () {
-//   console.log("clicked : ", this.id);
-//   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-//     executeScriptOpenConsole(tabs[0]);
-//   });
-// });
+
 document
   .querySelector("#copyExpressionsSoprod")
   .addEventListener("click", function () {
