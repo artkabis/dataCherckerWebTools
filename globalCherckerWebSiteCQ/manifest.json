@@ -3,8 +3,7 @@
   "name": "Full check Solocal Website",
   "version": "2.1.9",
   "background": {
-    "service_worker": "background.js",
-    "type": "module"
+    "service_worker": "background.js"
   },
   "action": {
     "default_popup": "popup.html",
