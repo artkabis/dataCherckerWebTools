@@ -31,7 +31,7 @@ const constructMainCard = () => {
   scoreContainer.innerHTML = "Score Global: " + dataChecker.global_score + "/5";
 
   //Envoi des confétis si la note globale est au-dessus de 4.8/5
-  if (dataChecker.global_score > 4.8) {
+  if (dataChecker.global_score >= 4.8) {
     var myCanvas = document.createElement("canvas");
     myCanvas.classList.add("score_canvas");
     document.body.appendChild(myCanvas);
@@ -49,6 +49,32 @@ const constructMainCard = () => {
         y: 0.5,
       },
     });
+    
+    //Suppression du canvas après 3 secondes.
+    setTimeout(() => {
+      myCanvas.remove();
+    }, 3000);
+  }
+
+  if (dataChecker.global_score > 4.5 && dataChecker.global_score < 4.8) {
+    var myCanvas = document.createElement("canvas");
+    myCanvas.classList.add("score_canvas");
+    document.body.appendChild(myCanvas);
+
+    var myConfetti = confetti.create(myCanvas, {
+      resize: true,
+      useWorker: true,
+    });
+    myConfetti({
+      particleCount: 5,
+      startVelocity: 30,
+      spread: 360,
+      origin: {
+        x: 0.5,
+        y: 0.5,
+      },
+    });
+    
     //Suppression du canvas après 3 secondes.
     setTimeout(() => {
       myCanvas.remove();
