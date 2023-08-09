@@ -30,11 +30,11 @@ const constructMainCard = () => {
   scoreContainer.classList.add("score_span");
   scoreContainer.innerHTML = "Score Global: " + dataChecker.global_score + "/5";
 
-  //Envoi des confétis si la note globale est au-dessus de 4.8/5
-
+  //Envoi de confétis si la note globale est au-dessus de 4.8/5
+  let myCanvas = document.createElement("canvas");
+  myCanvas.classList.add("score_canvas");
   const initCanvas = (particleCount) =>{
-    var myCanvas = document.createElement("canvas");
-    myCanvas.classList.add("score_canvas");
+
     document.body.appendChild(myCanvas);
 
     var myConfetti = confetti.create(myCanvas, {
@@ -54,7 +54,7 @@ const constructMainCard = () => {
   const removeCanevas = () =>{
         //Suppression du canvas après 3 secondes.
         setTimeout(() => {
-          myCanvas && myCanvas.remove();
+          (myCanvas.lenght) && myCanvas.remove();
         }, 3000);
   }
   if (dataChecker.global_score >= 4.8) {
@@ -137,7 +137,7 @@ constructMainCard();
 //construct resumeCardContainer
 const resumeCardContainer = document.getElementById("resume_card_container");
 
-//gesttion du toogle
+//gestion du toogle
 function toggle() {
   var toggleButton = document.getElementById("toggleButton");
   var toggleSlider = toggleButton.nextElementSibling;

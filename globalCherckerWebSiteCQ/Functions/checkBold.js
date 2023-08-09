@@ -156,16 +156,14 @@
   let nbBold = dataChecker.bold_check.bold_txt.length
     ? dataChecker.bold_check.bold_txt.length
     : 0;
-  if (nbBold === 1) {
+  if (nbBold === 0) {
+    scroreBold = 0;
+  }else if (nbBold === 1) {
     scroreBold = 1;
   } else if (nbBold === 2) {
-    scroreBold = 2;
-  } else if (nbBold === 3) {
-    scroreBold = 3;
+    scroreBold = 4;
   } else if (nbBold === 6) {
     scroreBold = 4;
-  } else if (nbBold >= 3 && nbBold <= 5) {
-    scroreBold = 5;
   } else if (nbBold === 7) {
     scroreBold = 3;
   } else if (nbBold === 8) {
@@ -176,7 +174,10 @@
     scroreBold = 1;
   } else if (nbBold < 1 && nbBold > 10) {
     scroreBold = 0;
-  }
+  }else if (nbBold >= 3 && nbBold <= 5) {
+    console.log('____________________________________________ bold ok ')
+    scroreBold = 5;
+  } 
   dataChecker.bold_check.global_score = scroreBold ? scroreBold : 0;
   console.log({ nbBold }, { scroreBold });
   cmpBold > 0 &&
