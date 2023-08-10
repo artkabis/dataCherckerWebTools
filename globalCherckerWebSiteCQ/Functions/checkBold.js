@@ -10,6 +10,7 @@
     boldArray = [],
     isSlide = false;
   strongOrBold.each(function (i, t) {
+
     const isHnClosest =      
     $(this)[0].tagName.toLowerCase() === "h1" || $(this).parents('h1').length ||
     $(this)[0].tagName.toLowerCase() === "h2" || $(this).parents('h2').length ||
@@ -20,6 +21,7 @@
 
     isSlide = $(this).closest(".slide-inner");
     if (t.textContent.length > 1 && t.textContent !== " ") {
+      
       if (!isHnClosest || !isSlide) {
         cmpBold++;
         boldArray.push({
@@ -102,9 +104,10 @@
     const isDuplicate = objSansDoublons.some(
       (item) => item.text === text && item.nbWords === nbWords
     );
-    if (!isDuplicate && text.length > 2 && !target.closest(".slide-inner") ) {
+    if (text.length > 2 && !target.closest(".slide-inner") && nbWordsParent>= 10) {
       objSansDoublons.push({
         target, // Modification : Ne pas accéder à [0] pour conserver l'élément DOM
+        texte_duplique:isDuplicate,
         text,
         nbWords,
         nbWordsParent
