@@ -10,19 +10,14 @@
     boldArray = [],
     isSlide = false;
   strongOrBold.each(function (i, t) {
-    const isHnClosest =
-      $(this)[0].tagName.toLowerCase() === "h1" ||
-      $(this).parent()[0].tagName.toLowerCase() === "h1" ||
-      $(this)[0].tagName.toLowerCase() === "h2" ||
-      $(this).parent()[0].tagName.toLowerCase() === "h2" ||
-      $(this)[0].tagName.toLowerCase() === "h3" ||
-      $(this).parent()[0].tagName.toLowerCase() === "h3" ||
-      $(this)[0].tagName.toLowerCase() === "h4" ||
-      $(this).parent()[0].tagName.toLowerCase() === "h4" ||
-      $(this)[0].tagName.toLowerCase() === "h5" ||
-      $(this).parent()[0].tagName.toLowerCase() === "h5" ||
-      $(this)[0].tagName.toLowerCase() === "h6" ||
-      $(this).parent()[0].tagName.toLowerCase() === "h6";
+    const isHnClosest =      
+    $(this)[0].tagName.toLowerCase() === "h1" || $(this).parents('h1').length ||
+    $(this)[0].tagName.toLowerCase() === "h2" || $(this).parents('h2').length ||
+    $(this)[0].tagName.toLowerCase() === "h3" || $(this).parents('h3').length ||
+    $(this)[0].tagName.toLowerCase() === "h4" || $(this).parents('h4').length ||
+    $(this)[0].tagName.toLowerCase() === "h5" || $(this).parents('h5').length ||
+    $(this)[0].tagName.toLowerCase() === "h6" || $(this).parents('h6').length;
+    
     isSlide = $(this).closest(".slide-inner");
     if (t.textContent.length > 1 && t.textContent !== " ") {
       if (!isHnClosest || !isSlide) {
@@ -39,6 +34,7 @@
   });
   $("#dm_content span").each(function (t) {
     isSlide = $(this).closest(".slide-inner");
+    
     const isBold = (el) =>
       el.attr("style") &&
       (el.attr("style").includes("font-weight: bold") ||
@@ -51,19 +47,14 @@
         ? true
         : false;
     let target = isMultiSpan ? $(this).children() : $(this);
-    const isHnClosest =
-      target[0].tagName.toLowerCase() === "h1" ||
-      target.parent()[0].tagName.toLowerCase() === "h1" ||
-      target[0].tagName.toLowerCase() === "h3" ||
-      target.parent()[0].tagName.toLowerCase() === "h3" ||
-      target[0].tagName.toLowerCase() === "h2" ||
-      target.parent()[0].tagName.toLowerCase() === "h2" ||
-      target[0].tagName.toLowerCase() === "h4" ||
-      target.parent()[0].tagName.toLowerCase() === "h4" ||
-      target[0].tagName.toLowerCase() === "h5" ||
-      target.parent()[0].tagName.toLowerCase() === "h5" ||
-      target[0].tagName.toLowerCase() === "h6" ||
-      target.parent()[0].tagName.toLowerCase() === "h6";
+    const isHnClosest =      
+    $(this)[0].tagName.toLowerCase() === "h1" || $(this).parents('h1').length ||
+    $(this)[0].tagName.toLowerCase() === "h2" || $(this).parents('h2').length ||
+    $(this)[0].tagName.toLowerCase() === "h3" || $(this).parents('h3').length ||
+    $(this)[0].tagName.toLowerCase() === "h4" || $(this).parents('h4').length ||
+    $(this)[0].tagName.toLowerCase() === "h5" || $(this).parents('h5').length ||
+    $(this)[0].tagName.toLowerCase() === "h6" || $(this).parents('h6').length;
+
     const duplicateBold =
       isMultiSpan &&
       $(this)[0]
@@ -92,7 +83,8 @@
         text: target[0].textContent.trim(),
         nbWords: target[0].textContent.trim().split(" ").length,
       }),
-      cmpBold++);
+      cmpBold++,
+      console.log('________________ Nombre de mots dans le parent du text',$(this).closest(".dmNewParagraph")[0].textContent.split(' ').length));
     duplicateBold && cmpBold--;
   });
 
@@ -169,13 +161,13 @@
   } else if (nbBold === 8) {
     scroreBold = 2;
   } else if (nbBold === 9) {
-    scroreBold = 2;
+    scroreBold = 1;
   } else if (nbBold === 10) {
     scroreBold = 1;
   } else if (nbBold < 1 && nbBold > 10) {
     scroreBold = 0;
   }else if (nbBold >= 3 && nbBold <= 5) {
-    console.log('____________________________________________ bold ok ')
+    console.log('____________________________________________ bold ok ');
     scroreBold = 5;
   } 
   dataChecker.bold_check.global_score = scroreBold ? scroreBold : 0;
