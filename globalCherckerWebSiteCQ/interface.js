@@ -51,18 +51,21 @@ const constructMainCard = () => {
       },
     });
   }
-  const removeCanevas = () =>{
+  const removeCanevas = (canvas) =>{
         //Suppression du canvas après 3 secondes.
+        console.log({canvas});
         setTimeout(() => {
-          (myCanvas.lenght) && myCanvas.remove();
+          (canvas) && canvas.remove();
         }, 3000);
   }
   if (dataChecker.global_score >= 4.8) {
-    initCanvas(600),removeCanevas();
+    initCanvas(600);
+    removeCanevas(myCanvas);
   }
 
   if (dataChecker.global_score > 4.5 && dataChecker.global_score < 4.8) {
-    initCanvas(5),removeCanevas();
+    initCanvas(5);
+    removeCanevas(myCanvas);
   }
 
   mainCard.appendChild(titleMainCard);

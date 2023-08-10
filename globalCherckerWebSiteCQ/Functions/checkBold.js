@@ -17,7 +17,7 @@
     $(this)[0].tagName.toLowerCase() === "h4" || $(this).parents('h4').length ||
     $(this)[0].tagName.toLowerCase() === "h5" || $(this).parents('h5').length ||
     $(this)[0].tagName.toLowerCase() === "h6" || $(this).parents('h6').length;
-    
+
     isSlide = $(this).closest(".slide-inner");
     if (t.textContent.length > 1 && t.textContent !== " ") {
       if (!isHnClosest || !isSlide) {
@@ -28,6 +28,7 @@
           nbWords: t.textContent.includes(" ")
             ? t.textContent.split(" ").length
             : 1,
+            nbWordsParent: $(this).parents('.dmNewParagraph').length ? $(this).parents(".dmNewParagraph")[0].textContent.split(' ').length : $(this).parent()[0].textContent.split(' ')
         });
       }
     }
@@ -71,7 +72,8 @@
         "   text content",
         target[0].textContent,
         " text length",
-        $(this)[0].textContent.trim().length
+        $(this)[0].textContent.trim().length,
+        " parent dmpara nb words : ",($(this).parents(".dmNewParagraph")) ? $(this).parents(".dmNewParagraph")[0].textContent.split(' ').length : $(this).parent()[0].textContent.split(' ')
       );
     isBold(target) &&
       !isHnClosest &&
@@ -82,9 +84,10 @@
         target: target[0], // Modification : Ajouter [0] pour obtenir l'élément DOM
         text: target[0].textContent.trim(),
         nbWords: target[0].textContent.trim().split(" ").length,
+        nbWordsParent : target.parents('.dmNewParagraph').length ? target.parents(".dmNewParagraph")[0].textContent.split(' ').length : target.parent()[0].textContent.split(' ')
+        
       }),
-      cmpBold++,
-      console.log('________________ Nombre de mots dans le parent du text',$(this).closest(".dmNewParagraph")[0].textContent.split(' ').length));
+      cmpBold++);
     duplicateBold && cmpBold--;
   });
 
@@ -94,16 +97,17 @@
   // Parcourir l'array initial boldArray
   for (let i = 0; i < boldArray.length; i++) {
     const element = boldArray[i];
-    const { target, text, nbWords } = element;
+    const { target, text, nbWords, nbWordsParent } = element;
     // Vérifier si les propriétés "text" et "nbWords" sont identiques
     const isDuplicate = objSansDoublons.some(
       (item) => item.text === text && item.nbWords === nbWords
     );
-    if (!isDuplicate && text.length > 2 && !target.closest(".slide-inner")) {
+    if (!isDuplicate && text.length > 2 && !target.closest(".slide-inner") ) {
       objSansDoublons.push({
         target, // Modification : Ne pas accéder à [0] pour conserver l'élément DOM
         text,
         nbWords,
+        nbWordsParent
       });
     }
   }
