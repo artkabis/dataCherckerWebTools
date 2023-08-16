@@ -1,6 +1,6 @@
 (($) => {
   const strongOrBold = $(
-    "#Content b, #Content strong, #Content STRONG, #dm_content b, #dm_content B, #dm_content strong, #dm_content STRONG"
+    "b, strong, STRONG, B"
   );
   strongOrBold &&
     console.log(
@@ -8,21 +8,28 @@
     );
   let cmpBold = 0,
     boldArray = [],
-    isSlide = false;
+    isSlideDuda = false,
+    isWP = $('#Content').length;
+    isDuda = $('#dm').length;
   strongOrBold.each(function (i, t) {
+    const isHnClosest =
+      $(this)[0].tagName.toLowerCase() === "h1" ||
+      $(this).parents("h1").length ||
+      $(this)[0].tagName.toLowerCase() === "h2" ||
+      $(this).parents("h2").length ||
+      $(this)[0].tagName.toLowerCase() === "h3" ||
+      $(this).parents("h3").length ||
+      $(this)[0].tagName.toLowerCase() === "h4" ||
+      $(this).parents("h4").length ||
+      $(this)[0].tagName.toLowerCase() === "h5" ||
+      $(this).parents("h5").length ||
+      $(this)[0].tagName.toLowerCase() === "h6" ||
+      $(this).parents("h6").length;
+      const nbWordsParentWP = (isWP) ? $(this).parents('.vc_row')[0].innerText.trim().split(' ').length : $(this).parent().parent()[0].innerText.trim().split(' ').length;
 
-    const isHnClosest =      
-    $(this)[0].tagName.toLowerCase() === "h1" || $(this).parents('h1').length ||
-    $(this)[0].tagName.toLowerCase() === "h2" || $(this).parents('h2').length ||
-    $(this)[0].tagName.toLowerCase() === "h3" || $(this).parents('h3').length ||
-    $(this)[0].tagName.toLowerCase() === "h4" || $(this).parents('h4').length ||
-    $(this)[0].tagName.toLowerCase() === "h5" || $(this).parents('h5').length ||
-    $(this)[0].tagName.toLowerCase() === "h6" || $(this).parents('h6').length;
-
-    isSlide = $(this).closest(".slide-inner");
-    if (t.textContent.length > 1 && t.textContent !== " ") {
-      
-      if (!isHnClosest || !isSlide) {
+    testStack = isWP 
+    isSlideDuda = (isDuda) ? $(this).parents(".slide-inner").length : 0;
+    if (t.textContent.length > 1 && t.textContent !== " " && !isHnClosest && nbWordsParentWP >=15 && !isSlideDuda) {
         cmpBold++;
         boldArray.push({
           target: t,
@@ -30,90 +37,110 @@
           nbWords: t.textContent.includes(" ")
             ? t.textContent.split(" ").length
             : 1,
-            nbWordsParent: $(this).parents('.dmNewParagraph').length ? $(this).parents(".dmNewParagraph")[0].textContent.split(' ').length : $(this).parent()[0].textContent.split(' ')
+          nbWordsParent: (isWP) ? nbWordsParentWP
+            : (isDuda) ? $(this).parents(".dmNewParagraph")[0].textContent.split(" ").length :  $(this).parent().parent()[0].innerText.trim().split(' ').length
         });
-      }
     }
   });
+  const isBold = (el) =>
+      el.attr("style") && 
+      (el.attr("style").includes("font-weight: bold") ||
+      el.attr("style").includes("font-weight: 700") ||
+      el.attr("style").includes("font-weight: 600") ||
+      el.attr("style").includes("font-weight: 700") ||
+      el.attr("style").includes("font-weight: 800") ||
+      el.attr("style").includes("font-weight: 900") &&
+        $(this)[0].textContent.trim().length);
+
+    const isMultiSpan = (el) =>isBold(el) &&isBold(el.children()) && el[0].textContent.trim().length ? true : false;
+
   $("#dm_content span").each(function (t) {
     isSlide = $(this).closest(".slide-inner");
-    
-    const isBold = (el) =>
-      el.attr("style") &&
-      (el.attr("style").includes("font-weight: bold") ||
-        (el.attr("style").includes("font-weight: 700") &&
-          $(this)[0].textContent.trim().length));
-    const isMultiSpan =
-      isBold($(this)) &&
-      isBold($(this).children()) &&
-      $(this)[0].textContent.trim().length
-        ? true
-        : false;
-    let target = isMultiSpan ? $(this).children() : $(this);
-    const isHnClosest =      
-    $(this)[0].tagName.toLowerCase() === "h1" || $(this).parents('h1').length ||
-    $(this)[0].tagName.toLowerCase() === "h2" || $(this).parents('h2').length ||
-    $(this)[0].tagName.toLowerCase() === "h3" || $(this).parents('h3').length ||
-    $(this)[0].tagName.toLowerCase() === "h4" || $(this).parents('h4').length ||
-    $(this)[0].tagName.toLowerCase() === "h5" || $(this).parents('h5').length ||
-    $(this)[0].tagName.toLowerCase() === "h6" || $(this).parents('h6').length;
 
-    const duplicateBold =
-      isMultiSpan &&
+    
+    let target = isMultiSpan($(this)) ? $(this).children() : $(this);
+    const isHnClosest =
+      $(this)[0].tagName.toLowerCase() === "h1" ||
+      $(this).parents("h1").length ||
+      $(this)[0].tagName.toLowerCase() === "h2" ||
+      $(this).parents("h2").length ||
+      $(this)[0].tagName.toLowerCase() === "h3" ||
+      $(this).parents("h3").length ||
+      $(this)[0].tagName.toLowerCase() === "h4" ||
+      $(this).parents("h4").length ||
+      $(this)[0].tagName.toLowerCase() === "h5" ||
+      $(this).parents("h5").length ||
+      $(this)[0].tagName.toLowerCase() === "h6" ||
+      $(this).parents("h6").length;
+      const innerMultiSpan = isMultiSpan($(this))
+    const duplicateBoldSpan =
+    isMultiSpan($(this)) &&
       $(this)[0]
         .textContent.trim()
         .includes($(this).children()[0].textContent.trim());
-    isMultiSpan &&
+        innerMultiSpan &&
       !isHnClosest &&
       console.log(
         { target },
         "  isBold : ",
         isBold(target),
-        { isMultiSpan },
-        { duplicateBold },
+        { innerMultiSpan },
+        { duplicateBoldSpan },
         "   text content",
         target[0].textContent,
         " text length",
         $(this)[0].textContent.trim().length,
-        " parent dmpara nb words : ",($(this).parents(".dmNewParagraph")) ? $(this).parents(".dmNewParagraph")[0].textContent.split(' ').length : $(this).parent()[0].textContent.split(' ')
+        " parent dmpara nb words : ",
+        $(this).parents(".dmNewParagraph")
+          ? $(this).parents(".dmNewParagraph")[0].textContent.split(" ").length
+          : $(this).parent()[0].textContent.split(" ")
       );
     isBold(target) &&
       !isHnClosest &&
       target[0].textContent !== "\n" &&
       target[0].textContent !== "" &&
       target[0].textContent.length > 1 &&
+      !duplicateBoldSpan &&
       (boldArray.push({
         target: target[0], // Modification : Ajouter [0] pour obtenir l'élément DOM
         text: target[0].textContent.trim(),
         nbWords: target[0].textContent.trim().split(" ").length,
-        nbWordsParent : target.parents('.dmNewParagraph').length ? target.parents(".dmNewParagraph")[0].textContent.split(' ').length : target.parent()[0].textContent.split(' ')
-        
+        nbWordsParent: target.parents(".dmNewParagraph").length
+          ? target.parents(".dmNewParagraph")[0].textContent.split(" ").length
+          : target.parent()[0].textContent.split(" "),
       }),
       cmpBold++);
-    duplicateBold && cmpBold--;
+      duplicateBoldSpan && cmpBold--;
   });
 
   // Créer un nouvel tableau pour stocker les éléments uniques
   const objSansDoublons = [];
 
   // Parcourir l'array initial boldArray
-  for (let i = 0; i < boldArray.length; i++) {
+  $.each(boldArray,function(i,t){
+    const $isMultiSpan = isMultiSpan($(this));
     const element = boldArray[i];
     const { target, text, nbWords, nbWordsParent } = element;
+    console.log('_____________________________inner bold array : ',{element})
     // Vérifier si les propriétés "text" et "nbWords" sont identiques
     const isDuplicate = objSansDoublons.some(
       (item) => item.text === text && item.nbWords === nbWords
     );
-    if (text.length > 2 && !target.closest(".slide-inner") && nbWordsParent>= 10) {
-      objSansDoublons.push({
+
+    if (
+      text.length > 2 &&
+      !target.closest(".slide-inner") &&
+      nbWordsParent >= 15
+    ) {
+      !$isMultiSpan && objSansDoublons.push({
         target, // Modification : Ne pas accéder à [0] pour conserver l'élément DOM
-        texte_duplique:isDuplicate,
+        texte_duplique: isDuplicate,
         text,
         nbWords,
-        nbWordsParent
+        nbWordsParent,
       });
     }
-  }
+  });
   dataChecker.bold_check.bold_txt = [];
   dataChecker.bold_check.bold_check_state =
     objSansDoublons.length === 0 || objSansDoublons === undefined
@@ -157,7 +184,7 @@
     : 0;
   if (nbBold === 0) {
     scroreBold = 0;
-  }else if (nbBold === 1) {
+  } else if (nbBold === 1) {
     scroreBold = 1;
   } else if (nbBold === 2) {
     scroreBold = 4;
@@ -173,10 +200,10 @@
     scroreBold = 1;
   } else if (nbBold < 1 && nbBold > 10) {
     scroreBold = 0;
-  }else if (nbBold >= 3 && nbBold <= 5) {
-    console.log('____________________________________________ bold ok ');
+  } else if (nbBold >= 3 && nbBold <= 5) {
+    console.log("____________________________________________ bold ok ");
     scroreBold = 5;
-  } 
+  }
   dataChecker.bold_check.global_score = scroreBold ? scroreBold : 0;
   console.log({ nbBold }, { scroreBold });
   cmpBold > 0 &&

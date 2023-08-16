@@ -1,13 +1,69 @@
 import * as confetti from "./assets/canvas-confetti.mjs";
 
 console.log("------------ in interface script -----------");
-const queryString = window.location.search;
-const params = new URLSearchParams(queryString);
-const data = params.get("data");
-console.log({ data }, { queryString }, { params }, JSON.parse(data));
-// const decodeURI = decodeURIComponent(data);
-// console.log({decodeURI})
-const dataChecker = JSON.parse(data);
+// const queryString = window.location.search;
+// const params = new URLSearchParams(queryString);
+// const data = params.get("data");
+// console.log({ data }, { queryString }, { params }, JSON.parse(data));
+
+
+
+
+let mydb = null;
+const db_name = "db_datas_checker";
+const DBOpenRequest = indexedDB.open(db_name, 4);
+
+DBOpenRequest.onsuccess = (event) => {
+  // store the result of opening the database in the db variable.
+  // This is used a lot below
+  mydb = DBOpenRequest.result;
+
+  // Run the addData() function to add the data to the database
+  console.log("db open succes : ", event.target.result);
+
+  const transaction = mydb.transaction([db_name], "readonly");
+  const objectStore = transaction.objectStore(db_name);
+  var objectStoreRequest = objectStore.get('dcw');
+  objectStoreRequest.onsuccess = function (event) {
+    // On indique la réussite de l'insertion
+    const datasCheckerDB = objectStoreRequest.result.data;
+  console.log('datasCheckerDB datas : ',{datasCheckerDB});
+  initInterface(datasCheckerDB);
+  };
+};
+DBOpenRequest.onupgradeneeded = (event) => {
+  mydb = event.target.result;
+  console.log('db opened : onupgradeneeded :', {mydb});
+
+  mydb.onerror = (event) => {
+    console.log("Error loading database.", event);
+  };
+
+  mydb.onsuccess = (event) => {
+    console.log("upgrade successful", event);
+
+  };
+};
+
+
+
+
+
+
+
+
+
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+  console.log('interface.js received message request: ' + request);
+  if (request.action === 'open_interface'){
+    const dataChecker = JSON.parse(request.data)
+    console.log('-------------------------------- send_data_interface message.data: ', {dataChecker});
+  }
+});
+
+
+const initInterface = (datas) =>{
+const dataChecker = datas;
 window["dataCheck"] = dataChecker;
 
 const mainCardContainer = document.getElementById("main_card_container");
@@ -290,3 +346,4 @@ if (dataChecker.bold_check) {
 const CHECK = window["dataCheck"];
 const { webdesigner_global_score: WEB, cdp_global_score: CDP } = CHECK; //rename webdesigner_global_score & cdp_global_score to WEB & CDP
 console.log({ CHECK }, { WEB }, { CDP }); //CHECK global value in window scope.
+}

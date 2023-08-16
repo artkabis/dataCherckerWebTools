@@ -40,118 +40,14 @@ function executeScriptDesignModeToggle(tab) {
 }
 function executeScriptDudaPages(tab) {
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    const activeTab = tabs[0];
     chrome.scripting.executeScript({
-      target: { tabId: tabs[0].id },
-      function: () => {
-        if (document.querySelector("#dm")) {
-          const menuJson = JSON.parse(
-            atob(
-              document.head.innerHTML
-                .split("NavItems: ")[1]
-                .split("',")[0]
-                .replaceAll("'", "")
-            )
-          );
-
-          const subNavOk = menuJson.filter((t) => t.subNav.length > 0);
-          const nv1OutNav = menuJson.filter((t) => t.inNavigation === false);
-          const nv1InNav = menuJson.filter((t) => t.inNavigation === true);
-          nv1OutNav.map((t) => (t.niveau1Out = true)),
-            nv1InNav.map((t) => (t.niveau1In = true));
-          const nv2OutNav =
-            subNavOk && subNavOk.filter((s) => s.inNavigation == false);
-          nv2OutNav.niveau2Out = true;
-          const nv2InNav =
-            subNavOk && subNavOk.filter((s) => s.inNavigation == true);
-          nv2InNav.niveau2In = true;
-          const finalNavOut =
-            nv2OutNav > 0 ? { nv1OutNav, nv2OutNav } : nv1OutNav;
-          const finalNavIn = nv2InNav > 0 ? { nv1InNav, nv2InNav } : nv1InNav;
-          console.log(
-            "---------------------------------- Visible en navigation (depuis le menu) --------------------------------------------"
-          );
-          console.table(finalNavIn);
-          console.log(
-            "---------------------------------- Non visible dans la navigation (depuis le menu) --------------------------------------------"
-          );
-          console.table(finalNavOut);
-          finalNavOut.map((t) => {
-            console.log("links outer nav : ", window.location.origin + t.path);
-          });
-          // return all links page Duda website
-          const links = [];
-          const getAllPathValues = (obj) => {
-            var values = [];
-
-            const traverse = (obj) => {
-              for (var key in obj) {
-                if (key === "path") {
-                  const link = new URL(window.location.origin + obj[key]).href;
-                  links.push(link);
-                } else if (typeof obj[key] === "object") {
-                  traverse(obj[key]);
-                }
-              }
-            };
-
-            traverse(obj);
-            return values;
-          };
-          console.log(
-            "------------------------------------- All links Duda website ------------------------------"
-          );
-          getAllPathValues(menuJson);
-          const allLinksDom = () => {
-            let finalLink = [];
-            links.forEach((t, i) => {
-              link = t.includes("#") ? t.split("#")[0] : t;
-              finalLink.push(`<a href="${link}">${link}</a><br>`);
-            });
-
-            return [...new Set(finalLink)];
-          };
-          const newWindow = window.open(
-            "_blank",
-            "width=900,height=600,toolbar=no"
-          );
-          newWindow.document.write("<html><head><title>Sitemap Duda</title>");
-          newWindow.document.write(
-            "<style>.missing {background-color: white!important;color: orange!important;}.noMissingHeading { background-color:green }.duplicate { background-color: orange }</style>"
-          );
-          newWindow.document.write(
-            `</head><body>${allLinksDom()}<body></html>`
-          );
-          newWindow.document.close();
-        }
-      },
-    });
-  });
-}
-function executeScriptOpenConsole(tab) {
-  console.log("Execution de openConsole sur le tag : ", tab);
-  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    chrome.scripting.executeScript({
-      target: { tabId: tabs[0].id },
-      function: () => {
-        const event = new KeyboardEvent("keydown", {
-          key: "j",
-          code: "KeyJ",
-          ctrlKey: true,
-          shiftKey: true,
-        });
-        console.log({ event });
-        document.dispatchEvent(event);
-      },
+      target: { tabId: activeTab.id },
+      files: ["./Functions/DudaSitemap.js"],
     });
   });
 }
 
-//  async function executeScriptHnValidity(tab) {
-//     const activeTab = await getActiveTabURL();
-//     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-
-//     });
-//   }
 
 function executeScriptcopyExpressionsSoprod() {
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
@@ -250,16 +146,8 @@ document
       chrome.scripting.executeScript(
         {
           target: { tabId: activeTab.id },
-          //function:CheckerImgFunc
           files: ["./Functions/HnOutlineValidity.js"],
-        },
-        function (results) {
-          //DevToolsAPI.showPanel('console');
-          // window.open('result.html','_blank');
-          //CheckerImg();
-          //window.close();
-        }
-      );
+        });
     });
   });
 
@@ -274,7 +162,6 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
         chrome.scripting.executeScript(
           {
             target: { tabId: tab.id },
-            //function:CheckerImgFunc
             files: [
               "./assets/jquery-3.6.4.min.js",
               "./assets/console.image.min.js",
@@ -294,7 +181,7 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
             ],
           },
           function (results) {
-            window.close();
+            //window.close();
           }
         );
       }

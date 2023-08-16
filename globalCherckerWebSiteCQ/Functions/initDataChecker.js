@@ -125,6 +125,7 @@ initDataChecker = (size_scores, ratio_scores, alt_scores, scoreCheckLink) => {
     action: "open_interface",
     data: JSON.stringify(dataChecker),
   });
+  //chrome.storage.sync.set({ openInterface: JSON.stringify(dataChecker) });
   console.log(
     "%c--------------------------------------------Fin du traitement globale du checkerImages ----------------------------------------------------------------",
     "color:green"

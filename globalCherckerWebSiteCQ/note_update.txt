@@ -1,0 +1,3 @@
+Surchage d'indexDB : 
+- bien faire le remove de la db avant de lancer (service-worker ligne 140), si la db existe, il faut la supprimer avant la construction.
+Voir si le delete de la bdd à la racine n'est pas plus efficace. Ici je test le delete du store.
