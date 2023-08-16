@@ -121,7 +121,6 @@
     const $isMultiSpan = isMultiSpan($(this));
     const element = boldArray[i];
     const { target, text, nbWords, nbWordsParent } = element;
-    console.log('_____________________________inner bold array : ',{element})
     // Vérifier si les propriétés "text" et "nbWords" sont identiques
     const isDuplicate = objSansDoublons.some(
       (item) => item.text === text && item.nbWords === nbWords
