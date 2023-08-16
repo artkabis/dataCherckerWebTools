@@ -130,7 +130,8 @@
     if (
       text.length > 2 &&
       !target.closest(".slide-inner") &&
-      nbWordsParent >= 15
+      !target.closest("#Footer") &&
+      nbWordsParent >= 25
     ) {
       !$isMultiSpan && objSansDoublons.push({
         target, // Modification : Ne pas accéder à [0] pour conserver l'élément DOM

@@ -151,6 +151,19 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
 
     /******* Method post data in getURL ****/
+    let interfacePageExist = false;
+    /****** check all tab */
+    async function start() {
+      const allTabs = await chrome.tabs.query({});
+      allTabs.forEach((tab) => {
+        if (tab.url.includes('interface.html')) {
+          console.log('----------------------------- tab interface.html detected : ',{tab})
+          chrome.tabs.remove(tab.id);
+          console.log('after remove ----------------------------- tab interface.html detected : ',{tab});
+        }
+      });
+    }
+    start();
     var interfacePopupUrl = chrome.runtime.getURL("interface.html");
     chrome.windows.create({
       url: `${interfacePopupUrl}`, //?data=${encodeURIComponent(JSON.stringify(dataCheckerJSON))}
@@ -257,3 +270,5 @@ const addData = (db_name, datas) => {
     }
   };
 };
+
+
