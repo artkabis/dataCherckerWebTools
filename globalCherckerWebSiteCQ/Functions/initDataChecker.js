@@ -26,6 +26,8 @@ initDataChecker = (size_scores, ratio_scores, alt_scores, scoreCheckLink) => {
       : 5;
   dataChecker.alt_img_check.global_score = global_alt_scores;
 
+  console.log({global_ratio_scores},{global_size_scores}, {global_alt_scores});
+
   dataChecker.img_check.global_score = Number(
     (
       (global_ratio_scores + global_size_scores + global_alt_scores) /

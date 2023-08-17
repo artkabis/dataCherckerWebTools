@@ -114,7 +114,7 @@
     const checkBaseSrc = (validUrl && src.includes('data:image')) ? 'data:image'+src.split('data:image')[1] : src;
     this.tagName !== "svg" && filterDomain && excludes && validUrl
       ? getImageAsBase64(checkBaseSrc,validUrl).then((base64Data) => {
-          if (base64Data) {
+          if (base64Data, validUrl) {
             console.log("_____alt to base64 src : ", { checkBaseSrc });
             console.log(
               `%c   %c%o  %c${alt ? alt : "ALT MANQUANT"}`,

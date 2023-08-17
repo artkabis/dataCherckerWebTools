@@ -110,7 +110,7 @@
       } else {
         // Vérifier si le niveau actuel est inférieur au niveau précédent ou a des niveaux intermédiaires manquants
         const niveauPrecedent = niveaux.indexOf(
-          HnArray[i - 1].nodeName.toLowerCase()
+          (i>0) ? HnArray[i - 1].nodeName.toLowerCase() : HnArray[0].nodeName.toLowerCase()
         );
         if (niveauActuel <= niveauPrecedent) {
           rendu += `${balise.nodeName.toLowerCase()} - Non valide_`;
