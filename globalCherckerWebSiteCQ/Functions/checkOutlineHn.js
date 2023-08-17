@@ -154,7 +154,7 @@
     nbHn++;
     const nbLetters = t.textContent.length;
     const tagName = t.tagName;
-    const tagContent = t.textContent
+    const tagContent = t.textContent.trim()
       .replaceAll("\n", " ")
       .replaceAll(",", " ")
       .replaceAll("\t", "")
@@ -183,6 +183,8 @@
       "il",
       "de",
       "des",
+      "ces",
+      "ses",
       "près",
       "pour",
       "vers",

@@ -54,7 +54,7 @@
             ? t.textContent.split(" ").length
             : 1,
           nbWordsParent: (isWP) ? nbWordsParentWP
-            : (isDuda) ? $(this).parents(".dmNewParagraph")[0].textContent.split(" ").length :  $(this).parent().parent()[0].innerText.trim().split(' ').length
+            : (isDuda) ? $(this).parents(".dmNewParagraph")[0].textContent.split(" ").length :  (isWP) ? target.parents('.wpb_text_column')[0].textContent.split(" ").length : target.parent().parent().parent()[0].textContent.split(" ").length,
         });
     }
   });
@@ -87,7 +87,7 @@
         " parent dmpara nb words : ",
         $(this).parents(".dmNewParagraph")
           ? $(this).parents(".dmNewParagraph")[0].textContent.split(" ").length
-          : $(this).parent()[0].textContent.split(" ")
+          : $(this).parent().parent().parent()[0].textContent.split(" ")
       );
     isBold(target) &&
       !isHnClosest($(this)) &&
@@ -101,11 +101,12 @@
         nbWords: target[0].textContent.trim().split(" ").length,
         nbWordsParent: target.parents(".dmNewParagraph").length
           ? target.parents(".dmNewParagraph")[0].textContent.split(" ").length
-          : target.parent()[0].textContent.split(" "),
+          : target.parent().parent().parent()[0].textContent.split(" "),
       }),
       cmpBold++);
       duplicateBoldSpan && cmpBold--;
-  });
+      
+  });console.log({boldArray});
 
   // Créer un nouvel tableau pour stocker les éléments uniques
   const objSansDoublons = [];
@@ -135,6 +136,7 @@
       });
     }
   });
+  console.log({objSansDoublons})
   dataChecker.bold_check.bold_txt = [];
   dataChecker.bold_check.bold_check_state =
     objSansDoublons.length === 0 || objSansDoublons === undefined

@@ -117,6 +117,7 @@ function initcheckerLinksAndImages(){
             ratioWidth: args[5] / args[7],
             ratioHeight: args[6] / args[8],
             ratio: String(ratio) === ("Infinity" || 0) ? "image cachée" : ratio,
+            status:response.status
           };
           console.log(result, "");
 
@@ -186,14 +187,15 @@ function initcheckerLinksAndImages(){
               size_img_src: result.url,
               size_img: result.size,
               size_img_score:
-                fsize > 317435 ? 0 : fsize > 256000 && fsize < 317435 ? 2.5 : 5,
+                (fsize > 317435 ? 0 : fsize > 256000 && fsize < 317435 ? 2.5 : 5 ? response.status === '404' : 0) ,
               check_title: "Images size",
+              image_status: response.status
             });
           const imgcheckRatio =
             (result.ratio < 2 &&
               result.Imgheight < 150 &&
               result.Imgwidth < 150) ||
-            result.ratio == "image cachée";
+              result.ratio == "image cachée";
 
 
           if (imgcheckRatio || result.ratio === 1) {
@@ -209,6 +211,7 @@ function initcheckerLinksAndImages(){
           } else {
             ratioScoreImg = 5;
           }
+          let statusScoreImg = (response.status =='404') ? 0 : 5;
           
 
           dataChecker.img_check.ratio_img.push({
@@ -223,12 +226,26 @@ function initcheckerLinksAndImages(){
             ratio_parent_img_width: result.ratioWidth,
             ratio_img: result.ratio,
             ratio_img_score: ratioScoreImg,
+
           });
         }
       } catch (error) {
+        dataChecker.img_check.ratio_img.push({
+          ratio_img_state: true,
+          ratio_img_src: result.url,
+          type_img: 'image non disponible : 404',
+          img_height: result.Imgheight,
+          img_width: result.Imgwidth,
+          parent_img_height: result.parentwidth,
+          parent_img_width: result.parentheight,
+          ratio_parent_img_height: result.ratioHeight,
+          ratio_parent_img_width: result.ratioWidth,
+          ratio_img: result.ratio,
+          ratio_img_score: ratioScoreImg,
+        });
         requestCompletedCount++;
         console.log("%cNot available", "color:yellow");
-        console.log(error, error.message);
+        console.log(error, error.message, '  url : ' + args[1]);
         result && console.log({ result }, result.target);
       }
     } else {
@@ -288,6 +305,7 @@ function initcheckerLinksAndImages(){
         $(this).attr("alt").length > 0 &&
         $(this).attr("alt") !== "";
       const isDudaImage = srcV && srcV.includes("cdn-website");
+      console.log({srcV});
       srcV =
         !isDudaImage &&
         srcV &&
@@ -296,7 +314,10 @@ function initcheckerLinksAndImages(){
           ? window.location.origin +
             "/wp-content/" +
             srcV.split("/wp-content/")[1]
-          : srcV;
+          : (!srcV.includes("http") && !srcV.at(0).includes('/')) ? window.location.origin +'/'+srcV : srcV;
+
+          //srcV = (!srcV.includes("http") && !srcV.at(0).includes('/')) ? window.location.origin +'/'+srcV : srcV;
+          console.log('srcV no at 0 / : ',{srcV});
 
       if (srcV) {
         $(this) && srcV;
@@ -463,7 +484,7 @@ function initcheckerLinksAndImages(){
               "color:green"
             );
             scoreCheckLink.push(5);
-          } else if (!isLinkedin) {
+          } else if (!isLinkedin && !res.ok) {
             console.log(
               `url: ${_url} %c${_txt} -> %cstatus: %c${response.status}`,
               "color:cornflowerblue;",
