@@ -54,7 +54,7 @@
             ? t.textContent.split(" ").length
             : 1,
           nbWordsParent: (isWP) ? nbWordsParentWP
-            : (isDuda) ? $(this).parents(".dmNewParagraph")[0].textContent.split(" ").length :  (isWP) ? target.parents('.wpb_text_column')[0].textContent.split(" ").length : target.parent().parent().parent()[0].textContent.split(" ").length,
+            : (isDuda) ? $(this).parents(".dmNewParagraph")[0].textContent.split(" ").length :  (isWP) ? $(this).parents('.wpb_text_column')[0].textContent.split(" ").length : $(this).parent().parent().parent()[0].textContent.split(" ").length,
         });
     }
   });

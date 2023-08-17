@@ -305,7 +305,6 @@ function initcheckerLinksAndImages(){
         $(this).attr("alt").length > 0 &&
         $(this).attr("alt") !== "";
       const isDudaImage = srcV && srcV.includes("cdn-website");
-      console.log({srcV});
       srcV =
         !isDudaImage &&
         srcV &&
@@ -314,10 +313,7 @@ function initcheckerLinksAndImages(){
           ? window.location.origin +
             "/wp-content/" +
             srcV.split("/wp-content/")[1]
-          : (!srcV.includes("http") && !srcV.at(0).includes('/')) ? window.location.origin +'/'+srcV : srcV;
-
-          //srcV = (!srcV.includes("http") && !srcV.at(0).includes('/')) ? window.location.origin +'/'+srcV : srcV;
-          console.log('srcV no at 0 / : ',{srcV});
+          : (src && !srcV.includes("http") && !srcV.at(0).includes('/')) ? window.location.origin +'/'+srcV : srcV;
 
       if (srcV) {
         $(this) && srcV;

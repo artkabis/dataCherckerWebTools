@@ -107,8 +107,8 @@
 
   // Liste des sélecteurs pour récupérer le texte
   const selectors = [
-    "#Content",
-    "#dm_content .dmNewParagraph:not(.proliveContainer)",
+    "#Content",".Content",".content",
+    "#dm_content .dmNewParagraph:not(.proliveContainer)", 'body:not(#dmRoot):not(.page) div[class^="content"]',
   ];
 
   // Appelle la fonction pour récupérer le texte lisible des éléments correspondant aux sélecteurs en excluant les classes spécifiées et en supprimant les sauts de ligne et les doubles espaces
