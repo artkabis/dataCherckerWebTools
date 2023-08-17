@@ -150,7 +150,6 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
 
 
-    /******* Method post data in getURL ****/
     let interfacePageExist = false;
     /****** check all tab */
     async function start() {
@@ -164,6 +163,8 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
       });
     }
     start();
+    
+    /******* Method post data in getURL ****/
     var interfacePopupUrl = chrome.runtime.getURL("interface.html");
     chrome.windows.create({
       url: `${interfacePopupUrl}`, //?data=${encodeURIComponent(JSON.stringify(dataCheckerJSON))}
@@ -184,16 +185,12 @@ const creatDB = (db_name, datas) => {
   const DBOpenRequest = indexedDB.open(db_name, 4);
 
   DBOpenRequest.onsuccess = (event) => {
-    // store the result of opening the database in the db variable.
-    // This is used a lot below
-    mydb = DBOpenRequest.result;
-
-    // Run the addData() function to add the data to the database
+    mydb = DBOpenRequest?.result;
     console.log("db open succes : ", event.target.result);
-    addData(db_name, datas);
+    addData(mydb,db_name, datas);//Lancement de la création du store de la db
   };
   DBOpenRequest.onupgradeneeded = (event) => {
-    mydb = event.target.result;
+    mydb = event?.target?.result;
     console.log('db opened : onupgradeneeded :', {mydb});
 
     mydb.onerror = (event) => {
@@ -204,7 +201,6 @@ const creatDB = (db_name, datas) => {
       console.log("upgrade successful", event);
 
     };
-    // Create an objectStore for this database
     let objectStore = mydb.createObjectStore(db_name, {
       keyPath: "id",
     });
@@ -212,25 +208,25 @@ const creatDB = (db_name, datas) => {
     console.log("data parse in creatDB: ", { datas });
   };
 };
-const addData = (db_name, datas) => {
-  const transaction = mydb.transaction([db_name], "readwrite");
+const addData = (mydb, db_name, datas) => {
+  const transaction = (mydb) ? mydb.transaction([db_name], "readwrite") : console.warn("Attention la bd d'indexDB n'est pas disponible");
 
   console.log('--------------------------- transaction readwrite : ',{transaction});
-  const objectStore = transaction.objectStore(db_name);
+  const objectStore = transaction?.objectStore(db_name);
   let objectStoreRequest;
   const timeStamp = Date.now();
-  const getObjectStore = objectStore.get('dcw');
+  const getObjectStore = objectStore?.get('dcw');
     if(getObjectStore){
       console.log('get  getObjectStore : ',{getObjectStore});
       objectStore.delete('dcw');
-      objectStoreRequest = objectStore.add({ 
+      objectStoreRequest = objectStore?.add({ 
         id: 'dcw',
         title: 'DataCheckerWebSite',
         data: datas,
         timestamp: timeStamp
         });
     }else{
-      objectStoreRequest = objectStore.add({ 
+      objectStoreRequest = objectStore?.add({ 
         id: 'dcw',
         title: 'DataCheckerWebSite',
         data: datas,
@@ -241,28 +237,25 @@ const addData = (db_name, datas) => {
       console.log('_____ transaction complete : ',e);
     };
   objectStoreRequest.onsuccess = function (event) {
-    // On indique la réussite de l'insertion
     console.log("Nouvel objet ajouté dans la base de données >>>> ",{event});
   };
  
   console.log("___________________ objectStore : ", { objectStore });
-  const request = objectStore.openCursor();
+  const request = objectStore?.openCursor();
   request.onsuccess = (event) => {
     const cursor = event.target.result;
-    // Check if there are no (more) cursor items to iterate through
     if (cursor) {
-      console.log('********************************value corsor : ',cursor.value);
       if (cursor.value.title === "DataCheckerWebSite") {
         console.log("cursor value detected global_datas : ", cursor.value);
         const updateData = cursor.value;
 
         updateData.timestamp = Date.now();
         updateData.data = datas;
-        const request = cursor.update(updateData);
+        const request = cursor?.update(updateData);
         request.onsuccess = () => {
           console.log("update timestamp : ",{updateData});
         };
-        cursor.continue();
+        cursor?.continue();
       } else {
         console.log("Entries all displayed.   Cursor is false");
         return;

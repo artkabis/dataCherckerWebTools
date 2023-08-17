@@ -14,13 +14,8 @@ const db_name = "db_datas_checker";
 const DBOpenRequest = indexedDB.open(db_name, 4);
 
 DBOpenRequest.onsuccess = (event) => {
-  // store the result of opening the database in the db variable.
-  // This is used a lot below
   mydb = DBOpenRequest.result;
-
-  // Run the addData() function to add the data to the database
   console.log("db open succes : ", event.target.result);
-
   const transaction = mydb.transaction([db_name], "readonly");
   const objectStore = transaction.objectStore(db_name);
   var objectStoreRequest = objectStore.get('dcw');
@@ -46,16 +41,9 @@ DBOpenRequest.onupgradeneeded = (event) => {
 };
 
 
-
-
-
-
-
-
-
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   console.log('interface.js received message request: ' + request);
-  if (request.action === 'open_interface'){
+  if (request.action === 'send_data_interface'){
     const dataChecker = JSON.parse(request.data)
     console.log('-------------------------------- send_data_interface message.data: ', {dataChecker});
   }
@@ -80,7 +68,7 @@ const constructMainCard = () => {
 
   const urlContainer = document.createElement("span");
   urlContainer.classList.add("url_span");
-  urlContainer.innerHTML = dataChecker.url_site;
+  urlContainer.innerHTML = (dataChecker.url_site.includes('?')) ? dataChecker.url_site.split('?')[0] : dataChecker.url_site;
 
   const scoreContainer = document.createElement("span");
   scoreContainer.classList.add("score_span");

@@ -1,4 +1,32 @@
 (($) => {
+  const isBold = (el) =>
+    el.attr("style") && 
+    (el.attr("style").includes("font-weight: bold") ||
+    el.attr("style").includes("font-weight: 700") ||
+    el.attr("style").includes("font-weight: 600") ||
+    el.attr("style").includes("font-weight: 700") ||
+    el.attr("style").includes("font-weight: 800") ||
+    el.attr("style").includes("font-weight: 900") &&
+    el[0].textContent.trim().length);
+    
+    const isMultiSpan = (el) =>isBold(el) &&isBold(el.children()) && el[0].textContent.trim().length ? true : false;
+
+
+    const isHnClosest = (el) =>
+    el[0].tagName.toLowerCase() === "h1" ||
+    el.parents("h1").length ||
+    el[0].tagName.toLowerCase() === "h2" ||
+    el.parents("h2").length ||
+    el[0].tagName.toLowerCase() === "h3" ||
+    el.parents("h3").length ||
+    el[0].tagName.toLowerCase() === "h4" ||
+    el.parents("h4").length ||
+    el[0].tagName.toLowerCase() === "h5" ||
+    el.parents("h5").length ||
+    el[0].tagName.toLowerCase() === "h6" ||
+    el.parents("h6").length;
+  
+
   const strongOrBold = $(
     "b, strong, STRONG, B"
   );
@@ -12,24 +40,12 @@
     isWP = $('#Content').length;
     isDuda = $('#dm').length;
   strongOrBold.each(function (i, t) {
-    const isHnClosest =
-      $(this)[0].tagName.toLowerCase() === "h1" ||
-      $(this).parents("h1").length ||
-      $(this)[0].tagName.toLowerCase() === "h2" ||
-      $(this).parents("h2").length ||
-      $(this)[0].tagName.toLowerCase() === "h3" ||
-      $(this).parents("h3").length ||
-      $(this)[0].tagName.toLowerCase() === "h4" ||
-      $(this).parents("h4").length ||
-      $(this)[0].tagName.toLowerCase() === "h5" ||
-      $(this).parents("h5").length ||
-      $(this)[0].tagName.toLowerCase() === "h6" ||
-      $(this).parents("h6").length;
+    
       const nbWordsParentWP = (isWP) ? $(this).parents('.vc_row')[0].innerText.trim().split(' ').length : $(this).parent().parent()[0].innerText.trim().split(' ').length;
 
     testStack = isWP 
     isSlideDuda = (isDuda) ? $(this).parents(".slide-inner").length : 0;
-    if (t.textContent.length > 1 && t.textContent !== " " && !isHnClosest && nbWordsParentWP >=15 && !isSlideDuda) {
+    if (t.textContent.length > 1 && t.textContent !== " " && !isHnClosest($(this)) && nbWordsParentWP >=15 && !isSlideDuda) {
         cmpBold++;
         boldArray.push({
           target: t,
@@ -42,36 +58,14 @@
         });
     }
   });
-  const isBold = (el) =>
-      el.attr("style") && 
-      (el.attr("style").includes("font-weight: bold") ||
-      el.attr("style").includes("font-weight: 700") ||
-      el.attr("style").includes("font-weight: 600") ||
-      el.attr("style").includes("font-weight: 700") ||
-      el.attr("style").includes("font-weight: 800") ||
-      el.attr("style").includes("font-weight: 900") &&
-        $(this)[0].textContent.trim().length);
 
-    const isMultiSpan = (el) =>isBold(el) &&isBold(el.children()) && el[0].textContent.trim().length ? true : false;
 
   $("#dm_content span").each(function (t) {
+    const isDuda =$(this).closest('#dm');
     isSlide = $(this).closest(".slide-inner");
 
     
     let target = isMultiSpan($(this)) ? $(this).children() : $(this);
-    const isHnClosest =
-      $(this)[0].tagName.toLowerCase() === "h1" ||
-      $(this).parents("h1").length ||
-      $(this)[0].tagName.toLowerCase() === "h2" ||
-      $(this).parents("h2").length ||
-      $(this)[0].tagName.toLowerCase() === "h3" ||
-      $(this).parents("h3").length ||
-      $(this)[0].tagName.toLowerCase() === "h4" ||
-      $(this).parents("h4").length ||
-      $(this)[0].tagName.toLowerCase() === "h5" ||
-      $(this).parents("h5").length ||
-      $(this)[0].tagName.toLowerCase() === "h6" ||
-      $(this).parents("h6").length;
       const innerMultiSpan = isMultiSpan($(this))
     const duplicateBoldSpan =
     isMultiSpan($(this)) &&
@@ -79,7 +73,7 @@
         .textContent.trim()
         .includes($(this).children()[0].textContent.trim());
         innerMultiSpan &&
-      !isHnClosest &&
+      !isHnClosest($(this)) &&
       console.log(
         { target },
         "  isBold : ",
@@ -96,7 +90,7 @@
           : $(this).parent()[0].textContent.split(" ")
       );
     isBold(target) &&
-      !isHnClosest &&
+      !isHnClosest($(this)) &&
       target[0].textContent !== "\n" &&
       target[0].textContent !== "" &&
       target[0].textContent.length > 1 &&
