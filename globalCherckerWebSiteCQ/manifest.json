@@ -38,7 +38,8 @@
     "<all_urls>",
     "*://*/*",
     "*://le-de.cdn-website.com/*",
-    "*://site-privilege.pagesjaunes.fr/*"
+    "*://site-privilege.pagesjaunes.fr/*",
+    "*://soprod.solocalms.fr/*"
   ],
   "web_accessible_resources": [{
     "resources": ["./Functions/HnOutlineValidity.js"],

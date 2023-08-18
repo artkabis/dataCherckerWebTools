@@ -112,7 +112,7 @@
     let validUrl;
     try{validUrl = new URL(src).href && true}catch(e){validUrl = false};
     const checkBaseSrc = (validUrl && src.includes('data:image')) ? 'data:image'+src.split('data:image')[1] : src;
-    this.tagName !== "svg" && filterDomain && excludes && validUrl
+    this.tagName !== "svg" && filterDomain && excludes && validUrl && !src.includes('goo.gl')
       ? getImageAsBase64(checkBaseSrc,validUrl).then((base64Data) => {
           if (base64Data, validUrl) {
             console.log("_____alt to base64 src : ", { checkBaseSrc });

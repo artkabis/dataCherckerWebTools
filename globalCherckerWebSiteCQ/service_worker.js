@@ -46,7 +46,6 @@ if ("serviceWorker" in navigator) {
 chrome.runtime.onStartup.addListener(() => {
   console.log(`background onStartup`);
 });
-
 const core = {};
 self.DEFAULT_METHODS = [
   "GET",
@@ -109,7 +108,7 @@ const toggleCorsEnabled = (corsEnabled) => {
   });
   setTimeout(() => console.log(core), 200);
 };
-
+let userSoprod;
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log("message bg.js CorsEnable :", request.corsEnabled, request);
   if (request.corsEnabled !== undefined) {
@@ -130,7 +129,6 @@ const once = () => {
 chrome.runtime.onInstalled.addListener(once);
 chrome.runtime.onStartup.addListener(once);
 
-
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   console.log("-------------------------message in interface: ", { request });
   if (request.action === "open_interface") {
@@ -146,24 +144,51 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     //   console.log("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ send_data_interface",{data});
     // });
 
-
-
-
-
+    let user_soprod;
     let interfacePageExist = false;
     /****** check all tab */
     async function start() {
       const allTabs = await chrome.tabs.query({});
       allTabs.forEach((tab) => {
-        if (tab.url.includes('interface.html')) {
-          console.log('----------------------------- tab interface.html detected : ',{tab})
+        if (tab.url.includes("interface.html")) {
+          console.log(
+            "----------------------------- tab interface.html detected : ",
+            { tab }
+          );
           chrome.tabs.remove(tab.id);
-          console.log('after remove ----------------------------- tab interface.html detected : ',{tab});
+          console.log(
+            "after remove ----------------------------- tab interface.html detected : ",
+            { tab }
+          );
+        }else{
+          console.log(
+            "----------------------------- tab interface.html non trouvé : ",
+            { tab }
+          );
+        }
+        if (tab.url.includes("soprod")) {
+          chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            function: function () {
+              setTimeout(function () {
+                const dropUser = document.querySelector(
+                  ".dropdown-user .username"
+                );
+                const user = dropUser?.innerHTML;
+                user_soprod = user;
+                console.log('jjjjjjjjjjjjjjjjjjjjjjjjjjjjjj user soprod in taab loop : ',{user_soprod});
+                chrome.storage.sync.set({ user: user }, function () {
+                  console.log('---------------------storage sync user : ', {user});
+                  chrome.runtime.sendMessage({ user: user });
+                });
+              }, 100);
+            },
+          });
         }
       });
     }
     start();
-    
+
     /******* Method post data in getURL ****/
     var interfacePopupUrl = chrome.runtime.getURL("interface.html");
     chrome.windows.create({
@@ -172,7 +197,6 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
       width: 1000,
       height: 1000,
     });
-     
   }
 });
 
@@ -187,11 +211,11 @@ const creatDB = (db_name, datas) => {
   DBOpenRequest.onsuccess = (event) => {
     mydb = DBOpenRequest?.result;
     console.log("db open succes : ", event.target.result);
-    addData(mydb,db_name, datas);//Lancement de la création du store de la db
+    addData(mydb, db_name, datas); //Lancement de la création du store de la db
   };
   DBOpenRequest.onupgradeneeded = (event) => {
     mydb = event?.target?.result;
-    console.log('db opened : onupgradeneeded :', {mydb});
+    console.log("db opened : onupgradeneeded :", { mydb });
 
     mydb.onerror = (event) => {
       console.log("Error loading database.", event);
@@ -199,69 +223,83 @@ const creatDB = (db_name, datas) => {
 
     mydb.onsuccess = (event) => {
       console.log("upgrade successful", event);
-
     };
     let objectStore = mydb.createObjectStore(db_name, {
       keyPath: "id",
     });
-    console.log("____ service worker - onupgradeneeded : objectStore -> ", { objectStore });
+    console.log("____ service worker - onupgradeneeded : objectStore -> ", {
+      objectStore,
+    });
     console.log("data parse in creatDB: ", { datas });
   };
 };
 const addData = (mydb, db_name, datas) => {
-  const transaction = (mydb) ? mydb.transaction([db_name], "readwrite") : console.warn("Attention la bd d'indexDB n'est pas disponible");
+  let userSoprod;
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    userSoprod = request.user;
+    console.log("userSoprod in addData : ",{userSoprod});
+    const r = new RegExp(/[^\\]+$/);
+    userSoprod = (userSoprod.length) ? userSoprod.match(r)[0] : 'Customer';
+    const transaction = mydb
+      ? mydb.transaction([db_name], "readwrite")
+      : console.warn("Attention la bd d'indexDB n'est pas disponible");
+    console.log("--------------------------- transaction readwrite : ", {
+      transaction,
+    });
+    const objectStore = transaction?.objectStore(db_name);
+    let objectStoreRequest;
+    const timeStamp = Date.now();
 
-  console.log('--------------------------- transaction readwrite : ',{transaction});
-  const objectStore = transaction?.objectStore(db_name);
-  let objectStoreRequest;
-  const timeStamp = Date.now();
-  const getObjectStore = objectStore?.get('dcw');
-    if(getObjectStore){
-      console.log('get  getObjectStore : ',{getObjectStore});
-      objectStore.delete('dcw');
-      objectStoreRequest = objectStore?.add({ 
-        id: 'dcw',
-        title: 'DataCheckerWebSite',
+    const getObjectStore = objectStore?.get("dcw");
+    if (getObjectStore) {
+      console.log("get  getObjectStore : ", { getObjectStore });
+      objectStore.delete("dcw");
+      objectStoreRequest = objectStore?.add({
+        id: "dcw",
+        title: "DataCheckerWebSite",
         data: datas,
-        timestamp: timeStamp
-        });
-    }else{
-      objectStoreRequest = objectStore?.add({ 
-        id: 'dcw',
-        title: 'DataCheckerWebSite',
+        timestamp: timeStamp,
+        user: userSoprod,
+      });
+    } else {
+      objectStoreRequest = objectStore?.add({
+        id: "dcw",
+        title: "DataCheckerWebSite",
         data: datas,
-        timestamp: timeStamp
-        });
+        timestamp: timeStamp,
+        user: userSoprod,
+      });
     }
     transaction.oncomplete = (e) => {
-      console.log('_____ transaction complete : ',e);
+      console.log("_____ transaction complete : ", e);
     };
-  objectStoreRequest.onsuccess = function (event) {
-    console.log("Nouvel objet ajouté dans la base de données >>>> ",{event});
-  };
- 
-  console.log("___________________ objectStore : ", { objectStore });
-  const request = objectStore?.openCursor();
-  request.onsuccess = (event) => {
-    const cursor = event.target.result;
-    if (cursor) {
-      if (cursor.value.title === "DataCheckerWebSite") {
-        console.log("cursor value detected global_datas : ", cursor.value);
-        const updateData = cursor.value;
+    objectStoreRequest.onsuccess = function (event) {
+      console.log("Nouvel objet ajouté dans la base de données >>>> ", {
+        event,
+      });
+    };
 
-        updateData.timestamp = Date.now();
-        updateData.data = datas;
-        const request = cursor?.update(updateData);
-        request.onsuccess = () => {
-          console.log("update timestamp : ",{updateData});
-        };
-        cursor?.continue();
-      } else {
-        console.log("Entries all displayed.   Cursor is false");
-        return;
+    console.log("___________________ objectStore : ", { objectStore });
+    const requestCursor = objectStore?.openCursor();
+    requestCursor.onsuccess = (event) => {
+      const cursor = event.target.result;
+      if (cursor) {
+        if (cursor.value.title === "DataCheckerWebSite") {
+          console.log("cursor value detected global_datas : ", cursor.value);
+          const updateData = cursor.value;
+
+          updateData.timestamp = Date.now();
+          updateData.data = datas;
+          const request = cursor?.update(updateData);
+          request.onsuccess = () => {
+            console.log("update timestamp : ", { updateData });
+          };
+          cursor?.continue();
+        } else {
+          console.log("Entries all displayed.   Cursor is false");
+          return;
+        }
       }
-    }
-  };
+    };
+  });
 };
-
-

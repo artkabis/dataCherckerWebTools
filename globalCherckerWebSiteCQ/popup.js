@@ -1,6 +1,29 @@
 import { getActiveTabURL } from "./Functions/utils.js";
-
+console.log(jQuery, $);
 //HnOutlineValidity()
+chrome.tabs.query({ active: true, currentWindow: true }, function (tab) {
+chrome.scripting.executeScript({
+  target: { tabId: tab[0].id },
+  function: function () {
+    if(window.location.origin.includes('soprod')){
+        setTimeout(function () {
+        console.log('---------------------- add user in soprod --------------------');  
+        const dropUser = document.querySelector('.dropdown-user .username');
+        console.log({dropUser},dropUser.innerHTML);
+        const user = dropUser.innerHTML;
+        console.log(' user in DOM Soprod : ',{user});
+        chrome.storage.sync.set({ user: user }, function () {
+          console.log("sync set user : ", { user });
+          // Envoi d'un message à l'arrière-plan pour mettre à jour l'état des règles
+          chrome.runtime.sendMessage({ user: user });
+        });
+      },100);
+
+    }
+
+  }
+});
+})
 
 // Utilisez l'API chrome.runtime.getManifest() pour accéder aux informations du manifest
 const manifest = chrome.runtime.getManifest();

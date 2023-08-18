@@ -12,7 +12,7 @@ console.log("------------ in interface script -----------");
 let mydb = null;
 const db_name = "db_datas_checker";
 const DBOpenRequest = indexedDB.open(db_name, 4);
-
+let userName;
 DBOpenRequest.onsuccess = (event) => {
   mydb = DBOpenRequest.result;
   console.log("db open succes : ", event.target.result);
@@ -22,8 +22,10 @@ DBOpenRequest.onsuccess = (event) => {
   objectStoreRequest.onsuccess = function (event) {
     // On indique la réussite de l'insertion
     const datasCheckerDB = objectStoreRequest.result.data;
+    userName = objectStoreRequest.result.user;
+    console.log('11111111111111111111& interface username : ',{userName});
   console.log('datasCheckerDB datas : ',{datasCheckerDB});
-  initInterface(datasCheckerDB);
+  initInterface(userName,datasCheckerDB);
   };
 };
 DBOpenRequest.onupgradeneeded = (event) => {
@@ -50,9 +52,10 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 });
 
 
-const initInterface = (datas) =>{
+const initInterface = (userName, datas) =>{
 const dataChecker = datas;
 window["dataCheck"] = dataChecker;
+document.querySelector('header .user-name .name').textContent = userName;
 
 const mainCardContainer = document.getElementById("main_card_container");
 const cardContainer = document.getElementById("card_container");
