@@ -108,10 +108,34 @@ const toggleCorsEnabled = (corsEnabled) => {
   });
   setTimeout(() => console.log(core), 200);
 };
-let userSoprod;
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log("message bg.js CorsEnable :", request.corsEnabled, request);
+chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
+  // console.log("message service worker global :", request);
+  // (request.action==='open_interface') && chrome.storage.sync.set({ dataChecker: request.data }, function(){
+  //   datas_checker =  {datas:  JSON.parse(request.data)};
+  //   console.log('----------------------- request data checker request !!!! ',datas_checker);
+
+  //   /*chrome.runtime.sendMessage({
+  //     action: "user",
+  //     data: userSoprod,
+  //   });*/
+  // });
+  // const userRequest  = (request.user) && chrome.storage.sync.set({ user: request.user }, function(){
+  //   console.log('----------------------- request user soprod !!!! ',request.user);
+  //   userSoprod =  request.user;
+  //   /*chrome.runtime.sendMessage({
+  //     action: "user",
+  //     data: userSoprod,
+  //   });*/
+  // });
+  // console.log('----------------- userRequest user Soprod', {userSoprod});
+  // console.log('----------------- userRequest datas_checker', {datas_checker});
   if (request.corsEnabled !== undefined) {
+    /* sendResponse({user: request.user});
+    chrome.storage.sync.set({ user: request.user },()=>{
+      userSoprod = request.user;
+      console.log("user bg.js syncSet :", request.user);
+      getUserMessage(userSoprod);
+    });*/
     chrome.storage.sync.set({ corsEnabled: request.corsEnabled }, () => {
       corsEnabled = request.corsEnabled;
       toggleCorsEnabled(corsEnabled);
@@ -125,93 +149,154 @@ const once = () => {
     toggleCorsEnabled();
   });
 };
+// const getUserMessage=(user)=>{
+//   chrome.storage.sync.get("user", (result) => {
+
+//     console.log('function get user sync get : ',{user});
+//   });
+// }
 
 chrome.runtime.onInstalled.addListener(once);
 chrome.runtime.onStartup.addListener(once);
+let user_soprod;
+let interfacePageExist = false;
+/****** check all tab */
 
-chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-  console.log("-------------------------message in interface: ", { request });
-  if (request.action === "open_interface") {
-    const dataCheckerJSON = JSON.parse(request.data);
-    //Create indexDB for stock dataChecker
-    const db_name = "db_datas_checker";
-    creatDB(db_name, dataCheckerJSON);
+const  detectOnotherInterface = async () => {
+  const allTabs = await chrome.tabs.query({});
+  allTabs.forEach((tab, i) => {
+    //const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
 
-    console.log("datachecker send message data : ", dataCheckerJSON);
-    //chrome.runtime.sendMessage({ 'send_data_interface': JSON.stringify(dataCheckerJSON)});
-
-    //  chrome.storage.local.set({ 'send_data_interface': dataCheckerJSON }).then((data) => {
-    //   console.log("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ send_data_interface",{data});
-    // });
-
-    let user_soprod;
-    let interfacePageExist = false;
-    /****** check all tab */
-    async function start() {
-      const allTabs = await chrome.tabs.query({});
-      allTabs.forEach((tab) => {
-        if (tab.url.includes("interface.html")) {
-          console.log(
-            "----------------------------- tab interface.html detected : ",
-            { tab }
-          );
-          chrome.tabs.remove(tab.id);
-          console.log(
-            "after remove ----------------------------- tab interface.html detected : ",
-            { tab }
-          );
-        }else{
-          console.log(
-            "----------------------------- tab interface.html non trouvé : ",
-            { tab }
-          );
-        }
-        if (tab.url.includes("soprod")) {
-          chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            function: function () {
-              setTimeout(function () {
-                const dropUser = document.querySelector(
-                  ".dropdown-user .username"
-                );
-                const user = dropUser?.innerHTML;
-                user_soprod = user;
-                console.log('jjjjjjjjjjjjjjjjjjjjjjjjjjjjjj user soprod in taab loop : ',{user_soprod});
-                chrome.storage.sync.set({ user: user }, function () {
-                  console.log('---------------------storage sync user : ', {user});
-                  chrome.runtime.sendMessage({ user: user });
-                });
-              }, 100);
-            },
-          });
-        }
-      });
+    console.log(
+      "--------------------------------------------------------------------------------- tab & i ",
+      { tab },
+      { i },
+      tab[i]
+    );
+    if (tab.url.includes("interface.html")) {
+      console.log(
+        "----------------------------- tab interface.html detected : ",
+        { tab }
+      );
+      chrome.tabs.remove(tab.id);
+      console.log(
+        "after remove ----------------------------- tab interface.html detected : ",
+        { tab }
+      );
+    } else {
+      console.log(
+        "----------------------------- tab interface.html non trouvé : ",
+        { tab }
+      );
     }
-    start();
 
-    /******* Method post data in getURL ****/
-    var interfacePopupUrl = chrome.runtime.getURL("interface.html");
-    chrome.windows.create({
-      url: `${interfacePopupUrl}`, //?data=${encodeURIComponent(JSON.stringify(dataCheckerJSON))}
-      type: "popup",
-      width: 1000,
-      height: 1000,
+  });
+};
+
+const detectSoprod = async () =>{
+  const allTabs = await chrome.tabs.query({});
+  let isSoprodTab = {};
+  allTabs.forEach(async (tab, i) => {
+  if (tab.url.includes("soprod")) {
+    isSoprodTab.detected = true;
+    console.log({isSoprodTab})
+    chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      function() {
+        const dropUser = document.querySelector(".dropdown-user .username");
+        const user = dropUser?.innerHTML;
+        user_soprod = user;
+        chrome.storage.sync.set({ user: user_soprod }, function () {
+          console.log("---------------------storage sync user : ", { user });
+          chrome.runtime.sendMessage({ user: user_soprod });
+        });
+      },
     });
   }
 });
+
+}
+
+
+detectSoprod();
+detectOnotherInterface();
+let cmp = 0;
+let cmpInterval = 0;
+let global_data = {};
+const db_name = "db_datas_checker";
+
+chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+  
+  //console.log("^^^^^^^^^^^^^^^^^^^^^^^request on message in service worker : ", { request });
+  let user, data_checker;
+  if(request.action === "open_interface"){
+     console.log(' ???????????????????????????????????????????? data de datachecker : ',request.data);
+     (cmp<2)&&cmp++;
+     console.log(' cmp + 1 in datachecker interface : ',cmp);
+     data_checker = request.data
+     global_data.dataChecker = request.data;
+  }
+  if (request.user) {
+    console.log(' ???????????????????????????????????????????? data de user Soprod : ',request.user);
+    (cmp<1) && cmp++;
+    console.log(' cmp + 1 in user soprod : ',cmp);
+    user = request.user;
+    global_data.user = user;
+  }else{
+    (cmp<1) && cmp++;
+  }
+  let interCheck;
+  const checkDatas = () => {
+    cmpInterval ++;
+    console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<< CMP : ',{cmp}, 'globale user : ', global_data.user);
+    console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> interval count : ',{cmpInterval});
+    console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> open interface data : ',{data_checker});
+    if(cmp === 2){
+      console.log('IIIIIIIIIIIIIIIIIIIISSSSSSSSSSSSSSSSSSSSSSSss interval function ready : ',{interCheck});
+      clearInterval(interCheck);
+      if(data_checker ){
+      global_data.user = (global_data.user) ? global_data.user : 'Customer';
+      console.log('OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO les deux datas sont bien arrivées : ',{global_data});
+      const dataCheckerParse = JSON.parse(global_data.dataChecker);
+    creatDB(global_data.user, db_name, dataCheckerParse);
+    console.log('CREATEDB lanche with the datas :  user = ',global_data.user, {db_name}, {dataCheckerParse});
+
+
+    const interfacePopupUrl = chrome.runtime.getURL("interface.html");
+          chrome.windows.create({
+            url: `${interfacePopupUrl}`, //?data=${encodeURIComponent(JSON.stringify(dataCheckerJSON))}
+            type: "popup",
+            width: 1000,
+            height: 1000,
+          });
+        }
+      }
+    // }else if(global_data.user && !global_data.user){
+    //   (cmp===1 && cmp <3) && cmp ++;
+    //   global_data.user = 'Customer';
+    // }
+  };
+  
+  interCheck =  setInterval(checkDatas,500);
+  (cmp>2)&& clearInterval(interCheck);
+  
+});
+
 
 /****
  * * Index DB
  */
 
 let mydb = null;
-const creatDB = (db_name, datas) => {
+const creatDB = (user, db_name, datas) => {
   const DBOpenRequest = indexedDB.open(db_name, 4);
+  console.log("---------------- CREATED DB ----------------");
+  console.log('_______________________________ verification des donné passées à creatDB : ',{user},{db_name},{datas});
 
   DBOpenRequest.onsuccess = (event) => {
     mydb = DBOpenRequest?.result;
-    console.log("db open succes : ", event.target.result);
-    addData(mydb, db_name, datas); //Lancement de la création du store de la db
+    console.log("db open succes : ", event?.target?.result);
+    addData(user, mydb, db_name, datas); //Lancement de la création du store de la db
   };
   DBOpenRequest.onupgradeneeded = (event) => {
     mydb = event?.target?.result;
@@ -233,73 +318,75 @@ const creatDB = (db_name, datas) => {
     console.log("data parse in creatDB: ", { datas });
   };
 };
-const addData = (mydb, db_name, datas) => {
-  let userSoprod;
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    userSoprod = request.user;
-    console.log("userSoprod in addData : ",{userSoprod});
-    const r = new RegExp(/[^\\]+$/);
-    userSoprod = (userSoprod.length) ? userSoprod.match(r)[0] : 'Customer';
-    const transaction = mydb
-      ? mydb.transaction([db_name], "readwrite")
-      : console.warn("Attention la bd d'indexDB n'est pas disponible");
-    console.log("--------------------------- transaction readwrite : ", {
-      transaction,
-    });
-    const objectStore = transaction?.objectStore(db_name);
-    let objectStoreRequest;
-    const timeStamp = Date.now();
-
-    const getObjectStore = objectStore?.get("dcw");
-    if (getObjectStore) {
-      console.log("get  getObjectStore : ", { getObjectStore });
-      objectStore.delete("dcw");
-      objectStoreRequest = objectStore?.add({
-        id: "dcw",
-        title: "DataCheckerWebSite",
-        data: datas,
-        timestamp: timeStamp,
-        user: userSoprod,
-      });
-    } else {
-      objectStoreRequest = objectStore?.add({
-        id: "dcw",
-        title: "DataCheckerWebSite",
-        data: datas,
-        timestamp: timeStamp,
-        user: userSoprod,
-      });
-    }
-    transaction.oncomplete = (e) => {
-      console.log("_____ transaction complete : ", e);
-    };
-    objectStoreRequest.onsuccess = function (event) {
-      console.log("Nouvel objet ajouté dans la base de données >>>> ", {
-        event,
-      });
-    };
-
-    console.log("___________________ objectStore : ", { objectStore });
-    const requestCursor = objectStore?.openCursor();
-    requestCursor.onsuccess = (event) => {
-      const cursor = event.target.result;
-      if (cursor) {
-        if (cursor.value.title === "DataCheckerWebSite") {
-          console.log("cursor value detected global_datas : ", cursor.value);
-          const updateData = cursor.value;
-
-          updateData.timestamp = Date.now();
-          updateData.data = datas;
-          const request = cursor?.update(updateData);
-          request.onsuccess = () => {
-            console.log("update timestamp : ", { updateData });
-          };
-          cursor?.continue();
-        } else {
-          console.log("Entries all displayed.   Cursor is false");
-          return;
-        }
-      }
-    };
+const addData = (user, mydb, db_name, datas) => {
+  let userSoprod = user ? user : "Customer";
+  const transaction = mydb
+    ? mydb.transaction([db_name], "readwrite")
+    : console.warn("Attention la bd d'indexDB n'est pas disponible");
+  console.log("--------------------------- transaction readwrite : ", {
+    transaction,
   });
+  const objectStore = transaction.objectStore(db_name);
+  let objectStoreRequest;
+  const getObjectStore = objectStore?.get("dcw");
+  const timeStamp = Date.now();
+  console.log("timeStamp before on message userName : ", { timeStamp });
+
+
+  console.log(
+    "cccccccccccccccccccccccccccccccccccccccheck timestamp ",
+    getObjectStore.timestamp,
+    timeStamp
+  );
+  if (getObjectStore && objectStore.get("dcw")) {
+    console.log("get  getObjectStore : ", { getObjectStore });
+    objectStore.delete("dcw");
+    objectStoreRequest = objectStore?.add({
+      id: "dcw",
+      title: "DataCheckerWebSite",
+      data: datas,
+      timestamp: timeStamp,
+      user: userSoprod,
+    });
+  } else if (!getObjectStore) {
+    objectStoreRequest = objectStore?.add({
+      id: "dcw",
+      title: "DataCheckerWebSite",
+      data: datas,
+      timestamp: timeStamp,
+      user: userSoprod,
+    });
+  }
+  transaction.oncomplete = (e) => {
+    console.log("_____ transaction complete : ", e);
+  };
+  objectStoreRequest.onsuccess = function (event) {
+    console.log("Nouvel objet ajouté dans la base de données >>>> ", {
+      event,
+    });
+  };
+
+  console.log("___________________ objectStore : ", { objectStore });
+  const requestCursor = objectStore?.openCursor();
+  requestCursor.onsuccess = (event) => {
+    const cursor = event.target.result;
+    if (cursor) {
+      if (cursor.value.title === "DataCheckerWebSite" && cursor.value.timeStamp !== timeStamp) {
+        console.log("cursor value detected global_datas : ", cursor.value);
+        const updateData = cursor.value;
+
+        updateData.timestamp = Date.now();
+        updateData.name = userSoprod;
+        updateData.data = datas;
+        const request = cursor?.update(updateData);
+        request.onsuccess = () => {
+          console.log("update timestamp : ", { updateData });
+        };
+        cursor?.continue();
+      } else {
+        console.log("Entries all displayed.   Cursor is false");
+        return;
+      }
+    }
+  };
 };

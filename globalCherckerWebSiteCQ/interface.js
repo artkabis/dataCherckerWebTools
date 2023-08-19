@@ -6,6 +6,24 @@ console.log("------------ in interface script -----------");
 // const data = params.get("data");
 // console.log({ data }, { queryString }, { params }, JSON.parse(data));
 
+// const allTabs = await chrome.tabs.query({});
+//   allTabs.forEach(async (tab, i) => {
+//     //const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
+
+//     console.log(
+//       "--------------------------------------------------------------------------------- tab & i ",
+//       { tab },
+//       { i },
+//       tab[i]
+//     );
+//     if (tab.url.includes("interface")) {
+//       console.log(
+//         "----------------------------- tab interface.html detected : ",
+//         { tab }
+//       );
+//        chrome.tabs.remove(tab.id);
+//       }
+// })
 
 
 
@@ -71,6 +89,7 @@ const constructMainCard = () => {
 
   const urlContainer = document.createElement("span");
   urlContainer.classList.add("url_span");
+  console.log('__________________________________ datachecker in interface  : ',{dataChecker});
   urlContainer.innerHTML = (dataChecker.url_site.includes('?')) ? dataChecker.url_site.split('?')[0] : dataChecker.url_site;
 
   const scoreContainer = document.createElement("span");
