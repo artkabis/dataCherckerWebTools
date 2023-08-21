@@ -1,4 +1,5 @@
 (($) => {
+  let accessibleImage = false;
   async function getImageAsBase64(imageUrl, validUrl) {
     if(validUrl){
       try {
@@ -11,10 +12,10 @@
         });
         return base64Data;
       } catch (error) {
-        console.error(
+        console.log(
           "Erreur lors de la conversion de l'image en base64 :",
-          error,
-          { imageUrl }
+          
+           imageUrl ,' ne semble pas disponnible, veuillez vérifier si son url est valide'
         );
         return null;
       }
@@ -126,7 +127,7 @@
           } else {
             console.log("Erreur lors de la conversion de l'image en base64.");
           }
-        })
+        }).catch(err=> (accessibleImage) && console.log(err))
       : this.tagName === "svg" &&
         filterDomain &&
         excludes &&
