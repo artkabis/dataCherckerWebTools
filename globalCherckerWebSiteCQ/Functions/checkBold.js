@@ -41,7 +41,7 @@
     isDuda = $('#dm').length;
   strongOrBold.each(function (i, t) {
     
-      const nbWordsParentWP = (isWP) ? $(this).closest('.wpb_text_column')[0].innerText.trim().split(' ').length : $(this).parent().parent()[0].innerText.trim().split(' ').length;
+      const nbWordsParentWP = (isWP) ? $(this).closest('.wpb_wrapper')[0].innerText.trim().split(' ').length : $(this).parent().parent()[0].innerText.trim().split(' ').length;
 
     testStack = isWP 
     isSlideDuda = (isDuda) ? $(this).parents(".slide-inner").length : 0;
@@ -54,7 +54,7 @@
             ? t.textContent.split(" ").length
             : 1,
           nbWordsParent: (isWP) ? nbWordsParentWP
-            : (isDuda) ? $(this).closest(".dmNewParagraph")[0].textContent.split(" ").length :  (isWP) ? $(this).closest('.wpb_text_column')[0].textContent.split(" ").length : $(this).parent().parent().parent()[0].textContent.split(" ").length,
+            : (isDuda) ? $(this).closest(".dmNewParagraph")[0].textContent.split(" ").length :  (isWP) ? $(this).closest('.wpb_wrapper')[0].textContent.split(" ").length : $(this).parent().parent().parent()[0].textContent.split(" ").length,
         });
     }
   });
