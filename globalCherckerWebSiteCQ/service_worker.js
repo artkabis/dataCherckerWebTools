@@ -159,11 +159,11 @@ const once = () => {
 chrome.runtime.onInstalled.addListener(once);
 chrome.runtime.onStartup.addListener(once);
 let user_soprod;
-let interfacePageExist = false;
 /****** check all tab */
 
 const  detectOnotherInterface = async () => {
   const allTabs = await chrome.tabs.query({});
+  console.log({allTabs});
   allTabs.forEach((tab, i) => {
     //const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
 
@@ -218,8 +218,7 @@ const detectSoprod = async () =>{
 }
 
 
-detectSoprod();
-detectOnotherInterface();
+
 let cmp = 0;
 let cmpInterval = 0;
 let global_data = {};
@@ -230,6 +229,10 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   //console.log("^^^^^^^^^^^^^^^^^^^^^^^request on message in service worker : ", { request });
   let user, data_checker;
   if(request.action === "open_interface"){
+    console.log('launch detected antoned interface');
+    detectOnotherInterface();
+    console.log('launch detected soprod tab and snip username ');
+    detectSoprod();
      console.log(' ???????????????????????????????????????????? data de datachecker : ',request.data);
      (cmp<2)&&cmp++;
      console.log(' cmp + 1 in datachecker interface : ',cmp);
@@ -261,7 +264,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     creatDB(global_data.user, db_name, dataCheckerParse);
     console.log('CREATEDB lanche with the datas :  user = ',global_data.user, {db_name}, {dataCheckerParse});
 
-
+    
     const interfacePopupUrl = chrome.runtime.getURL("interface.html");
           chrome.windows.create({
             url: `${interfacePopupUrl}`, //?data=${encodeURIComponent(JSON.stringify(dataCheckerJSON))}

@@ -188,11 +188,12 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
             files: [
               "./assets/jquery-3.6.4.min.js",
               "./assets/console.image.min.js",
-              "./Functions/checkAndAddJquery.js",
+              "./Functions/checkAndAddJquery.js",              
+              
               "./Functions/dataCheckerSchema.js",
-
               "./Functions/initLighthouse.js",
               "./Functions/counterWords.js",
+              //"./Functions/detectOnotherInterface.js",
               "./Functions/checkMetas.js",
               "./Functions/checkAltImages.js",
               "./Functions/checkBold.js",
@@ -201,6 +202,7 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
               "./Functions/checkLinkAndImages.js",
               "./Functions/checkDataBindingDuda.js",
               "./Functions/initDataChecker.js",
+
             ],
           },
           function (results) {

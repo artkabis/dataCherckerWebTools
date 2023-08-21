@@ -25,6 +25,10 @@
     el.parents("h5").length ||
     el[0].tagName.toLowerCase() === "h6" ||
     el.parents("h6").length;
+    
+    const isHnLink = (el) =>
+    el[0].tagName.toLowerCase() === "a" ||
+    el.parent()[0].tagName.toLowerCase() === "a";
   
 
   const strongOrBold = $(
@@ -41,11 +45,11 @@
     isDuda = $('#dm').length;
   strongOrBold.each(function (i, t) {
     
-      const nbWordsParentWP = (isWP) ? $(this).closest('.wpb_wrapper')[0].innerText.trim().split(' ').length : $(this).parent().parent()[0].innerText.trim().split(' ').length;
+      const nbWordsParentWP = (isWP) ? $(this).closest('.vc_column-inner')[0].innerText.trim().split(' ').length : $(this).parent().parent()[0].innerText.trim().split(' ').length;
 
     testStack = isWP 
     isSlideDuda = (isDuda) ? $(this).parents(".slide-inner").length : 0;
-    if (t.textContent.length > 1 && t.textContent !== " " && !isHnClosest($(this)) && nbWordsParentWP >=15 && !isSlideDuda) {
+    if (t.textContent.length > 1 && t.textContent !== " " && !isHnClosest($(this)) && !isHnLink($(this)) && nbWordsParentWP >=70 && !isSlideDuda) {
         cmpBold++;
         boldArray.push({
           target: t,
@@ -54,7 +58,7 @@
             ? t.textContent.split(" ").length
             : 1,
           nbWordsParent: (isWP) ? nbWordsParentWP
-            : (isDuda) ? $(this).closest(".dmNewParagraph")[0].textContent.split(" ").length :  (isWP) ? $(this).closest('.wpb_wrapper')[0].textContent.split(" ").length : $(this).parent().parent().parent()[0].textContent.split(" ").length,
+            : (isDuda) ? $(this).closest(".dmNewParagraph")[0].textContent.split(" ").length :  (isWP) ? $(this).closest('.vc_column-inner')[0].textContent.split(" ").length : $(this).parent().parent().parent()[0].textContent.split(" ").length,
         });
     }
   });

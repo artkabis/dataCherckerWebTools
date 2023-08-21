@@ -1,5 +1,5 @@
 //Add globale score in dataChecker
-initDataChecker = (size_scores, ratio_scores, alt_scores, scoreCheckLink) => {
+ initDataChecker = (size_scores, ratio_scores, alt_scores, scoreCheckLink) => {
   console.log("initDataChecker started");
 
   const globalSizeScore = Number(
