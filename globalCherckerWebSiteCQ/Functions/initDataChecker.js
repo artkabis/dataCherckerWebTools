@@ -34,11 +34,6 @@ initDataChecker = (size_scores, ratio_scores, alt_scores, scoreCheckLink) => {
       3
     ).toFixed(2)
   );
-  console.log(
-    { global_ratio_scores },
-    { global_size_scores },
-    { global_alt_scores }
-  );
   dataChecker.img_check.img_check_state = true;
   dataChecker.img_check.global_ratio_scores = global_ratio_scores;
   dataChecker.img_check.global_size_scores = global_size_scores;
