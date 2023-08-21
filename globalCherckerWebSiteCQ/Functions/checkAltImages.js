@@ -145,15 +145,17 @@
   dataChecker.alt_img_check.nb_alt_img =
     dataChecker.alt_img_check.alt_img.length;
   dataChecker.alt_img_check.alt_img = dataChecker.alt_img_check.alt_img.filter(
-    (element) => Object.keys(element).length > 1
+    (element) => (Object.keys(element).length > 1)
   );
+
+  let scoreTabAltImg2 = [];
+  dataChecker.alt_img_check.alt_img.forEach((i, t) =>{
+    scoreTabAltImg2.push((i.alt_img_score && String(i.alt_img_text) !=='undefined') ? 5 : 0);
+    i.alt_img_score = (i.alt_img_score && String(i.alt_img_text) !=='undefined') ? 5 : 0;
+});
   console.log(
     "______________________alt img : ",
     dataChecker.alt_img_check.alt_img
-  );
-  let scoreTabAltImg2 = [];
-  dataChecker.alt_img_check.alt_img.forEach((i, t) =>
-    scoreTabAltImg2.push(i.alt_img_score)
   );
 
   dataChecker.alt_img_check.global_score = Number(

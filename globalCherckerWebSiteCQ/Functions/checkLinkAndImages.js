@@ -68,7 +68,7 @@ function initcheckerLinksAndImages(){
     if (args[1] !== !!0) {
       args[1] = args[1].includes("?") ? args[1].split("?")[0] : args[1];
       try {
-        response = await fetch(args[1], {
+        response = (!args[1].includes('data:image')) && await fetch(args[1], {
           method: "GET",
           //redirect: "manual", // Permet de suivre les redirections explicitement
           mode: "cors",
@@ -305,6 +305,8 @@ function initcheckerLinksAndImages(){
         $(this).attr("alt").length > 0 &&
         $(this).attr("alt") !== "";
       const isDudaImage = srcV && srcV.includes("cdn-website");
+      const checkStackMedias = (srcV.includes('/uploads/') || srcV.includes('/images/'));
+
       srcV =
         !isDudaImage &&
         srcV &&

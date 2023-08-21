@@ -21,7 +21,6 @@
   },
   "permissions": [
     "storage",
-    "unlimitedStorage",
     "notifications",
     "scripting",
     "tabs",
