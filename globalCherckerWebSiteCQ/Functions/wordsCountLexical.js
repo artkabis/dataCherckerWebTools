@@ -1,4 +1,5 @@
 var _cm = {};
+let content ={};
 _cm.locale = 'fr'
 _cm.words = "";
     if (document.body != null) _cm.words = document.body.innerText.replace(/\n/gm, ' ')
@@ -44,21 +45,96 @@ _cm.words = "";
     }
     _cm.words_cloud = words_cloud;
     _cm.words_count = words_useful.length;
+    content.words_cloud = words_cloud;
 console.log({words_cloud},words_useful.length);
 var element = document.querySelector(".words-cloud");
-  if (content.words_cloud[6] == '') element.parentElement.classList.add("orange");
-  else element.parentElement.classList.add("green");
+  //if (content.words_cloud[6] == '') element.parentElement.classList.add("orange");
+  //else element.parentElement.classList.add("green");
   var el = "<div class='cloud'>";
   var rand = [13,1,14,7,2,16,6,9,10,11,3,8,12,5,4];
   for (var i = 0; i < rand.length; i++) {
     el += "<div class='cloud" + rand[i] + "'>" + content.words_cloud[rand[i]] + "</div>";
   }
   el += "</div>";
-  element.innerHTML = el;
-    window.open("", "_blank");
-  newWindow.document.write("<html><head><title>Structure corrigée</title>");
-  newWindow.document.write(
-    "<style>.missing {background-color: white!important;color: orange!important;}.noMissingHeading { background-color:green }.duplicate { background-color: orange }</style>"
-  );
-  newWindow.document.write(`</head><body><div class="word-cloud">${element.innerHTML}</div><body><script></script></html>`);
-  newWindow.document.close();
+  //element.innerHTML = el;
+    cloudWindow = window.open("", "_blank");
+    cloudWindow.document.write(`<html><head><style>
+    .word-cloud {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+        width: 100%;
+    }
+    .cloud{
+        text-align: center;
+        background-color: #efefef;
+        max-width: 250px;
+      }
+      .cloud1,.cloud2{
+        display: inline-block;
+        font-size:34px;
+        letter-spacing: 1px;
+        color:#3f6a8e;
+        opacity: 1;
+        padding: 0px 5px;
+      }
+      .cloud3,.cloud4{
+        display: inline-block;
+        font-size:30px;
+        letter-spacing: 1px;
+        color:#3f6a8e;
+        opacity: 0.95;
+        padding: 0px 5px;
+      }
+      .cloud5,.cloud6{
+        display: inline-block;
+        font-size:26px;
+        letter-spacing: 1px;
+        color:#3f6a8e;
+        opacity: 0.9;
+        padding: 0px 5px;
+      }
+      .cloud7,.cloud8{
+        display: inline-block;
+        font-size:24px;
+        letter-spacing: 1px;
+        color:#3f6a8e;
+        opacity: 0.8;
+        padding: 0px 5px;
+      }
+      .cloud9,.cloud10{
+        display: inline-block;
+        font-size:20px;
+        letter-spacing: 1px;
+        color:#3f6a8e;
+        opacity: 0.85;
+        padding: 0px 5px;
+      }
+      .cloud11,.cloud12{
+        display: inline-block;
+        font-size:18px;
+        letter-spacing: 1px;
+        color:#3f6a8e;
+        opacity: 0.8;
+        padding: 0px 5px;
+      }
+      .cloud13,.cloud14{
+        display: inline-block;
+        font-size:16px;
+        letter-spacing: 1px;
+        color:#3f6a8e;
+        opacity: 0.75;
+        padding: 0px 5px;
+      }
+      .cloud15,.cloud16{
+        display: inline-block;
+        font-size:15px;
+        letter-spacing: 1px;
+        color:#3f6a8e;
+        opacity: 0.7;
+        padding: 0px 5px;
+      }</style><title>Structure corrigée</title>`);
+
+  cloudWindow.document.write(`</head><body><div class="word-cloud">${el}</div><body><script></script></html>`);
+  cloudWindow.document.close();
