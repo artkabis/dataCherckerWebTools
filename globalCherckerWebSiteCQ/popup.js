@@ -213,7 +213,25 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
     });
   });
 });
-
+document.querySelector('#wordsCloud').addEventListener("click", function () {
+  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    var activeTab = tabs[0];
+    var tabId = activeTab.id;
+    chrome.tabs.get(tabId, function (tab) {
+      var tabContent = tab ? tab.content : null;
+      console.log(tab, { tabContent });
+      if (tab) {
+        chrome.scripting.executeScript(
+          {
+            target: { tabId: tab.id },
+            files: [
+              "./Functions/wordsCountLexical.js",
+            ]
+          });
+        }
+      });
+    })
+  })
 //gestion du checkbox des cors à l'ouverture du popup
 var toggleButton = document.getElementById("corsButton");
 document.addEventListener("DOMContentLoaded", function () {
