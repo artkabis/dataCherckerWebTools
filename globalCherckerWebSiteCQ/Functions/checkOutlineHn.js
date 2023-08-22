@@ -488,7 +488,7 @@
       globalScoreHnReco.push(5);
     }
   });
-  console.log('---------------------------------- HnReco',dataChecker.hn.hn_reco.hn);
+  //console.log('---------------------------------- HnReco',dataChecker.hn.hn_reco.hn);
 
   //rendu = rendu.replaceAll('"', "").replaceAll("'", "").slice(0, -1);
   const renduTab = rendu.split("_");
