@@ -44,12 +44,13 @@
     isWP = $('#Content').length;
     isDuda = $('#dm').length;
   strongOrBold.each(function (i, t) {
+    console.log({t});
     
       const nbWordsParentWP = (isWP) ? $(this).closest('.vc_column-inner')[0].innerText.trim().split(' ').length : $(this).parent().parent()[0].innerText.trim().split(' ').length;
 
     testStack = isWP 
     isSlideDuda = (isDuda) ? $(this).parents(".slide-inner").length : 0;
-    if (t.textContent.length > 1 && t.textContent !== " " && !isHnClosest($(this)) && !isHnLink($(this)) && nbWordsParentWP >=70 && !isSlideDuda) {
+    if (t.textContent.length > 1 && t.textContent !== " " && !isHnClosest($(this)) && !isHnLink($(this)) && nbWordsParentWP >=20 && !isSlideDuda) {
         cmpBold++;
         boldArray.push({
           target: t,

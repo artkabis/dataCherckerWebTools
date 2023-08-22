@@ -40,7 +40,7 @@
     previousHn = null;
   
   hnTagArray.forEach(function (currentHn, index) {
-    const currentHnContent = hnTagContentArray[index];
+    const currentHnContent = hnTagContentArray[index].replaceAll('\n','').replaceAll('<br>','').replaceAll('<BR>','');
     const currentHnIndex = parseInt(currentHn.charAt(1));
  
   
@@ -218,6 +218,10 @@
     } else {
       console.log("Structure des Hn invalide.");
     }
+
+
+
+  /*************************************** Gestion des precos liée à la longueur de Hn */
   const allTagHn = document.querySelectorAll("h1,h2,h3,h4,h5,h6");
   let globalScoreHnReco = [],
     nbHn = 0;
