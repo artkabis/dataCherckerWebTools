@@ -1,5 +1,5 @@
 //Add globale score in dataChecker
-initDataChecker = (size_scores, ratio_scores, alt_scores, scoreCheckLink) => {
+ initDataChecker = (size_scores, ratio_scores, alt_scores, scoreCheckLink) => {
   console.log("initDataChecker started");
 
   const globalSizeScore = Number(
@@ -26,16 +26,13 @@ initDataChecker = (size_scores, ratio_scores, alt_scores, scoreCheckLink) => {
       : 5;
   dataChecker.alt_img_check.global_score = global_alt_scores;
 
+  console.log({global_ratio_scores},{global_size_scores}, {global_alt_scores});
+
   dataChecker.img_check.global_score = Number(
     (
       (global_ratio_scores + global_size_scores + global_alt_scores) /
       3
     ).toFixed(2)
-  );
-  console.log(
-    { global_ratio_scores },
-    { global_size_scores },
-    { global_alt_scores }
   );
   dataChecker.img_check.img_check_state = true;
   dataChecker.img_check.global_ratio_scores = global_ratio_scores;
@@ -121,20 +118,21 @@ initDataChecker = (size_scores, ratio_scores, alt_scores, scoreCheckLink) => {
 
   dataChecker.state_check = true;
   console.log({ dataChecker });
-  browser.runtime.sendMessage({
+  chrome.runtime.sendMessage({
     action: "open_interface",
     data: JSON.stringify(dataChecker),
   });
+  //chrome.storage.sync.set({ openInterface: JSON.stringify(dataChecker) });
   console.log(
     "%c--------------------------------------------Fin du traitement globale du checkerImages ----------------------------------------------------------------",
     "color:green"
   );
 
   // Écouteur d'événement pour le clic sur le bouton
-  browser.storage.sync.get("corsEnabled", function () {
-    var corsEnabled = browser.storage.sync.get('corsEnabled');  
-    browser.storage.sync.set({ corsEnabled: corsEnabled }, function () {
-      corsEnabled && browser.runtime.sendMessage({ corsEnabled: false });
+  chrome.storage.sync.get("corsEnabled", function (result) {
+    var corsEnabled = result.corsEnabled;
+    chrome.storage.sync.set({ corsEnabled: corsEnabled }, function () {
+      corsEnabled && chrome.runtime.sendMessage({ corsEnabled: false });
     });
   });
 };

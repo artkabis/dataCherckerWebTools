@@ -2,151 +2,81 @@
   console.log(
     "----------------------------- START check Hn outline validity -----------------------------"
   );
-
-  let rendu = "";
-  let h1Count = 0;
-  let h2Count = 0;
-  let h3Count = 0;
-  const h1Indexes = [];
-
-  const verifierStructureHn = (HnArray) => {
-    const niveaux = ["h1", "h2", "h3", "h4", "h5", "h6"];
-    let hasH1 = false;
-    let hasH2 = false;
-    let hasH3 = false;
-    let validStructure = true;
-
-    for (let i = 0; i < HnArray.length; i++) {
-      const balise = HnArray[i];
-      const niveauActuel = niveaux.indexOf(balise.nodeName.toLowerCase());
-
-      if (balise.nodeName.toLowerCase() === "h1") {
-        h1Count++;
-        if (!h1Indexes.includes(i)) {
-          h1Indexes.push(i);
-          if (i === 0) {
-            rendu += `${balise.nodeName.toLowerCase()} - Valide_`;
-            console.log(
-              `%c${balise.nodeName.toLowerCase()} - Valide`,
-              "color: green"
-            );
-            hasH1 = true;
-          } else if (i === 0 && niveauActuel !== "h1") {
-            rendu += `${balise.nodeName.toLowerCase()} - Non valide (premier tag doit être h1)_`;
-            console.log(
-              `%c${balise.nodeName.toLowerCase()} - Non valide (premier tag doit être h1)`,
-              "color: red"
-            );
-            validStructure = false;
-          }
-        } else {
-          rendu += `${balise.nodeName.toLowerCase()} - Non valide (doublon)_`;
-          console.log(
-            `%c${balise.nodeName.toLowerCase()} - Non valide (doublon)`,
-            "color: red"
-          );
-          validStructure = false;
-        }
-
-        if (h1Count > 1 && i > 0) {
-          if (balise.nodeName.toLowerCase() === "h1") {
-            rendu += `${balise.nodeName.toLowerCase()} - Non valide (doublon)_`;
-            console.log(
-              `%c${balise.nodeName.toLowerCase()} - Non valide (doublon)`,
-              "color: red"
-            );
-            validStructure = false;
-          }
-        }
-      } else if (balise.nodeName.toLowerCase() === "h2") {
-        if (!hasH1) {
-          rendu += `${balise.nodeName.toLowerCase()} - Non valide (h1 manquant)_`;
-          console.log(
-            `%c${balise.nodeName.toLowerCase()} - Non valide (h1 manquant)`,
-            "color: red"
-          );
-          validStructure = false;
-        } else {
-          h2Count++;
-          rendu += `${balise.nodeName.toLowerCase()} - Valide_`;
-          console.log(
-            `%c${balise.nodeName.toLowerCase()} - Valide`,
-            "color: green"
-          );
-          hasH2 = true;
-        }
-      } else if (balise.nodeName.toLowerCase() === "h3") {
-        if (!hasH1 || !hasH2) {
-          rendu += `${balise.nodeName.toLowerCase()} - Non valide (h1 ou h2 manquant)_`;
-          console.log(
-            `%c${balise.nodeName.toLowerCase()} - Non valide (h1 ou h2 manquant)`,
-            "color: red"
-          );
-          validStructure = false;
-        } else {
-          h3Count++;
-          rendu += `${balise.nodeName.toLowerCase()} - Valide_`;
-          console.log(
-            `%c${balise.nodeName.toLowerCase()} - Valide`,
-            "color: green"
-          );
-          hasH3 = true;
-        }
-      } else if (balise.nodeName.toLowerCase() === "h4") {
-        if (!hasH1 || !hasH2 || !hasH3) {
-          rendu += `${balise.nodeName.toLowerCase()} - Non valide (h1, h2 ou h3 manquant)_`;
-          console.log(
-            `%c${balise.nodeName.toLowerCase()} - Non valide (h1, h2 ou h3 manquant)`,
-            "color: red"
-          );
-          validStructure = false;
-        } else {
-          rendu += `${balise.nodeName.toLowerCase()} - Valide_`;
-          console.log(
-            `%c${balise.nodeName.toLowerCase()} - Valide`,
-            "color: green"
-          );
-        }
-      } else {
-        // Vérifier si le niveau actuel est inférieur au niveau précédent ou a des niveaux intermédiaires manquants
-        const niveauPrecedent = niveaux.indexOf(
-          HnArray[i - 1].nodeName.toLowerCase()
-        );
-        if (niveauActuel <= niveauPrecedent) {
-          rendu += `${balise.nodeName.toLowerCase()} - Non valide_`;
-          console.log(
-            `%c${balise.nodeName.toLowerCase()} - Non valide`,
-            "color: red"
-          );
-          validStructure = false;
-        } else if (niveauActuel - niveauPrecedent > 1) {
-          for (let j = niveauPrecedent + 1; j < niveauActuel; j++) {
-            rendu += `${niveaux[j]} - Non valide (niveau manquant)_`;
-            console.log(
-              `%c${niveaux[j]} - Non valide (niveau manquant)`,
-              "color: red"
-            );
-            validStructure = false;
-          }
-        } else {
-          rendu += `${balise.nodeName.toLowerCase()} - Valide_`;
-          console.log(
-            `%c${balise.nodeName.toLowerCase()} - Valide`,
-            "color: green"
-          );
+  console.log(" ------------------------------- HnOutlineValidity starting");
+  validStructure = true;
+  const isHeadingValid = (currentHn, previousHn) => {
+    const currentHnIndex = parseInt(currentHn.charAt(1));
+    const previousHnIndex = parseInt(previousHn.charAt(1));
+  
+    if (currentHn === previousHn) {
+      return false;
+    }
+  
+    if (currentHnIndex !== previousHnIndex + 1) {
+      return false;
+    }
+  
+    return true;
+  };
+  const hasDuplicateH1 = () => {
+    const h1Tags = document.querySelectorAll("h1");
+    const h1Texts = Array.from(h1Tags).map((h1) => h1.textContent.toLowerCase());
+    const uniqueH1Texts = new Set(h1Texts);
+  
+    return h1Texts.length > 1;
+  };
+  
+  
+  
+  
+  let hnTagArray = [],rendu;
+    hnTagContentArray = [];
+  document.querySelectorAll("h1, h2, h3, h4, h5, h6").forEach(function (t, i) {
+    hnTagArray.push(t.tagName.toLowerCase());
+    hnTagContentArray.push(t.textContent);
+  });
+  
+    previousHn = null;
+  
+  hnTagArray.forEach(function (currentHn, index) {
+    const currentHnContent = hnTagContentArray[index];
+    const currentHnIndex = parseInt(currentHn.charAt(1));
+ 
+  
+    if (index > 0) {
+      const isValid = isHeadingValid(currentHn, previousHn);
+  
+      if (!isValid) {
+        const missingHeadingsCount =
+          currentHnIndex - (parseInt(previousHn.charAt(1)) + 1);
+  
+        for (let i = 1; i <= missingHeadingsCount; i++) {
+          const missingHnIndex = parseInt(previousHn.charAt(1)) + i;
+          const missingHn = `h${missingHnIndex}`;
+          const missingHnContent = `Missing Heading - ${missingHn}`;
+          rendu += `${currentHn} - ${currentHnContent} - Non valide_`;
+          console.log(`%c<${missingHn}> - ${missingHnContent}  !!!!  </${missingHn}>`,'color:red');
+          validStructure =false;
         }
       }
-    }
+      if (currentHn === "h1" && hasDuplicateH1()) {
+        rendu += `${currentHn} - ${currentHnContent} - Non valide_`;
 
+       console.log(`%c<${currentHn}> Warning: Duplicate H1 - ${currentHnContent}   </${currentHn}>`,'color:red');
+       validStructure = false;
+      }
+    }
+    rendu += `${currentHn} - ${currentHnContent} - valide_`;
+    console.log(`%c <${currentHn}> - ${currentHnContent} </${currentHn}>`,'color:green');
+    previousHn = currentHn;
+  });
+ 
     if (validStructure) {
       console.log("Structure des Hn valide.");
     } else {
       console.log("Structure des Hn invalide.");
     }
-  };
   const allTagHn = document.querySelectorAll("h1,h2,h3,h4,h5,h6");
-  const HnArray = Array.from(allTagHn, (element) => element);
-  verifierStructureHn(HnArray);
   let globalScoreHnReco = [],
     nbHn = 0;
   dataChecker.hn.hn_reco.hn.length = 0;
@@ -154,7 +84,7 @@
     nbHn++;
     const nbLetters = t.textContent.length;
     const tagName = t.tagName;
-    const tagContent = t.textContent
+    const tagContent = t.textContent.trim()
       .replaceAll("\n", " ")
       .replaceAll(",", " ")
       .replaceAll("\t", "")
@@ -183,6 +113,8 @@
       "il",
       "de",
       "des",
+      "ces",
+      "ses",
       "près",
       "pour",
       "vers",
@@ -416,13 +348,14 @@
   });
   console.log('---------------------------------- HnReco',dataChecker.hn.hn_reco.hn);
 
-  rendu = rendu.replaceAll('"', "").replaceAll("'", "").slice(0, -1);
+  //rendu = rendu.replaceAll('"', "").replaceAll("'", "").slice(0, -1);
   const renduTab = rendu.split("_");
   let scoreOutlineHn = [];
   dataChecker.hn.hn_outline.hn = [];
+  console.log('-------------------------------- rendu  split : ',{renduTab});
   renduTab.forEach((t, i) => {
-    let validity = String(t.split(" - ")[1]).includes("Non") ? false : true;
-    const score = validity ? 5 : 0;
+    let validity = t.includes("Non valide") ? false : true;
+    const score = (validity === false) ? 0 : 5;
     dataChecker.hn.hn_outline.hn.push({
       hn_type: t.split(" - ")[0],
       hn_validity: validity,
@@ -431,9 +364,12 @@
     });
     scoreOutlineHn.push(score);
   });
-  const scoreHnOutline = Number(
-    (scoreOutlineHn.reduce((a, b) => a + b) / scoreOutlineHn.length).toFixed(2)
-  );
+  const hasZeroInOutlineHn = (array) => {
+    return array.filter((value) => {
+      return value === 0;
+    }).length === 0 ? 5 : 0;
+  };
+  const scoreHnOutline = hasZeroInOutlineHn(scoreOutlineHn);
   const scoreHnReco =
     globalScoreHnReco.length > 1
       ? Number(

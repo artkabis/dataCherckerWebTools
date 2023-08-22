@@ -5,7 +5,7 @@
       .map((node) => {
         if (node.nodeType === Node.TEXT_NODE) {
           return node.textContent;
-        } else if (node.nodeType === Node.ELEMENT_NODE) {
+        } else if (node.nodeType === Node.ELEMENT_NODE && !node.closest('form')) {
           const tagName = node.tagName.toLowerCase();
           const classes = node.classList;
 
@@ -107,8 +107,8 @@
 
   // Liste des sélecteurs pour récupérer le texte
   const selectors = [
-    "#Content",
-    "#dm_content .dmNewParagraph:not(.proliveContainer)",
+    "#Content",".Content",".content",
+    "#dm_content .dmNewParagraph:not(.proliveContainer)", 'body:not(#dmRoot):not(.page) div[class^="content"]', 'div[class*="main"]',
   ];
 
   // Appelle la fonction pour récupérer le texte lisible des éléments correspondant aux sélecteurs en excluant les classes spécifiées et en supprimant les sauts de ligne et les doubles espaces

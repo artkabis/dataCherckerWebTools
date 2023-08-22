@@ -1,41 +1,59 @@
-
 (($) => {
-    async function getImageAsBase64(imageUrl) {
-        try {
-          const response = await fetch(imageUrl);
-          const blob = await response.blob();
-          const base64Data = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.readAsDataURL(blob);
-          });
-          return base64Data;
-        } catch (error) {
-          console.error('Erreur lors de la conversion de l\'image en base64 :', error);
-          return null;
-        }
+  let accessibleImage = false;
+  async function getImageAsBase64(imageUrl, validUrl) {
+    if(validUrl){
+      try {
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        const base64Data = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(blob);
+        });
+        return base64Data;
+      } catch (error) {
+        console.log(
+          "Erreur lors de la conversion de l'image en base64 :",
+          
+           imageUrl ,' ne semble pas disponnible, veuillez vérifier si son url est valide'
+        );
+        return null;
       }
+    }
+  }
   console.log(
     "----------------------------- Check ALT images --------------------------------------------"
   );
   let nb_alt_imgs_wrong = 0;
   let scoreTabAltImg = [];
   dataChecker.alt_img_check.alt_img = [];
-    let isWP = $('#Content').length;
+  let isWP = $("#Content").length;
   $("img, svg").each(function (i, t) {
-
     let src = $(this).attr("src")
       ? $(this).attr("src")
       : $(this).attr("data-src");
-      src = ( src && src.at(0) === "/") ? window.location.origin + src : src;
-      let alt;
-      const excludes = this.tagName !== "svg" && this.getAttribute("class") !=="lb-image" && !$(this).hasClass("leaflet-marker-icon");
+    const isDudaImage = src && src.includes("cdn-website");
+    //console.log({src});
+    src =
+      !isDudaImage &&
+      src &&
+      src.at(0).includes("/") &&
+      src.includes("/wp-content/")
+        ? window.location.origin +
+          "/wp-content/" +
+          src.split("/wp-content/")[1]
+        : ( src && !src.includes("http") && !src.at(0).includes('/')) ? window.location.origin +'/'+src : src;
+    let alt;
+    const excludes =
+      this.tagName !== "svg" &&
+      this.getAttribute("class") !== "lb-image" &&
+      !$(this).hasClass("leaflet-marker-icon");
     const filterDomain =
       src &&
       !src.includes("mappy") &&
       !src.includes("cdn.manager.solocal.com") &&
       !src.includes("static.cdn-website");
-      
+
     if (filterDomain && excludes) {
       alt = $(this).attr("alt");
       !alt && alt === ""
@@ -74,7 +92,7 @@
       nb_alt_imgs_wrong += 1;
       dataChecker.alt_img_check.alt_img.push({
         alt_img_state: true,
-        alt_img_src: src && src ,
+        alt_img_src: src && src,
         alt_img_text: alt,
         alt_img_score: 0,
       });
@@ -92,40 +110,63 @@
       });
       scoreTabAltImg.push(0);
     }
-    (this.tagName !== "svg" && filterDomain && excludes) ? getImageAsBase64(src)
-    .then((base64Data) => {
-      if (base64Data) {
-        console.log(`%c   %c%o  %c${alt ? alt : 'ALT MANQUANT'}`,
-        `background-image:url("${base64Data}");background-size:contain;background-repeat: no-repeat;padding:50px;height:50pxwidth:50px`,
-        'color:white',
-        {'href':[new URL(src).href]},
-        `${alt ? "color:green" : "color:red"}`,
+    let validUrl;
+    try{validUrl = new URL(src).href && true}catch(e){validUrl = false};
+    const checkBaseSrc = (validUrl && src.includes('data:image')) ? 'data:image'+src.split('data:image')[1] : src;
+    this.tagName !== "svg" && filterDomain && excludes && validUrl && !src.includes('goo.gl')
+      ? getImageAsBase64(checkBaseSrc,validUrl).then((base64Data) => {
+          if (base64Data, validUrl) {
+            console.log("_____alt to base64 src : ", { checkBaseSrc });
+            console.log(
+              `%c   %c%o  %c${alt ? alt : "ALT MANQUANT"}`,
+              `background-image:url("${base64Data}");background-size:contain;background-repeat: no-repeat;padding:50px;height:50pxwidth:50px`,
+              "color:white",
+              { href: [new URL(src).href] },
+              `${alt ? "color:green" : "color:red"}`
+            );
+          } else {
+            console.log("Erreur lors de la conversion de l'image en base64.");
+          }
+        }).catch(err=> (accessibleImage) && console.log(err))
+      : this.tagName === "svg" &&
+        filterDomain &&
+        excludes &&
+        console.log(
+          `%cFichier SVG :  %c${
+            !this.getAttribute("alt")
+              ? this.getAttribute("data-icon-name")
+              : this.getAttribute("alt")
+          }`,
+          "color:white;",
+          "color:green"
         );
-        
-      } else {
-        console.log('Erreur lors de la conversion de l\'image en base64.');
-      }
-    }): (this.tagName === "svg" && filterDomain && excludes)&&console.log(`%cFichier SVG :  %c${(!this.getAttribute("alt")) ? this.getAttribute("data-icon-name") : this.getAttribute("alt")}`,'color:white;',
-    'color:green');
   });
   dataChecker.alt_img_check.alt_img_check_state = true;
   dataChecker.alt_img_check.nb_alt_img =
     dataChecker.alt_img_check.alt_img.length;
   dataChecker.alt_img_check.alt_img = dataChecker.alt_img_check.alt_img.filter(
-    (element) => Object.keys(element).length > 1
+    (element) => (Object.keys(element).length > 1)
   );
+
+  let scoreTabAltImg2 = [];
+  dataChecker.alt_img_check.alt_img.forEach((i, t) =>{
+    scoreTabAltImg2.push((i.alt_img_score && String(i.alt_img_text) !=='undefined') ? 5 : 0);
+    i.alt_img_score = (i.alt_img_score && String(i.alt_img_text) !=='undefined') ? 5 : 0;
+});
   console.log(
     "______________________alt img : ",
     dataChecker.alt_img_check.alt_img
   );
-  let scoreTabAltImg2 = [];
-  dataChecker.alt_img_check.alt_img.forEach((i,t)=>scoreTabAltImg2.push(i.alt_img_score))
 
   dataChecker.alt_img_check.global_score = Number(
     scoreTabAltImg2.reduce((a, b) => a + b) / scoreTabAltImg.length
   ).toFixed(2);
-  
-  console.log({scoreTabAltImg2},'   score moyen des alt :',dataChecker.alt_img_check.global_score);
+
+  console.log(
+    { scoreTabAltImg2 },
+    "   score moyen des alt :",
+    dataChecker.alt_img_check.global_score
+  );
   console.log(
     "----------------------------- END Check ALT images --------------------------------------------"
   );

@@ -1,9 +1,32 @@
 import { getActiveTabURL } from "./Functions/utils.js";
-
+console.log(jQuery, $);
 //HnOutlineValidity()
+broswer.tabs.query({ active: true, currentWindow: true }, function (tab) {
+broswer.scripting.executeScript({
+  target: { tabId: tab[0].id },
+  function: function () {
+    if(window.location.origin.includes('soprod')){
+        setTimeout(function () {
+        console.log('---------------------- add user in soprod --------------------');  
+        const dropUser = document.querySelector('.dropdown-user .username');
+        console.log({dropUser},dropUser.innerHTML);
+        const user = dropUser.innerHTML;
+        console.log(' user in DOM Soprod : ',{user});
+        broswer.storage.sync.set({ user: user }, function () {
+          console.log("sync set user : ", { user });
+          // Envoi d'un message à l'arrière-plan pour mettre à jour l'état des règles
+          broswer.runtime.sendMessage({ user: user });
+        });
+      },100);
 
-// Utilisez l'API chrome.runtime.getManifest() pour accéder aux informations du manifest
-const manifest = browser.runtime.getManifest();
+    }
+
+  }
+});
+})
+
+// Utilisez l'API broswer.runtime.getManifest() pour accéder aux informations du manifest
+const manifest = broswer.runtime.getManifest();
 const version = manifest.version;
 document.addEventListener("DOMContentLoaded", function () {
   // Utilisez la valeur récupérée comme bon vous semble
@@ -17,7 +40,7 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 function executeScriptInTabGoogle(tab) {
-  browser.scripting.executeScript({
+  broswer.scripting.executeScript({
     target: { tabId: tab.id },
     function: function () {
       window.open(
@@ -30,7 +53,7 @@ function executeScriptInTabGoogle(tab) {
   });
 }
 function executeScriptDesignModeToggle(tab) {
-  browser.scripting.executeScript({
+  broswer.scripting.executeScript({
     target: { tabId: tab.id },
     function: function () {
       let dn = document.designMode;
@@ -39,123 +62,19 @@ function executeScriptDesignModeToggle(tab) {
   });
 }
 function executeScriptDudaPages(tab) {
-  browser.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    browser.scripting.executeScript({
-      target: { tabId: tabs[0].id },
-      function: () => {
-        if (document.querySelector("#dm")) {
-          const menuJson = JSON.parse(
-            atob(
-              document.head.innerHTML
-                .split("NavItems: ")[1]
-                .split("',")[0]
-                .replaceAll("'", "")
-            )
-          );
-
-          const subNavOk = menuJson.filter((t) => t.subNav.length > 0);
-          const nv1OutNav = menuJson.filter((t) => t.inNavigation === false);
-          const nv1InNav = menuJson.filter((t) => t.inNavigation === true);
-          nv1OutNav.map((t) => (t.niveau1Out = true)),
-            nv1InNav.map((t) => (t.niveau1In = true));
-          const nv2OutNav =
-            subNavOk && subNavOk.filter((s) => s.inNavigation == false);
-          nv2OutNav.niveau2Out = true;
-          const nv2InNav =
-            subNavOk && subNavOk.filter((s) => s.inNavigation == true);
-          nv2InNav.niveau2In = true;
-          const finalNavOut =
-            nv2OutNav > 0 ? { nv1OutNav, nv2OutNav } : nv1OutNav;
-          const finalNavIn = nv2InNav > 0 ? { nv1InNav, nv2InNav } : nv1InNav;
-          console.log(
-            "---------------------------------- Visible en navigation (depuis le menu) --------------------------------------------"
-          );
-          console.table(finalNavIn);
-          console.log(
-            "---------------------------------- Non visible dans la navigation (depuis le menu) --------------------------------------------"
-          );
-          console.table(finalNavOut);
-          finalNavOut.map((t) => {
-            console.log("links outer nav : ", window.location.origin + t.path);
-          });
-          // return all links page Duda website
-          const links = [];
-          const getAllPathValues = (obj) => {
-            var values = [];
-
-            const traverse = (obj) => {
-              for (var key in obj) {
-                if (key === "path") {
-                  const link = new URL(window.location.origin + obj[key]).href;
-                  links.push(link);
-                } else if (typeof obj[key] === "object") {
-                  traverse(obj[key]);
-                }
-              }
-            };
-
-            traverse(obj);
-            return values;
-          };
-          console.log(
-            "------------------------------------- All links Duda website ------------------------------"
-          );
-          getAllPathValues(menuJson);
-          const allLinksDom = () => {
-            let finalLink = [];
-            links.forEach((t, i) => {
-              link = t.includes("#") ? t.split("#")[0] : t;
-              finalLink.push(`<a href="${link}">${link}</a><br>`);
-            });
-
-            return [...new Set(finalLink)];
-          };
-          const newWindow = window.open(
-            "_blank",
-            "width=900,height=600,toolbar=no"
-          );
-          newWindow.document.write("<html><head><title>Sitemap Duda</title>");
-          newWindow.document.write(
-            "<style>.missing {background-color: white!important;color: orange!important;}.noMissingHeading { background-color:green }.duplicate { background-color: orange }</style>"
-          );
-          newWindow.document.write(
-            `</head><body>${allLinksDom()}<body></html>`
-          );
-          newWindow.document.close();
-        }
-      },
-    });
-  });
-}
-function executeScriptOpenConsole(tab) {
-  console.log("Execution de openConsole sur le tag : ", tab);
-  browser.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    browser.scripting.executeScript({
-      target: { tabId: tabs[0].id },
-      function: () => {
-        const event = new KeyboardEvent("keydown", {
-          key: "j",
-          code: "KeyJ",
-          ctrlKey: true,
-          shiftKey: true,
-        });
-        console.log({ event });
-        document.dispatchEvent(event);
-      },
+  broswer.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    const activeTab = tabs[0];
+    broswer.scripting.executeScript({
+      target: { tabId: activeTab.id },
+      files: ["./Functions/DudaSitemap.js"],
     });
   });
 }
 
-//  async function executeScriptHnValidity(tab) {
-//     const activeTab = await getActiveTabURL();
-//     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-
-//     });
-//   }
 
 function executeScriptcopyExpressionsSoprod() {
-  browser.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    browser.scripting.executeScript({
+  broswer.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    broswer.scripting.executeScript({
       target: { tabId: tabs[0].id },
       function: () => {
         console.log(
@@ -197,8 +116,8 @@ function executeScriptcopyExpressionsSoprod() {
 
 document.querySelector(".openSitemap").addEventListener("click", function () {
   console.log("btn sitemap : ", this);
-  browser.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    browser.scripting.executeScript({
+  broswer.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    broswer.scripting.executeScript({
       target: { tabId: tabs[0].id },
       function(){
         let sitemap = window.location.origin+"/page-sitemap.xml";
@@ -214,7 +133,7 @@ document.querySelector(".openSitemap").addEventListener("click", function () {
 document
   .querySelector("#copyExpressionsSoprod")
   .addEventListener("click", function () {
-    browser.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    broswer.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       executeScriptcopyExpressionsSoprod(tabs[0]);
     });
   });
@@ -222,7 +141,7 @@ document
 document
   .querySelector("#openGoogleSchemaValidator")
   .addEventListener("click", function () {
-    browser.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    broswer.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       executeScriptInTabGoogle(tabs[0]);
     });
   });
@@ -232,12 +151,12 @@ document
     !this.classList.contains("actif")
       ? this.classList.add("actif")
       : this.classList.remove("actif");
-      browser.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    broswer.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       executeScriptDesignModeToggle(tabs[0]);
     });
   });
 document.querySelector("#linksDuda").addEventListener("click", function () {
-  browser.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+  broswer.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     executeScriptDudaPages(tabs[0]);
   });
 });
@@ -245,56 +164,49 @@ document.querySelector("#linksDuda").addEventListener("click", function () {
 document
   .querySelector("#openHnValidity")
   .addEventListener("click", function () {
-    browser.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    broswer.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       var activeTab = tabs[0];
-      browser.scripting.executeScript(
+      broswer.scripting.executeScript(
         {
           target: { tabId: activeTab.id },
-          //function:CheckerImgFunc
           files: ["./Functions/HnOutlineValidity.js"],
-        },
-        function (results) {
-          //DevToolsAPI.showPanel('console');
-          // window.open('result.html','_blank');
-          //CheckerImg();
-          //window.close();
-        }
-      );
+        });
     });
   });
 
 document.querySelector("#analyserBtn").addEventListener("click", function () {
-  browser.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+  broswer.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     var activeTab = tabs[0];
     var tabId = activeTab.id;
-    browser.tabs.get(tabId, function (tab) {
+    broswer.tabs.get(tabId, function (tab) {
       var tabContent = tab ? tab.content : null;
       console.log(tab, { tabContent });
       if (tab) {
-        browser.scripting.executeScript(
+        broswer.scripting.executeScript(
           {
             target: { tabId: tab.id },
-            //function:CheckerImgFunc
             files: [
               "./assets/jquery-3.6.4.min.js",
               "./assets/console.image.min.js",
-              "./Functions/checkAndAddJquery.js",
+              "./Functions/checkAndAddJquery.js",              
+              
               "./Functions/dataCheckerSchema.js",
-
               "./Functions/initLighthouse.js",
               "./Functions/counterWords.js",
+              //"./Functions/detectOnotherInterface.js",
               "./Functions/checkMetas.js",
               "./Functions/checkAltImages.js",
-              "./Functions/checkOutlineHn.js",
               "./Functions/checkBold.js",
+              "./Functions/checkOutlineHn.js",
               "./Functions/counterLettersHn.js",
               "./Functions/checkLinkAndImages.js",
               "./Functions/checkDataBindingDuda.js",
               "./Functions/initDataChecker.js",
+
             ],
           },
           function (results) {
-            window.close();
+           window.close();
           }
         );
       }
@@ -305,18 +217,18 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
 //gestion du checkbox des cors à l'ouverture du popup
 var toggleButton = document.getElementById("corsButton");
 document.addEventListener("DOMContentLoaded", function () {
-  browser.storage.sync.set({ corsEnabled: true }, function () {
+  broswer.storage.sync.set({ corsEnabled: true }, function () {
     // Mise à jour de l'état de la case à cocher
     let corsEnabled = true;
     toggleButton.checked = corsEnabled;
     toggleButton.textContent = corsEnabled ? "Désactiver" : "Activer";
     console.log("click toggle cors : ", { corsEnabled });
     // Envoi d'un message à l'arrière-plan pour mettre à jour l'état des règles
-    browser.runtime.sendMessage({ corsEnabled: true });
+    broswer.runtime.sendMessage({ corsEnabled: true });
   });
 
   // Récupération de l'état actuel des règles lors du chargement de la page
-  browser.storage.sync.get("corsEnabled", function (result) {
+  broswer.storage.sync.get("corsEnabled", function (result) {
     var corsEnabled = result.corsEnabled;
     console.log("état du corsEnabled : ", corsEnabled);
     toggleButton.checked = corsEnabled; // Met à jour l'état de la case à cocher
@@ -326,13 +238,13 @@ document.addEventListener("DOMContentLoaded", function () {
     toggleButton.addEventListener("click", function () {
       // Inversion de l'état et sauvegarde dans le stockage
       corsEnabled = !corsEnabled;
-      browser.storage.sync.set({ corsEnabled: corsEnabled }, function () {
+      broswer.storage.sync.set({ corsEnabled: corsEnabled }, function () {
         // Mise à jour de l'état de la case à cocher
         toggleButton.checked = corsEnabled;
         toggleButton.textContent = corsEnabled ? "Désactiver" : "Activer";
         console.log("click toggle cors : ", { corsEnabled });
         // Envoi d'un message à l'arrière-plan pour mettre à jour l'état des règles
-        browser.runtime.sendMessage({ corsEnabled: corsEnabled });
+        broswer.runtime.sendMessage({ corsEnabled: corsEnabled });
       });
     });
   });

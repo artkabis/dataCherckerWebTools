@@ -1,6 +1,38 @@
 (($) => {
+  const isBold = (el) =>
+    el.attr("style") && 
+    (el.attr("style").includes("font-weight: bold") ||
+    el.attr("style").includes("font-weight: 700") ||
+    el.attr("style").includes("font-weight: 600") ||
+    el.attr("style").includes("font-weight: 700") ||
+    el.attr("style").includes("font-weight: 800") ||
+    el.attr("style").includes("font-weight: 900") &&
+    el[0].textContent.trim().length);
+    
+    const isMultiSpan = (el) =>isBold(el) &&isBold(el.children()) && el[0].textContent.trim().length ? true : false;
+
+
+    const isHnClosest = (el) =>
+    el[0].tagName.toLowerCase() === "h1" ||
+    el.parents("h1").length ||
+    el[0].tagName.toLowerCase() === "h2" ||
+    el.parents("h2").length ||
+    el[0].tagName.toLowerCase() === "h3" ||
+    el.parents("h3").length ||
+    el[0].tagName.toLowerCase() === "h4" ||
+    el.parents("h4").length ||
+    el[0].tagName.toLowerCase() === "h5" ||
+    el.parents("h5").length ||
+    el[0].tagName.toLowerCase() === "h6" ||
+    el.parents("h6").length;
+    
+    const isHnLink = (el) =>
+    el[0].tagName.toLowerCase() === "a" ||
+    el.parent()[0].tagName.toLowerCase() === "a";
+  
+
   const strongOrBold = $(
-    "#Content b, #Content strong, #Content STRONG, #dm_content b, #dm_content B, #dm_content strong, #dm_content STRONG"
+    "b, strong, STRONG, B"
   );
   strongOrBold &&
     console.log(
@@ -8,24 +40,16 @@
     );
   let cmpBold = 0,
     boldArray = [],
-    isSlide = false;
+    isSlideDuda = false,
+    isWP = $('#Content').length;
+    isDuda = $('#dm').length;
   strongOrBold.each(function (i, t) {
-    const isHnClosest =
-      $(this)[0].tagName.toLowerCase() === "h1" ||
-      $(this).parent()[0].tagName.toLowerCase() === "h1" ||
-      $(this)[0].tagName.toLowerCase() === "h2" ||
-      $(this).parent()[0].tagName.toLowerCase() === "h2" ||
-      $(this)[0].tagName.toLowerCase() === "h3" ||
-      $(this).parent()[0].tagName.toLowerCase() === "h3" ||
-      $(this)[0].tagName.toLowerCase() === "h4" ||
-      $(this).parent()[0].tagName.toLowerCase() === "h4" ||
-      $(this)[0].tagName.toLowerCase() === "h5" ||
-      $(this).parent()[0].tagName.toLowerCase() === "h5" ||
-      $(this)[0].tagName.toLowerCase() === "h6" ||
-      $(this).parent()[0].tagName.toLowerCase() === "h6";
-    isSlide = $(this).closest(".slide-inner");
-    if (t.textContent.length > 1 && t.textContent !== " ") {
-      if (!isHnClosest || !isSlide) {
+    
+      const nbWordsParentWP = (isWP) ? $(this).closest('.vc_column-inner')[0].innerText.trim().split(' ').length : $(this).parent().parent()[0].innerText.trim().split(' ').length;
+
+    testStack = isWP 
+    isSlideDuda = (isDuda) ? $(this).parents(".slide-inner").length : 0;
+    if (t.textContent.length > 1 && t.textContent !== " " && !isHnClosest($(this)) && !isHnLink($(this)) && nbWordsParentWP >=70 && !isSlideDuda) {
         cmpBold++;
         boldArray.push({
           target: t,
@@ -33,88 +57,90 @@
           nbWords: t.textContent.includes(" ")
             ? t.textContent.split(" ").length
             : 1,
+          nbWordsParent: (isWP) ? nbWordsParentWP
+            : (isDuda) ? $(this).closest(".dmNewParagraph")[0].textContent.split(" ").length :  (isWP) ? $(this).closest('.vc_column-inner')[0].textContent.split(" ").length : $(this).parent().parent().parent()[0].textContent.split(" ").length,
         });
-      }
     }
   });
+
+
   $("#dm_content span").each(function (t) {
+    const isDuda =$(this).closest('#dm');
     isSlide = $(this).closest(".slide-inner");
-    const isBold = (el) =>
-      el.attr("style") &&
-      (el.attr("style").includes("font-weight: bold") ||
-        (el.attr("style").includes("font-weight: 700") &&
-          $(this)[0].textContent.trim().length));
-    const isMultiSpan =
-      isBold($(this)) &&
-      isBold($(this).children()) &&
-      $(this)[0].textContent.trim().length
-        ? true
-        : false;
-    let target = isMultiSpan ? $(this).children() : $(this);
-    const isHnClosest =
-      target[0].tagName.toLowerCase() === "h1" ||
-      target.parent()[0].tagName.toLowerCase() === "h1" ||
-      target[0].tagName.toLowerCase() === "h3" ||
-      target.parent()[0].tagName.toLowerCase() === "h3" ||
-      target[0].tagName.toLowerCase() === "h2" ||
-      target.parent()[0].tagName.toLowerCase() === "h2" ||
-      target[0].tagName.toLowerCase() === "h4" ||
-      target.parent()[0].tagName.toLowerCase() === "h4" ||
-      target[0].tagName.toLowerCase() === "h5" ||
-      target.parent()[0].tagName.toLowerCase() === "h5" ||
-      target[0].tagName.toLowerCase() === "h6" ||
-      target.parent()[0].tagName.toLowerCase() === "h6";
-    const duplicateBold =
-      isMultiSpan &&
+
+    
+    let target = isMultiSpan($(this)) ? $(this).children() : $(this);
+      const innerMultiSpan = isMultiSpan($(this))
+    const duplicateBoldSpan =
+    isMultiSpan($(this)) &&
       $(this)[0]
         .textContent.trim()
         .includes($(this).children()[0].textContent.trim());
-    isMultiSpan &&
-      !isHnClosest &&
+        innerMultiSpan &&
+      !isHnClosest($(this)) &&
       console.log(
         { target },
         "  isBold : ",
         isBold(target),
-        { isMultiSpan },
-        { duplicateBold },
+        { innerMultiSpan },
+        { duplicateBoldSpan },
         "   text content",
         target[0].textContent,
         " text length",
-        $(this)[0].textContent.trim().length
+        $(this)[0].textContent.trim().length,
+        " parent dmpara nb words : ",
+        $(this).parents(".dmNewParagraph")
+          ? $(this).parents(".dmNewParagraph")[0].textContent.split(" ").length
+          : $(this).parent().parent().parent()[0].textContent.split(" ")
       );
     isBold(target) &&
-      !isHnClosest &&
+      !isHnClosest($(this)) &&
       target[0].textContent !== "\n" &&
       target[0].textContent !== "" &&
       target[0].textContent.length > 1 &&
+      !duplicateBoldSpan &&
       (boldArray.push({
         target: target[0], // Modification : Ajouter [0] pour obtenir l'élément DOM
         text: target[0].textContent.trim(),
         nbWords: target[0].textContent.trim().split(" ").length,
+        nbWordsParent: target.parents(".dmNewParagraph").length
+          ? target.parents(".dmNewParagraph")[0].textContent.split(" ").length
+          : target.parent().parent().parent()[0].textContent.split(" "),
       }),
       cmpBold++);
-    duplicateBold && cmpBold--;
-  });
+      duplicateBoldSpan && cmpBold--;
+      
+  });console.log({boldArray});
 
   // Créer un nouvel tableau pour stocker les éléments uniques
   const objSansDoublons = [];
 
   // Parcourir l'array initial boldArray
-  for (let i = 0; i < boldArray.length; i++) {
+  $.each(boldArray,function(i,t){
+    const $isMultiSpan = isMultiSpan($(this));
     const element = boldArray[i];
-    const { target, text, nbWords } = element;
+    const { target, text, nbWords, nbWordsParent } = element;
     // Vérifier si les propriétés "text" et "nbWords" sont identiques
     const isDuplicate = objSansDoublons.some(
       (item) => item.text === text && item.nbWords === nbWords
     );
-    if (!isDuplicate && text.length > 2 && !target.closest(".slide-inner")) {
-      objSansDoublons.push({
+
+    if (
+      text.length > 2 &&
+      !target.closest(".slide-inner") &&
+      !target.closest("#Footer") &&
+      nbWordsParent >= 25
+    ) {
+      !$isMultiSpan && objSansDoublons.push({
         target, // Modification : Ne pas accéder à [0] pour conserver l'élément DOM
+        texte_duplique: isDuplicate,
         text,
         nbWords,
+        nbWordsParent,
       });
     }
-  }
+  });
+  console.log({objSansDoublons})
   dataChecker.bold_check.bold_txt = [];
   dataChecker.bold_check.bold_check_state =
     objSansDoublons.length === 0 || objSansDoublons === undefined
@@ -156,26 +182,27 @@
   let nbBold = dataChecker.bold_check.bold_txt.length
     ? dataChecker.bold_check.bold_txt.length
     : 0;
-  if (nbBold === 1) {
+  if (nbBold === 0) {
+    scroreBold = 0;
+  } else if (nbBold === 1) {
     scroreBold = 1;
   } else if (nbBold === 2) {
-    scroreBold = 2;
-  } else if (nbBold === 3) {
-    scroreBold = 3;
+    scroreBold = 4;
   } else if (nbBold === 6) {
     scroreBold = 4;
-  } else if (nbBold >= 3 && nbBold <= 5) {
-    scroreBold = 5;
   } else if (nbBold === 7) {
     scroreBold = 3;
   } else if (nbBold === 8) {
     scroreBold = 2;
   } else if (nbBold === 9) {
-    scroreBold = 2;
+    scroreBold = 1;
   } else if (nbBold === 10) {
     scroreBold = 1;
   } else if (nbBold < 1 && nbBold > 10) {
     scroreBold = 0;
+  } else if (nbBold >= 3 && nbBold <= 5) {
+    console.log("____________________________________________ bold ok ");
+    scroreBold = 5;
   }
   dataChecker.bold_check.global_score = scroreBold ? scroreBold : 0;
   console.log({ nbBold }, { scroreBold });

@@ -161,6 +161,23 @@ chrome.runtime.onStartup.addListener(once);
 let user_soprod;
 /****** check all tab */
 
+const allTabs = async ()=>{
+  const logTabs = (tabs) =>{
+    let tabsAll=[];
+    for (const tab of tabs) {
+      // tab.url requires the `tabs` permission or a matching host permission.
+      tabsAll.push(tab);
+    }
+    return tabsAll;
+  }
+  
+  const  onError = (error) => {
+    console.log(`Error: ${error}`);
+  }
+  await chrome.tabs.query({}).then(logTabs, onError);
+
+
+}
 const  detectOnotherInterface = async () => {
   const allTabs = await chrome.tabs.query({});
   console.log({allTabs});

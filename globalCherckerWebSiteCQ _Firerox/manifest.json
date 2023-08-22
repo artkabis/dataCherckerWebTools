@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "Full check Solocal Website",
-  "version": "2.1.9",
+  "version": "2.2.3",
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "service_worker.js"
   },
   "action": {
     "default_popup": "popup.html",
@@ -28,11 +28,13 @@
     "declarativeNetRequestFeedback",
     "webRequest"
   ],
+
   "host_permissions": [
     "<all_urls>",
     "*://*/*",
     "*://le-de.cdn-website.com/*",
-    "*://site-privilege.pagesjaunes.fr/*"
+    "*://site-privilege.pagesjaunes.fr/*",
+    "*://soprod.solocalms.fr/*"
   ],
   "web_accessible_resources": [{
     "resources": ["./Functions/HnOutlineValidity.js"],
@@ -44,11 +46,5 @@
       "enabled": false,
       "path": "rulesets/overwrite-origin.json"
     }]
-  },
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "artkabis@hotmail.fr  ",
-      "strict_min_version": "42.0"
-    }
   }
 }
