@@ -187,14 +187,14 @@ const createIconScore = (score) => {
 const displayState = (state) => {
   const iconStateElm = document.createElement("span");
   iconStateElm.classList.add("icon_state");
-
+  console.log(state);
   const iconScoreImg = document.createElement("span");
   if (state) {
     iconStateElm.title = "Analyse ok";
     iconScoreImg.classList.add("icon_state_ok");
   } else {
     iconStateElm.title = "Analyse ko";
-    iconScoreImg.classList.add("icon_state_ok");
+    iconScoreImg.classList.add("icon_state_ko");
   }
   iconStateElm.appendChild(iconScoreImg);
   return iconStateElm;
@@ -286,6 +286,87 @@ const createResumeCheck = () => {
 
 createResumeCheck();
 
+
+
+const createContentCardCheck = (object) =>{
+console.log("log de object:");
+console.log(object);
+
+const containerContentCard = document.createElement("div");
+
+  if (object.check_title === "Meta") {
+
+    containerContentCard.className = "content_card_meta_check";
+
+    const containerResumeMetaCheck = document.createElement("div");
+    containerResumeMetaCheck.className = "container_resume_meta_check";
+
+    const spanTitleResumeMetaCheck = document.createElement("span");
+    spanTitleResumeMetaCheck.className = "title_resume_meta_check";
+    spanTitleResumeMetaCheck.innerHTML = "Statut du check des Meta: ";
+
+    const spanStatutMetaCheck = document.createElement("span");
+    spanStatutMetaCheck.className = "span_state_meta_check";
+
+    spanStatutMetaCheck.appendChild(displayState(object.meta_check_state));
+
+    const spanNbMetaCheck = document.createElement("span");
+    spanNbMetaCheck.className = "span_nb_meta_check";
+    spanNbMetaCheck.innerHTML = "Nb de Meta: "+object.nb_meta;
+
+    containerResumeMetaCheck.appendChild(spanTitleResumeMetaCheck);
+    containerResumeMetaCheck.appendChild(spanStatutMetaCheck);
+    containerResumeMetaCheck.appendChild(spanNbMetaCheck);
+
+    containerContentCard.appendChild(containerResumeMetaCheck);
+
+    object.meta.forEach(element => {
+
+      const cardMeta = document.createElement("div");
+      cardMeta.className = "meta_card meta_card_"+element.meta_type+"";
+
+      const spanMetaTitle = document.createElement("span");
+      spanMetaTitle.className = "card_meta_title";
+      spanMetaTitle.innerHTML = element.check_title;
+
+      const spanMetaReco =  document.createElement("span");
+      spanMetaReco.className ="span_meta_reco";
+      spanMetaReco.innerHTML = "Reco: "+element.meta_reco;
+
+      const spanMetaSize = document.createElement("span");
+      spanMetaSize.className = "span_meta_size";
+      spanMetaSize.innerHTML = "Taille: "+element.meta_size;
+
+      const spanMetaState = document.createElement("span");
+      spanMetaState.className = "span_meta_state";
+      spanMetaState.appendChild(displayState(element.meta_state));
+
+      const spanMetaTxt = document.createElement("span");
+      spanMetaTxt.className = "span_meta_txt";
+      spanMetaTxt.innerHTML = "Texte: "+element.meta_txt;
+
+      const spanscoreMeta = document.createElement("span");
+      spanscoreMeta.className = "span_score_meta";
+      spanscoreMeta.innerHTML = "Score: "+element.meta_score;
+
+      cardMeta.appendChild(spanMetaTitle);
+      cardMeta.appendChild(spanMetaState);
+      cardMeta.appendChild(spanscoreMeta);
+      cardMeta.appendChild(spanMetaReco);
+      cardMeta.appendChild(spanMetaSize);
+      cardMeta.appendChild(spanMetaTxt);
+
+      containerContentCard.appendChild(cardMeta);
+    });
+
+
+    return containerContentCard;
+  }else{
+    return containerContentCard;
+  }
+
+}
+
 const createCardCheck = (object) => {
   const containerCardCheck = document.createElement("div");
   containerCardCheck.className = "card_Check";
@@ -304,7 +385,8 @@ const createCardCheck = (object) => {
   contentCardCheck.className = "content_card_check";
   contentCardCheck.style.display = "none"; // Cacher le contenu par défaut
 
-  contentCardCheck.innerHTML = JSON.stringify(object);
+  contentCardCheck.appendChild(createContentCardCheck(object));
+  //contentCardCheck.innerHTML = JSON.stringify(object);
 
   // ... Autres configurations du contenu
 
