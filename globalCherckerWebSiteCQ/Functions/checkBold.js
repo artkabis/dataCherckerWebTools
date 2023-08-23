@@ -44,13 +44,21 @@
     isWP = $('#Content').length;
     isDuda = $('#dm').length;
   strongOrBold.each(function (i, t) {
-    console.log({t});
-    
-      const nbWordsParentWP = (isWP) ? $(this).closest('.vc_column-inner')[0].innerText.trim().split(' ').length : $(this).parent().parent()[0].innerText.trim().split(' ').length;
+    let strongParent;
+    if (isDuda) {
+      strongParent = $(this).closest(".dmNewParagraph")
+    }else if(isWP && $(this).closest('.wpb_text_column').length){
+      strongParent = $(this).closest('.wpb_text_column');
+    }else if(isWP && $(this).closest('.wpb_toggle_content').length){ 
+      strongParent = $(this).closest('.wpb_toggle_content');
+     }else if((!isDuda && !isWP)){
+      strongParent = $(this).parent().parent().parent();
+     } 
+    const nbWordsParent = strongParent[0].innerText.trim().split(' ').length;
 
     testStack = isWP 
-    isSlideDuda = (isDuda) ? $(this).parents(".slide-inner").length : 0;
-    if (t.textContent.length > 1 && t.textContent !== " " && !isHnClosest($(this)) && !isHnLink($(this)) && nbWordsParentWP >=20 && !isSlideDuda) {
+    isSlideDuda = (isDuda) ? $(this).closest(".slide-inner").length : 0;
+    if (t.textContent.length > 1 && t.textContent !== " " && !isHnClosest($(this)) && !isHnLink($(this)) && nbWordsParent >=20 && !isSlideDuda) {
         cmpBold++;
         boldArray.push({
           target: t,
@@ -58,8 +66,7 @@
           nbWords: t.textContent.includes(" ")
             ? t.textContent.split(" ").length
             : 1,
-          nbWordsParent: (isWP) ? nbWordsParentWP
-            : (isDuda) ? $(this).closest(".dmNewParagraph")[0].textContent.split(" ").length :  (isWP) ? $(this).closest('.vc_column-inner')[0].textContent.split(" ").length : $(this).parent().parent().parent()[0].textContent.split(" ").length,
+          nbWordsParent: nbWordsParent
         });
     }
   });
@@ -127,9 +134,9 @@
     );
 
     if (
-      text.length > 2 &&
-      !target.closest(".slide-inner") &&
-      !target.closest("#Footer") &&
+       text.length > 2 &&
+       !target.closest(".slide-inner") &&
+       !target.closest("#Footer") &&
       nbWordsParent >= 25
     ) {
       !$isMultiSpan && objSansDoublons.push({
