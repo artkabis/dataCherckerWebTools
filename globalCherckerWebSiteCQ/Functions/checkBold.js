@@ -46,14 +46,16 @@
   strongOrBold.each(function (i, t) {
     let strongParent;
     if (isDuda) {
-      strongParent = $(this).closest(".dmNewParagraph")
+      strongParent = $(this).closest(".dmNewParagraph");
     }else if(isWP && $(this).closest('.wpb_text_column').length){
       strongParent = $(this).closest('.wpb_text_column');
     }else if(isWP && $(this).closest('.wpb_toggle_content').length){ 
       strongParent = $(this).closest('.wpb_toggle_content');
      }else if((!isDuda && !isWP)){
       strongParent = $(this).parent().parent().parent();
-     } 
+     }else{
+      strongParent = $(this).parent().parent().parent();
+     }
     const nbWordsParent = strongParent[0].innerText.trim().split(' ').length;
 
     testStack = isWP 
