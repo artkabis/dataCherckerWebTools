@@ -1,4 +1,7 @@
-(() => {
+// console.log({wordsCounterContent});
+// (wordsCounterContent!== undefined) ? (delete wordsCounterContent , wordsCounterContent = {}) : wordsCounterContent = {};
+
+const counterWords = () =>{
   // Fonction pour récupérer le texte lisible à partir d'un élément DOM en excluant les classes spécifiées
   function getTextFromElement(element, excludedClasses) {
     return [...element.childNodes]
@@ -125,4 +128,9 @@
     "Nombre de mots (en excluant les espaces des numéros de téléphone et les mots spécifiés) :",
     wordCount
   );
-})();
+  return {words:textFromSelectors, count_words :wordCount};
+}
+counterWords();
+//wordsCounterContent = counterWords();
+
+

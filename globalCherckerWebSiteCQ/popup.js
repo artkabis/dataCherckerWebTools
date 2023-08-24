@@ -190,6 +190,7 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
               "./assets/console.image.min.js",
               "./Functions/checkAndAddJquery.js",              
               
+              "./Functions/settingsWords.js",
               "./Functions/dataCheckerSchema.js",
               "./Functions/initLighthouse.js",
               "./Functions/counterWords.js",
@@ -225,6 +226,8 @@ document.querySelector('#wordsCloud').addEventListener("click", function () {
           {
             target: { tabId: tab.id },
             files: [
+              "./Functions/settingsWords.js",
+              "./Functions/counterWords.js",
               "./Functions/wordsCountLexical.js",
             ]
           });
