@@ -200,6 +200,32 @@ const displayState = (state) => {
   return iconStateElm;
 };
 
+const displayGlobalState = (state) => {
+
+  let iconSrc = "";
+  let tooltipText = "";
+  if(!state){
+    iconSrc = "interface_icons/icon_warning_circle.png";
+    tooltipText = "";
+    const iconScoreElm = document.createElement("span");
+  iconScoreElm.classList.add("icon_score");
+  iconScoreElm.title = tooltipText;
+
+  const iconScoreImg = document.createElement("img");
+  iconScoreImg.src = iconSrc;
+  iconScoreElm.appendChild(iconScoreImg);
+  return iconScoreElm;
+  }else{
+    const iconScoreImg = document.createElement("img");
+    const iconScoreElm = document.createElement("span");
+  iconScoreImg.src = iconSrc;
+  iconScoreElm.appendChild(iconScoreImg);
+  return iconScoreElm;
+  }
+
+
+};
+
 //execute main card construction
 constructMainCard();
 
@@ -311,21 +337,10 @@ const containerContentCard = document.createElement("div");
     const containerResumeMetaCheck = document.createElement("div");
     containerResumeMetaCheck.className = "container_resume_meta_check";
 
-    const spanTitleResumeMetaCheck = document.createElement("span");
-    spanTitleResumeMetaCheck.className = "title_resume_meta_check";
-    spanTitleResumeMetaCheck.innerHTML = "Statut du check des Meta: ";
-
-    const spanStatutMetaCheck = document.createElement("span");
-    spanStatutMetaCheck.className = "span_state_meta_check";
-
-    spanStatutMetaCheck.appendChild(displayState(object.meta_check_state));
-
     const spanNbMetaCheck = document.createElement("span");
     spanNbMetaCheck.className = "span_nb_meta_check";
     spanNbMetaCheck.innerHTML = "Nb de Meta: "+object.nb_meta;
 
-    containerResumeMetaCheck.appendChild(spanTitleResumeMetaCheck);
-    containerResumeMetaCheck.appendChild(spanStatutMetaCheck);
     containerResumeMetaCheck.appendChild(spanNbMetaCheck);
 
     containerContentCard.appendChild(containerResumeMetaCheck);
@@ -379,26 +394,10 @@ const containerContentCard = document.createElement("div");
     const containerResumeImageAltCheck = document.createElement("div");
     containerResumeImageAltCheck.className = "container_resume_image_alt_check";
 
-    const spanTitleResumeImageAltCheck = document.createElement("span");
-    spanTitleResumeImageAltCheck.className = "title_resume_image_alt_check";
-    spanTitleResumeImageAltCheck.innerHTML = "Statut du check des Alt Images: ";
-
-    const spanStatutImageAltCheck = document.createElement("span");
-    spanStatutImageAltCheck.className = "span_state_image_alt_check";
-
-    spanStatutImageAltCheck.appendChild(displayState(object.alt_img_check_state));
-
     const spanNbAltImageCheck = document.createElement("span");
     spanNbAltImageCheck.className = "span_nb_alt_image_check";
     spanNbAltImageCheck.innerHTML = "Nb de Alt Images: "+object.nb_alt_img;
 
-    const spanScoreAltImage = document.createElement("span");
-    spanScoreAltImage.className = "span_score_alt_image";
-    spanScoreAltImage.innerHTML = "Score Total: "+object.global_score;
-
-    containerResumeImageAltCheck.appendChild(spanTitleResumeImageAltCheck);
-    containerResumeImageAltCheck.appendChild(spanStatutImageAltCheck);
-    containerResumeImageAltCheck.appendChild(spanScoreAltImage);
     containerResumeImageAltCheck.appendChild(spanNbAltImageCheck);
 
     containerContentCard.appendChild(containerResumeImageAltCheck);
@@ -408,15 +407,10 @@ const containerContentCard = document.createElement("div");
       const containerAltImage = document.createElement("div");
       containerAltImage.className = "container_alt_image";
 
-      const spanAltImageScore = document.createElement("span");
-      spanAltImageScore.className = "span_alt_image_score";
-      spanAltImageScore.innerHTML = "Score du Alt: "+element.alt_img_score+"/5";
-
-      const spanAltImageState = document.createElement("span");
-      spanAltImageState.className = "span_alt_image_state";
-      spanAltImageState.appendChild(displayState(element.alt_img_state));
-
       const spanAltImageText = document.createElement("span");
+      
+      spanAltImageText.className = "span_alt_image_txt";
+      
       spanAltImageText.className = "span_alt_image_txt";
       spanAltImageText.innerHTML = "Texte Alt: "+element.alt_img_text;
 
@@ -428,13 +422,19 @@ const containerContentCard = document.createElement("div");
       linkAltImageSrc.className ="a_link_alt_img_src target";
       linkAltImageSrc.innerHTML = "Ouvrir l'image";
 
-      spanAltImageSrc.appendChild(linkAltImageSrc);
+      const spanAltImageScore = document.createElement("span");
+      if(element.alt_img_score>0){
+        spanAltImageScore.className = "span_alt_image_score_positif";
+      }else{
+        spanAltImageScore.className = "span_alt_image_score_negatif";
+      }
+      
+      spanAltImageScore.innerHTML = element.alt_img_score+"/5";
 
-      containerAltImage.appendChild(spanAltImageScore);
-      containerAltImage.appendChild(spanAltImageState);
+      spanAltImageSrc.appendChild(linkAltImageSrc);
       containerAltImage.appendChild(spanAltImageText);
       containerAltImage.appendChild(spanAltImageSrc);
-
+      containerAltImage.appendChild(spanAltImageScore);
 
       containerContentCard.appendChild(containerAltImage);
     });
@@ -468,7 +468,9 @@ const createCardCheck = (object) => {
   contentCardCheck.appendChild(createContentCardCheck(object));
   //contentCardCheck.innerHTML = JSON.stringify(object);
 
-  // ... Autres configurations du contenu
+  const spanStatutGlobalCheck = document.createElement("span");
+  spanStatutGlobalCheck.className = "span_state_global_check";
+  spanStatutGlobalCheck.appendChild(displayGlobalState(object.global_score));
 
   const toggleDiv = document.createElement("div");
   toggleDiv.className = "toggle_button";
@@ -487,6 +489,7 @@ const createCardCheck = (object) => {
   headerCardCheck.appendChild(titleCardCheck);
   headerCardCheck.appendChild(headerNoteContainer);
   headerCardCheck.appendChild(createIconScore(object.global_score));
+  headerCardCheck.appendChild(spanStatutGlobalCheck);
   headerCardCheck.appendChild(toggleDiv);
   containerCardCheck.appendChild(headerCardCheck);
   containerCardCheck.appendChild(contentCardCheck);

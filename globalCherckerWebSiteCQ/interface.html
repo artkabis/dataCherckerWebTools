@@ -175,7 +175,9 @@
 
         .header_card_check .icon_score img {
             position: relative;
-            top: 5px
+            top: 5px;
+            width: 30px;
+            height: 30px;
         }
 
         .content_card_check {
@@ -351,7 +353,7 @@
 
         .span_nb_meta_check,
         .span_nb_alt_image_check {
-            margin-left: 15px
+           margin-bottom: 5px;
         }
 
         .meta_card {
@@ -393,6 +395,8 @@
             margin-left: 15px;
         }
 
+        .span_alt_image_score{float:right;}
+
         .meta_card_description {
             margin-top: 5px;
         }
@@ -404,12 +408,20 @@
             margin-bottom: 15px;
         }
 
-        .span_alt_image_state {
+        .span_alt_image_score_positif, .span_alt_image_score_negatif {
             float: right;
             display: flex;
+            padding: 5px;
+            border-radius: 3px;
         }
 
+        .span_alt_image_score_positif{background-color: darkkhaki;}
+
+        .span_alt_image_score_negatif{background-color: red;}
+
         .span_alt_image_txt, .span_alt_image_src{padding-left: 10px;}
+
+        .span_alt_image_txt_undef{color:red;}
 
        
     </style>
