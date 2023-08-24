@@ -286,7 +286,17 @@ const createResumeCheck = () => {
 
 createResumeCheck();
 
-
+$('.target').click(function (event) {
+  event.preventDefault(); 
+  
+  var url = $(this).attr("href");
+  chrome.windows.create({
+    url: url,
+    type: "popup",
+    width: 600,
+    height: 400
+  });
+});
 
 const createContentCardCheck = (object) =>{
 console.log("log de object:");
@@ -361,6 +371,76 @@ const containerContentCard = document.createElement("div");
 
 
     return containerContentCard;
+  }else if(object.check_title === "Images alt"){
+
+    console.log("in alt image");
+    containerContentCard.className = "content_image_alt_check";
+
+    const containerResumeImageAltCheck = document.createElement("div");
+    containerResumeImageAltCheck.className = "container_resume_image_alt_check";
+
+    const spanTitleResumeImageAltCheck = document.createElement("span");
+    spanTitleResumeImageAltCheck.className = "title_resume_image_alt_check";
+    spanTitleResumeImageAltCheck.innerHTML = "Statut du check des Alt Images: ";
+
+    const spanStatutImageAltCheck = document.createElement("span");
+    spanStatutImageAltCheck.className = "span_state_image_alt_check";
+
+    spanStatutImageAltCheck.appendChild(displayState(object.alt_img_check_state));
+
+    const spanNbAltImageCheck = document.createElement("span");
+    spanNbAltImageCheck.className = "span_nb_alt_image_check";
+    spanNbAltImageCheck.innerHTML = "Nb de Alt Images: "+object.nb_alt_img;
+
+    const spanScoreAltImage = document.createElement("span");
+    spanScoreAltImage.className = "span_score_alt_image";
+    spanScoreAltImage.innerHTML = "Score Total: "+object.global_score;
+
+    containerResumeImageAltCheck.appendChild(spanTitleResumeImageAltCheck);
+    containerResumeImageAltCheck.appendChild(spanStatutImageAltCheck);
+    containerResumeImageAltCheck.appendChild(spanScoreAltImage);
+    containerResumeImageAltCheck.appendChild(spanNbAltImageCheck);
+
+    containerContentCard.appendChild(containerResumeImageAltCheck);
+
+    object.alt_img.forEach(element => {
+
+      const containerAltImage = document.createElement("div");
+      containerAltImage.className = "container_alt_image";
+
+      const spanAltImageScore = document.createElement("span");
+      spanAltImageScore.className = "span_alt_image_score";
+      spanAltImageScore.innerHTML = "Score du Alt: "+element.alt_img_score+"/5";
+
+      const spanAltImageState = document.createElement("span");
+      spanAltImageState.className = "span_alt_image_state";
+      spanAltImageState.appendChild(displayState(element.alt_img_state));
+
+      const spanAltImageText = document.createElement("span");
+      spanAltImageText.className = "span_alt_image_txt";
+      spanAltImageText.innerHTML = "Texte Alt: "+element.alt_img_text;
+
+      const spanAltImageSrc = document.createElement("span");
+      spanAltImageSrc.className = "span_alt_image_src";
+      
+      const linkAltImageSrc = document.createElement("a");
+      linkAltImageSrc.href = element.alt_img_src;
+      linkAltImageSrc.className ="a_link_alt_img_src target";
+      linkAltImageSrc.innerHTML = "Ouvrir l'image";
+
+      spanAltImageSrc.appendChild(linkAltImageSrc);
+
+      containerAltImage.appendChild(spanAltImageScore);
+      containerAltImage.appendChild(spanAltImageState);
+      containerAltImage.appendChild(spanAltImageText);
+      containerAltImage.appendChild(spanAltImageSrc);
+
+
+      containerContentCard.appendChild(containerAltImage);
+    });
+
+    return containerContentCard;
+
   }else{
     return containerContentCard;
   }
@@ -394,7 +474,7 @@ const createCardCheck = (object) => {
   toggleDiv.className = "toggle_button";
   toggleDiv.classList.add("reversed"); // Ajouter la classe "reversed" pour que les flèches pointent vers le bas au début
 
-  toggleDiv.addEventListener("click", () => {
+  headerCardCheck.addEventListener("click", () => {
     if (contentCardCheck.style.display === "none") {
       contentCardCheck.style.display = "block";
       toggleDiv.classList.remove("reversed"); // Retirer la classe "reversed" pour que les flèches pointent vers le bas

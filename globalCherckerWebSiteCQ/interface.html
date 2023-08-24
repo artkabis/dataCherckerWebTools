@@ -11,7 +11,7 @@
             height: 100%;
             margin: 0;
             padding: 0;
-            
+
             font-family: Roboto, sans-serif;
         }
 
@@ -41,11 +41,12 @@
             display: flex;
             justify-content: space-around;
         }
-        header .user-name{
+
+        header .user-name {
             font-size: 1.7em;
-            color:white
+            color: white
         }
-        
+
 
         #logo img {
             height: 32px;
@@ -88,8 +89,10 @@
             margin-left: 25px;
         }
 
-        .title_main_span, .score_span{
-            font-size: 20px;;
+        .title_main_span,
+        .score_span {
+            font-size: 20px;
+            ;
         }
 
         .main_card .icon_score {
@@ -147,204 +150,265 @@
             font-size: 20px;
         }
 
+        .header_card_check:hover {
+            cursor: pointer;
+        }
+
 
         .title_card_check {
             display: inline-block;
         }
 
-        .header_note_container{
+        .header_note_container {
             padding-left: 5px;
             display: inline-block;
 
         }
 
-        .header_card_check .icon_score{
+        .header_card_check .icon_score {
             padding-left: 20px;
             display: inline-block;
         }
 
-        .header_card_check .icon_score img{
+        .header_card_check .icon_score img {
             position: relative;
-            top:5px
+            top: 5px
         }
 
-        .content_card_check{
+        .content_card_check {
             height: auto;
-            border-top:1px solid #838383;
+            border-top: 1px solid #838383;
             padding-bottom: 10px;
         }
 
         /* CSS pour la classe de la flèche */
 
-        .toggle_button{
+        .toggle_button {
             float: right;
             right: 15px;
             position: relative;
-            top:10px;
-           
-        }
-.toggle_button::before {
-  content: "\25B2"; /* Code Unicode pour la flèche pointant vers le haut */
-  color: #838383;
-  cursor: pointer;
-}
+            top: 10px;
 
-/* Classe pour inverser la flèche lorsque le contenu est replié */
-.toggle_button.reversed::before {
-  content: "\25BC"; /* Code Unicode pour la flèche pointant vers le bas */
-  cursor: pointer;
-  color: #838383;
-}
+        }
+
+        .toggle_button::before {
+            content: "\25B2";
+            /* Code Unicode pour la flèche pointant vers le haut */
+            color: #838383;
+            cursor: pointer;
+        }
+
+        /* Classe pour inverser la flèche lorsque le contenu est replié */
+        .toggle_button.reversed::before {
+            content: "\25BC";
+            /* Code Unicode pour la flèche pointant vers le bas */
+            cursor: pointer;
+            color: #838383;
+        }
 
         .icon_state {
             margin-left: auto;
             padding-right: 1%;
         }
 
-      
-
         .icon_state_ok,
         icon_state_ko {
-            width: 20px;
-            height: 20px;
+            width: 15px;
+            height: 15px;
             border-radius: 25px;
             display: block;
+            margin-top: 2px;
         }
 
         .icon_state_ok {
-            background-color: yellow;
+            background-color: #FBBB02;
         }
 
         .icon_state_ko {
             background-color: red;
         }
 
-        
+        .icon_state_ok :hover,
+        icon_state_ko:hover {
+            cursor: pointer;
+        }
 
         /************ toogle button **************/
-.toggle-switch {
-  position: relative;
-  display: inline-block;
-  width: 48px;
-  height: 24px;
-  margin-bottom: 4px;
-  margin-top: 15px;
-  margin-left:20%;
-}
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 24px;
+            margin-bottom: 4px;
+            margin-top: 15px;
+            margin-left: 20%;
+        }
 
-.toggle-switch input[type="checkbox"] {
-  display: none;
-}
+        .toggle-switch input[type="checkbox"] {
+            display: none;
+        }
 
-.toggle-slider {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
+        .toggle-slider {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
 
-.toggle-slider:before {
-  position: absolute;
-  content: "";
-  height: 20px;
-  width: 20px;
-  left: 2px;
-  bottom: 2px;
-  background-color: #fff;
-  border-radius: 50%;
-  transition: transform 0.3s ease;
-}
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 2px;
+            bottom: 2px;
+            background-color: #fff;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+        }
 
-input[type="checkbox"]:checked + .toggle-slider {
-  background-color: #3f51b5;
-}
-input[type="checkbox"]:checked + .toggle-slider:before {
-    transform: translateX(24px);
-}
+        input[type="checkbox"]:checked+.toggle-slider {
+            background-color: #3f51b5;
+        }
 
-input[type="checkbox"] + .toggle-slider:before {
-  transform: translateX(0);
-}
+        input[type="checkbox"]:checked+.toggle-slider:before {
+            transform: translateX(24px);
+        }
 
-/**** bar ****/
+        input[type="checkbox"]+.toggle-slider:before {
+            transform: translateX(0);
+        }
 
-#container_bar_check{
-margin-top: 20px;
+        /**** bar ****/
 
-}
+        #container_bar_check {
+            margin-top: 20px;
 
-.bar-container {
-      width: 170px;
-      height: 10px;
-      border: 1px solid #ccc;
-      overflow: hidden;
-      border-radius: 15px;
-      display: inline-block;
-    }
+        }
 
-    .bar-fill {
-      height: 100%;
-    background-color: #0a68f1;
-      
-    }
+        .bar-container {
+            width: 170px;
+            height: 10px;
+            border: 1px solid #ccc;
+            overflow: hidden;
+            border-radius: 15px;
+            display: inline-block;
+        }
 
-    .bar_note{display: inline-block;padding-left:10px;}
+        .bar-fill {
+            height: 100%;
+            background-color: #0a68f1;
 
-#container_bar_check .icon_score img{
-    width: 25px;
-}
+        }
 
-.bar_check{
-    padding-bottom: 15px;
-    padding-right: 10px;
-    display: inline-block;
-}
-.score_canvas{
-    position: absolute;
-    top: 0;
-    width: 100%;
-    height: 100%;
-}
-.content_card_meta_check{margin-top:10px; }
+        .bar_note {
+            display: inline-block;
+            padding-left: 10px;
+        }
 
-.container_resume_meta_check{display:inline-flex;}
+        #container_bar_check .icon_score img {
+            width: 25px;
+        }
 
-.title_resume_meta_check{}
+        .bar_check {
+            padding-bottom: 15px;
+            padding-right: 10px;
+            display: inline-block;
+        }
 
-.span_state_meta_check{margin-left:3px}
+        .score_canvas {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            height: 100%;
+        }
 
-.span_nb_meta_check{margin-left:10px}
+        .content_card_meta_check,
+        .content_image_alt_check {
+            margin-top: 10px;
+        }
 
-.meta_card{
-   display: block;  
-    box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .2), 0 1px 5px 0 rgba(0, 0, 0, .12);
-    border-radius: 5px;
-    padding:10px;
-    width: fit-content;
-}
+        .container_resume_meta_check,
+        .container_resume_image_alt_check {
+            display: inline-flex;
+        }
 
-.card_meta_title{display: inline-block;background-color: darkkhaki;
-    border-radius: 5px;
-    padding: 5px;
-    color: white;}
+        .title_resume_meta_check,
+        .title_resume_image_alt_check {}
 
-.span_meta_state{display: inline-block;
-    float: right;}
+        .span_state_meta_check,
+        .span_state_image_alt_check {
+            margin-left: 3px
+        }
 
-    .span_meta_reco{display: block;}
+        .span_nb_meta_check,
+        .span_nb_alt_image_check {
+            margin-left: 15px
+        }
 
-    .span_meta_size{display: block;}
+        .meta_card {
+            display: block;
+            box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .2), 0 1px 5px 0 rgba(0, 0, 0, .12);
+            border-radius: 5px;
+            padding: 10px;
+            width: fit-content;
+        }
 
-    .span_score_meta{display: block;padding-top: 5px;}
+        .card_meta_title {
+            display: inline-block;
+            background-color: darkkhaki;
+            border-radius: 5px;
+            padding: 5px;
+            color: white;
+        }
 
-    .meta_card_description{margin-top:5px;}
+        .span_meta_state {
+            display: inline-block;
+            float: right;
+        }
 
+        .span_meta_reco {
+            display: block;
+        }
 
+        .span_meta_size {
+            display: block;
+        }
+
+        .span_score_meta {
+            display: block;
+            padding-top: 5px;
+        }
+
+        .span_score_alt_image {
+            display: inline-block;
+            margin-left: 15px;
+        }
+
+        .meta_card_description {
+            margin-top: 5px;
+        }
+
+        .container_alt_image {
+            display: block;
+            padding: 13px;
+            box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .2), 0 1px 5px 0 rgba(0, 0, 0, .12);
+            margin-bottom: 15px;
+        }
+
+        .span_alt_image_state {
+            float: right;
+            display: flex;
+        }
+
+        .span_alt_image_txt, .span_alt_image_src{padding-left: 10px;}
+
+       
     </style>
 </head>
 
@@ -352,11 +416,11 @@ margin-top: 20px;
     <header>
         <div class="element_header" id="logo"></div>
         <div class="element_header" id="title">DataChecker WebTools</div>
-         <label class="toggle-switch">
+        <label class="toggle-switch">
             <input type="checkbox" id="toggleButton">
             <span class="toggle-slider"></span>
-          </label> 
-          <span class="user-name">Bienvenue : <span class="name"></span></span>
+        </label>
+        <span class="user-name">Bienvenue : <span class="name"></span></span>
     </header>
     <div id="layout">
         <!-- <div id="sidebar"></div> -->
@@ -364,13 +428,13 @@ margin-top: 20px;
         <div id="main_container">
 
             <div id="main_card_container"></div>
-                <div id="resume_card_container">
-                    <div id="resume_card">
-                        <span id="resume_title">Apperçu général:</span>
-                        <div id="container_bar_check"></div>
-                    </div>
-
+            <div id="resume_card_container">
+                <div id="resume_card">
+                    <span id="resume_title">Apperçu général:</span>
+                    <div id="container_bar_check"></div>
                 </div>
+
+            </div>
             <div id="card_container"></div>
         </div>
 
