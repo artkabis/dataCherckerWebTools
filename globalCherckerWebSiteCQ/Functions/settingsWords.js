@@ -204,3 +204,25 @@ settingWords.replaceWords = [
     "Nos",
     "nos",
   ];
+  settingWords.excludedClasses = [
+    "vc_btn3-container",
+    "vc_btn3",
+    "pj-prolive-hc",
+    "dmButtonLink",
+    "proliveContainer",
+    'vc_mappy-map'
+  ];
+
+  // Liste des mots à exclure
+  settingWords.replaceWords = [
+    "Button",
+    "Afficher davantage",
+    "John Doe",
+    "City skyline",
+    "Photo By:",
+    "Birthday Sparks",
+    "Fashion Magazine",
+    "Blurred Lines",
+    "Photo by:",
+  ];
+  

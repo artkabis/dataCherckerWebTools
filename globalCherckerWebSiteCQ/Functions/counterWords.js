@@ -6,11 +6,14 @@ const counterWords = () =>{
   function getTextFromElement(element, excludedClasses) {
     return [...element.childNodes]
       .map((node) => {
+       
         if (node.nodeType === Node.TEXT_NODE) {
           return node.textContent;
-        } else if (node.nodeType === Node.ELEMENT_NODE && !node.closest('form')) {
+        } else if (node.nodeType === Node.ELEMENT_NODE && !node.closest('form') ) {
           const tagName = node.tagName.toLowerCase();
           const classes = node.classList;
+          //(classes.includes('vc_btn3')) &&  console.log('node : ', node, 'padding : ',node.style.padding);
+
 
           // Vérifier si l'élément a une classe à exclure
           if (
@@ -88,25 +91,11 @@ const counterWords = () =>{
   }
 
   // Liste des classes à exclure
-  const excludedClasses = [
-    "vc_btn3-container",
-    "pj-prolive-hc",
-    "dmButtonLink",
-    "proliveContainer",
-  ];
+  const excludedClasses = settingWords.excludedClasses;
 
   // Liste des mots à exclure
-  const replaceWords = [
-    "Button",
-    "Afficher davantage",
-    "John Doe",
-    "City skyline",
-    "Photo By:",
-    "Birthday Sparks",
-    "Fashion Magazine",
-    "Blurred Lines",
-    "Photo by:",
-  ];
+  const replaceWords = settingWords.replaceWords;
+  console.log({excludedClasses},{replaceWords});
 
   // Liste des sélecteurs pour récupérer le texte
   const selectors = [
