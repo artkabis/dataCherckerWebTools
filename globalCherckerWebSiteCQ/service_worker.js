@@ -1,5 +1,5 @@
 //import {openDb,getObjectStore} from './Functions/utils.js'
-
+import {checkUserSoprod} from "./Functions/checkUserSoprod.js"
 // Événement d'installation du service worker
 chrome.runtime.onInstalled.addListener(() => {
   // Enregistrement du service worker
@@ -109,33 +109,7 @@ const toggleCorsEnabled = (corsEnabled) => {
   setTimeout(() => console.log(core), 200);
 };
 chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
-  // console.log("message service worker global :", request);
-  // (request.action==='open_interface') && chrome.storage.sync.set({ dataChecker: request.data }, function(){
-  //   datas_checker =  {datas:  JSON.parse(request.data)};
-  //   console.log('----------------------- request data checker request !!!! ',datas_checker);
-
-  //   /*chrome.runtime.sendMessage({
-  //     action: "user",
-  //     data: userSoprod,
-  //   });*/
-  // });
-  // const userRequest  = (request.user) && chrome.storage.sync.set({ user: request.user }, function(){
-  //   console.log('----------------------- request user soprod !!!! ',request.user);
-  //   userSoprod =  request.user;
-  //   /*chrome.runtime.sendMessage({
-  //     action: "user",
-  //     data: userSoprod,
-  //   });*/
-  // });
-  // console.log('----------------- userRequest user Soprod', {userSoprod});
-  // console.log('----------------- userRequest datas_checker', {datas_checker});
   if (request.corsEnabled !== undefined) {
-    /* sendResponse({user: request.user});
-    chrome.storage.sync.set({ user: request.user },()=>{
-      userSoprod = request.user;
-      console.log("user bg.js syncSet :", request.user);
-      getUserMessage(userSoprod);
-    });*/
     chrome.storage.sync.set({ corsEnabled: request.corsEnabled }, () => {
       corsEnabled = request.corsEnabled;
       toggleCorsEnabled(corsEnabled);
@@ -149,12 +123,6 @@ const once = () => {
     toggleCorsEnabled();
   });
 };
-// const getUserMessage=(user)=>{
-//   chrome.storage.sync.get("user", (result) => {
-
-//     console.log('function get user sync get : ',{user});
-//   });
-// }
 
 chrome.runtime.onInstalled.addListener(once);
 chrome.runtime.onStartup.addListener(once);
@@ -165,7 +133,6 @@ const allTabs = async ()=>{
   const logTabs = (tabs) =>{
     let tabsAll=[];
     for (const tab of tabs) {
-      // tab.url requires the `tabs` permission or a matching host permission.
       tabsAll.push(tab);
     }
     return tabsAll;
@@ -217,18 +184,7 @@ const detectSoprod = async () =>{
   if (tab.url.includes("soprod")) {
     isSoprodTab.detected = true;
     console.log({isSoprodTab})
-    chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      function() {
-        const dropUser = document.querySelector(".dropdown-user .username");
-        const user = dropUser?.innerHTML;
-        user_soprod = user;
-        chrome.storage.sync.set({ user: user_soprod }, function () {
-          console.log("---------------------storage sync user : ", { user });
-          chrome.runtime.sendMessage({ user: user_soprod });
-        });
-      },
-    });
+    checkUserSoprod(tab);
   }
 });
 
@@ -268,9 +224,9 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   let interCheck;
   const checkDatas = () => {
     cmpInterval ++;
-    console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<< CMP : ',{cmp}, 'globale user : ', global_data.user);
-    console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> interval count : ',{cmpInterval});
-    console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> open interface data : ',{data_checker});
+    // console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<< CMP : ',{cmp}, 'globale user : ', global_data.user);
+    // console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> interval count : ',{cmpInterval});
+    // console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> open interface data : ',{data_checker});
     if(cmp === 2){
       console.log('IIIIIIIIIIIIIIIIIIIISSSSSSSSSSSSSSSSSSSSSSSss interval function ready : ',{interCheck});
       clearInterval(interCheck);
