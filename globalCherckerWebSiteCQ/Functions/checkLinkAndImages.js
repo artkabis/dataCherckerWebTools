@@ -591,7 +591,7 @@ function initcheckerLinksAndImages(){
       }
 
       verif &&
-        url.includes("https") &&
+        url.includes("https") && !url.includes("google.com") && !url.includes("youtube") &&
         check(new URL(url).href, txtContent, t, externalLink);
 
       checkPhoneNumber = new RegExp(

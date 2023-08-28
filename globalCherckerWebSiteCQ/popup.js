@@ -1,4 +1,11 @@
 import { getActiveTabURL } from "./Functions/utils.js";
+import { richResultGoole } from "./Functions/richResultGoogle.js";
+import {toggleDesignMode} from "./Functions/toggleDesignMode.js";
+import {copyExpressionsSoprod} from "./Functions/copyExpressionsSoprod.js";
+import {dudaSitemap} from "./Functions/DudaSitemap.js";
+import {HnOutlineValidity} from "./Functions/HnOutlineValidity.js";
+
+
 console.log(jQuery, $);
 //HnOutlineValidity()
 chrome.tabs.query({ active: true, currentWindow: true }, function (tab) {
@@ -39,80 +46,6 @@ document.addEventListener("DOMContentLoaded", function () {
   versionDiv.innerText = "Version : " + version;
 });
 
-function executeScriptInTabGoogle(tab) {
-  chrome.scripting.executeScript({
-    target: { tabId: tab.id },
-    function: function () {
-      window.open(
-        "https://search.google.com/test/rich-results?utm_source=support.google.com%2Fwebmasters%2F&utm_medium=referral&utm_campaign=7445569&url=" +
-          encodeURIComponent(window.location.href),
-        "_blank",
-        "width=500,height=800,toolbar=no"
-      );
-    },
-  });
-}
-function executeScriptDesignModeToggle(tab) {
-  chrome.scripting.executeScript({
-    target: { tabId: tab.id },
-    function: function () {
-      let dn = document.designMode;
-      document.designMode = dn === "off" ? "on" : "off";
-    },
-  });
-}
-function executeScriptDudaPages(tab) {
-  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    const activeTab = tabs[0];
-    chrome.scripting.executeScript({
-      target: { tabId: activeTab.id },
-      files: ["./Functions/DudaSitemap.js"],
-    });
-  });
-}
-
-
-function executeScriptcopyExpressionsSoprod() {
-  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    chrome.scripting.executeScript({
-      target: { tabId: tabs[0].id },
-      function: () => {
-        console.log(
-          "executeScriptcopyExpressionsSoprod",
-          window.location.origin.includes("soprod")
-        );
-        (() => {
-          if (window.location.origin.includes("soprod")) {
-            function e(e) {
-              var o = document.createElement("textarea");
-              (o.value = e),
-                o.setAttribute("readonly", ""),
-                (o.style = { position: "absolute", left: "-9999px" }),
-                document.body.appendChild(o),
-                o.select(),
-                document.execCommand("copy"),
-                document.body.removeChild(o);
-            }
-            var o = document.querySelectorAll(
-                'div[id^="keywordsContainer"] > div > input'
-              ),
-              t = "",
-              value = "";
-            o.forEach(function (e) {
-              value =
-                e.className.includes("keyword") && e.value != ""
-                  ? (value += e.value)
-                  : value + " " + e.value + "\n\n";
-            }),
-              e(value),
-              alert(value);
-          }
-        })();
-      },
-    });
-  });
-}
-
 
 document.querySelector(".openSitemap").addEventListener("click", function () {
   console.log("btn sitemap : ", this);
@@ -134,7 +67,7 @@ document
   .querySelector("#copyExpressionsSoprod")
   .addEventListener("click", function () {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-      executeScriptcopyExpressionsSoprod(tabs[0]);
+      copyExpressionsSoprod(tabs[0]);
     });
   });
 
@@ -142,7 +75,7 @@ document
   .querySelector("#openGoogleSchemaValidator")
   .addEventListener("click", function () {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-      executeScriptInTabGoogle(tabs[0]);
+      richResultGoole(tabs[0]);
     });
   });
 document
@@ -152,12 +85,12 @@ document
       ? this.classList.add("actif")
       : this.classList.remove("actif");
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-      executeScriptDesignModeToggle(tabs[0]);
+      toggleDesignMode(tabs[0]);
     });
   });
 document.querySelector("#linksDuda").addEventListener("click", function () {
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    executeScriptDudaPages(tabs[0]);
+    dudaSitemap(tabs[0]);
   });
 });
 
@@ -165,12 +98,9 @@ document
   .querySelector("#openHnValidity")
   .addEventListener("click", function () {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-      var activeTab = tabs[0];
-      chrome.scripting.executeScript(
-        {
-          target: { tabId: activeTab.id },
-          files: ["./Functions/HnOutlineValidity.js"],
-        });
+      const activeTab = tabs[0];
+      HnOutlineValidity(activeTab)
+
     });
   });
 
