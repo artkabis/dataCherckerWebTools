@@ -6,22 +6,16 @@ import {dudaSitemap} from "./Functions/DudaSitemap.js";
 import {HnOutlineValidity} from "./Functions/HnOutlineValidity.js";
 
 
-console.log(jQuery, $);
-//HnOutlineValidity()
+
 chrome.tabs.query({ active: true, currentWindow: true }, function (tab) {
 chrome.scripting.executeScript({
   target: { tabId: tab[0].id },
   function: function () {
     if(window.location.origin.includes('soprod')){
         setTimeout(function () {
-        console.log('---------------------- add user in soprod --------------------');  
-        const dropUser = document.querySelector('.dropdown-user .username');
-        console.log({dropUser},dropUser.innerHTML);
         const user = dropUser.innerHTML;
-        console.log(' user in DOM Soprod : ',{user});
         chrome.storage.sync.set({ user: user }, function () {
-          console.log("sync set user : ", { user });
-          // Envoi d'un message à l'arrière-plan pour mettre à jour l'état des règles
+          // Envoi d'un message à l'arrière-plan pour mettre à jour l'état de user
           chrome.runtime.sendMessage({ user: user });
         });
       },100);
@@ -32,16 +26,13 @@ chrome.scripting.executeScript({
 });
 })
 
-// Utilisez l'API chrome.runtime.getManifest() pour accéder aux informations du manifest
-const manifest = chrome.runtime.getManifest();
-const version = manifest.version;
+//Affichage de la version dans popup via manifest.version
 document.addEventListener("DOMContentLoaded", function () {
-  // Utilisez la valeur récupérée comme bon vous semble
-  console.log("Version de l'extension : " + version);
-
-  // Faites ce que vous voulez avec la variable 'version', par exemple, l'afficher dans une div HTML
-  var versionDiv = document.getElementById("version");
-
+  // use Chrome API chrome.runtime.getManifest() for listen the version of this extension
+  const manifest = chrome.runtime.getManifest();
+  const version = manifest.version;
+  //Add version in popup.html
+  const versionDiv = document.getElementById("version");
   console.log({ versionDiv });
   versionDiv.innerText = "Version : " + version;
 });
@@ -124,7 +115,6 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
               "./Functions/dataCheckerSchema.js",
               "./Functions/initLighthouse.js",
               "./Functions/counterWords.js",
-              //"./Functions/detectOnotherInterface.js",
               "./Functions/checkMetas.js",
               "./Functions/checkAltImages.js",
               "./Functions/checkBold.js",
@@ -133,10 +123,10 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
               "./Functions/checkLinkAndImages.js",
               "./Functions/checkDataBindingDuda.js",
               "./Functions/initDataChecker.js",
-
             ],
           },
-          function (results) {
+          function () {
+          // close popup
            window.close();
           }
         );
@@ -165,36 +155,35 @@ document.querySelector('#wordsCloud').addEventListener("click", function () {
       });
     })
   })
-//gestion du checkbox des cors à l'ouverture du popup
+//listen cors toggle cors activity
 var toggleButton = document.getElementById("corsButton");
 document.addEventListener("DOMContentLoaded", function () {
   chrome.storage.sync.set({ corsEnabled: true }, function () {
-    // Mise à jour de l'état de la case à cocher
+    // update state of cors
     let corsEnabled = true;
     toggleButton.checked = corsEnabled;
     toggleButton.textContent = corsEnabled ? "Désactiver" : "Activer";
     console.log("click toggle cors : ", { corsEnabled });
-    // Envoi d'un message à l'arrière-plan pour mettre à jour l'état des règles
+    // send message in service-worker for update state
     chrome.runtime.sendMessage({ corsEnabled: true });
   });
 
-  // Récupération de l'état actuel des règles lors du chargement de la page
+  // get actualy state of corsEnabled value
   chrome.storage.sync.get("corsEnabled", function (result) {
     var corsEnabled = result.corsEnabled;
-    console.log("état du corsEnabled : ", corsEnabled);
-    toggleButton.checked = corsEnabled; // Met à jour l'état de la case à cocher
+    toggleButton.checked = corsEnabled; // update state checkbox
     toggleButton.textContent = corsEnabled ? "Désactiver" : "Activer";
 
-    // Écouteur d'événement pour le clic sur le bouton
+    // listen event click checkbox
     toggleButton.addEventListener("click", function () {
-      // Inversion de l'état et sauvegarde dans le stockage
+      // toggle value of corsEnabled
       corsEnabled = !corsEnabled;
       chrome.storage.sync.set({ corsEnabled: corsEnabled }, function () {
-        // Mise à jour de l'état de la case à cocher
+        // update state checkbox
         toggleButton.checked = corsEnabled;
         toggleButton.textContent = corsEnabled ? "Désactiver" : "Activer";
         console.log("click toggle cors : ", { corsEnabled });
-        // Envoi d'un message à l'arrière-plan pour mettre à jour l'état des règles
+        // send message for the update the corsEnabled in service-worker
         chrome.runtime.sendMessage({ corsEnabled: corsEnabled });
       });
     });

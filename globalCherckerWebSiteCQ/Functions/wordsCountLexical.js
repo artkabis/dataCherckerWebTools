@@ -1,18 +1,25 @@
  const wordsCloudCounter = (counterwords) =>{
   // Fonction pour obtenir le top 16 des mots les plus utilisés
   function getTopWords(text, excludeWords) {
-    const words = text
+
+    let words = text
       .replace(/\n|\t/g, " ")
       .replace(/’/g, "'")
       .replace(/[.,()]/g, " ")
       .replace(/\s+/g, " ")
+      //.replace(/(['])\w+\b(?!\1)/g, '')
+      //.replace(/\b\w*'\w*\b/g, '')
+      //.replace(/(\w*')|(\w+)/g, ( p1, p2) => p1 ? p1 : p2)
       .trim()
-      .split(" ");
+
+      //console.log('____________________________words clean : ',words);
+      words = words.split(" ");
 
     const wordCounts = {};
 
     // Compter les occurrences de chaque mot
     words.forEach((word) => {
+      //word = word
       const lowercaseWord = word.toLowerCase();
       if (
         lowercaseWord.length >= 2 &&
@@ -50,7 +57,9 @@
     .replace(/  /g, " ")
     .replace(/  /g, " ")
     .replace("(", "")
-    .replace(")", "");
+    .replace(")", "")
+    .replace(/'/g," ")
+
 
   const topWords = getTopWords(contentBody, excludedWords);
   const cloudContainer = document.createElement("div");
