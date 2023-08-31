@@ -23,6 +23,7 @@ DBOpenRequest.onsuccess = (event) => {
     // On indique la réussite de l'insertion
     const datasCheckerDB = objectStoreRequest.result.data;
     userName = objectStoreRequest.result.user;
+    
     console.log('11111111111111111111& interface username : ',{userName});
   console.log('datasCheckerDB datas : ',{datasCheckerDB});
   initInterface(userName,datasCheckerDB);

@@ -128,7 +128,7 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
           },
           function () {
           // close popup
-           window.close();
+            window.close();
           }
         );
       }

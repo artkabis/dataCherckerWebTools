@@ -91,6 +91,7 @@ function initcheckerLinksAndImages(){
             bgImg.onload = function () {
               args[5] = this.naturalWidth;
               args[6] = this.naturalHeight;
+              requestCompletedCount++;
               resolve();
             };
           });
@@ -171,7 +172,7 @@ function initcheckerLinksAndImages(){
             !result.target.hasClass("vc_parallax-inner") &&
             urlsDuplicate.push({ url: result.url, target: result.target });
 
-          dataChecker.img_check.nb_img = requestCompletedCount;
+          
           size_scores.push(
             fsize > 317435 ? 0 : fsize > 256000 && fsize < 317435 ? 2.5 : 5
           );
@@ -250,9 +251,11 @@ function initcheckerLinksAndImages(){
       }
     } else {
       console.log("url not valid : ", result.url);
+      requestCompletedCount++;
     }
-    //console.log({requestInitiatedCount}, {requestCompletedCount});
-    //console.log('external cmp : ',{cmpFinal});
+    console.log({requestInitiatedCount}, {requestCompletedCount});
+    console.log('external cmp : ',{cmpFinal});
+    dataChecker.img_check.nb_img = requestCompletedCount;
     if (requestInitiatedCount === requestCompletedCount && cmpFinal < 1) {
       setTimeout(function () {
         cmpFinal++;

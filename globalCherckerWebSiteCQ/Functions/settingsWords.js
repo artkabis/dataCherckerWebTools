@@ -187,6 +187,7 @@ settingWords.replaceWords = [
     "tout",
     "toute",
     "toutes",
+    "très",
     "tu",
     "un",
     "un autre",
