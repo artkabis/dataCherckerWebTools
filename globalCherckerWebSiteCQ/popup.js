@@ -119,6 +119,7 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
               "./Functions/checkAltImages.js",
               "./Functions/checkBold.js",
               "./Functions/checkOutlineHn.js",
+              "./Functions/checkColorContrast.js",
               "./Functions/counterLettersHn.js",
               "./Functions/checkLinkAndImages.js",
               "./Functions/checkDataBindingDuda.js",

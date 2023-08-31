@@ -1,3 +1,4 @@
+(()=>{
 const colorService = function() {
     const largeFontSize = 24;
     const normalFontSize = 18.6667;
@@ -27,6 +28,8 @@ const colorService = function() {
             element._wcc._isVisible = false;
             return isParentVisible;
         }
+        //element._wcc._target = element;
+
         const getComputedStyle = document.defaultView.getComputedStyle(element, null);
         isVisible = getComputedStyle.getPropertyValue('display') !== 'none' &&
             getComputedStyle.getPropertyValue('visibility') !== 'hidden' &&
@@ -418,6 +421,7 @@ const elementsToExclude = [
     'option', 'ul', 'ol', 'dl', 'style', 'link', 'iframe', 'frameset', 'frame', 'object', 'meta', 'area', 'img',
     '[type=hidden]', '[type=color]'
 ];
+let targets = [];
 function checkAllElementsInDocument() {
     let results = {};
     let query = 'body *';
@@ -441,10 +445,11 @@ function checkAllElementsInDocument() {
     let visibleCount = 0;
     let hiddenCount = 0;
     let currentColorMatrix;
-    elementsToCheck.forEach((element) => {
-        element._wcc = {};
-    });
-    elementsToCheck.forEach((element) => {
+    // elementsToCheck.forEach((element) => {
+    //     element._wcc = {};
+    // });
+   
+    elementsToCheck.forEach((element,i) => {
         if (!hasText(element) || getInputValue(element)) {
             return;
         }
@@ -468,9 +473,9 @@ function checkAllElementsInDocument() {
         if (!results[identifier].elements[tagName]) {
             results[identifier].elements[tagName] = 0;
         }
-        if(element){
-            results[identifier].target = element;
-        }
+        // if(element){
+        //     results[identifier].target = {target:this};
+        // }
 
         if (!elementsReferences[identifier]) {
             elementsReferences[identifier] = {[tagName]: []}
@@ -481,7 +486,9 @@ function checkAllElementsInDocument() {
         if (elementsReferences[identifier][tagName].indexOf(element) === -1) {
             elementsReferences[identifier][tagName].push(element);
         }
-        results[identifier].target
+        targets.push({id:i,target:element,infos:identifier});
+        //results[identifier].elements.target = this
+        results[identifier].elements.id = i;
         results[identifier].elements[tagName]++;
         results[identifier].validation.isValidAA = isValidAA;
         results[identifier].validation.isValidAAA = isValidAAA;
@@ -537,8 +544,74 @@ function filtrerParContraste(objet, seuil) {
   return elementsFiltres;
 }
 console.log(resultContrast);
+console.log({targets})
 const elementsFiltres = filtrerParContraste(resultContrast.results, seuilContraste);
 
 console.log({elementsFiltres});
+// Créez un tableau pour stocker les éléments filtrés
+
+// Associez les données de resultContrast et targets en utilisant leurs ID correspondants
+function parseInfos(infos) {
+    const keyValuePairs = infos.split(',');
+
+    const parsedInfos = {};
+
+    keyValuePairs.forEach((keyValue) => {
+        const [key, value] = keyValue.split(':');
+        // Supprimez les guillemets et les espaces autour des clés et des valeurs
+        const cleanedKey = key.trim().replace(/"/g, '');
+        const cleanedValue = value.trim().replace(/"/g, '');
+
+        // Ajoutez la paire clé-valeur à l'objet parsé
+        parsedInfos[cleanedKey] = cleanedValue;
+    });
+
+    return parsedInfos;
+}
+
+// ...
+
+// Associez les données de resultContrast et targets en utilisant leurs ID correspondants
+function associerDonnees(resultContrast, targets) {
+    const elementsAssocies = [];
+
+    // Parcourez les éléments de elementsFiltres
+    elementsFiltres.forEach((elementFiltre) => {
+        const cle = elementFiltre.cle;
+
+        // Recherchez l'élément correspondant dans targets en utilisant l'ID
+        const targetCorrespondant = targets.find((target) => {
+            return target.infos === cle;
+        });
+
+        // Si un élément correspondant est trouvé, ajoutez-le à elementsAssocies
+        if (targetCorrespondant) {
+            const infosObjet = parseInfos(targetCorrespondant.infos);
+
+            const elementAssocie = {
+                id: targetCorrespondant.id,
+                infos: infosObjet, // Utilisez l'objet analysé
+                target: targetCorrespondant.target,
+                validation: elementFiltre.valeur.validation
+            };
+            elementsAssocies.push(elementAssocie);
+        }
+    });
+
+    return elementsAssocies;
+}
+
+// Utilisez la fonction pour associer les données
+const elementsAssocies = associerDonnees(resultContrast, targets);
+
+console.log(
+    "----------------------------- Start Check contrast valitidy --------------------------------------------"
+  );
+  elementsAssocies.length && console.log('%c Attention vous avez des problèmes liésau contrast de vos textes','color:red');
+console.log({elementsAssocies});
  // const lowContrast = resultContrast.results.forEach((c)=>console.log({c}));
  // console.log({resultContrast});
+ console.log(
+    "----------------------------- End Check contrast valitidy --------------------------------------------"
+  );
+ })()
