@@ -121,14 +121,16 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
               "./Functions/checkOutlineHn.js",
               "./Functions/checkColorContrast.js",
               "./Functions/counterLettersHn.js",
-              "./Functions/checkLinkAndImages.js",
               "./Functions/checkDataBindingDuda.js",
               "./Functions/initDataChecker.js",
+              "./Functions/checkLinkAndImages.js",
+
+
             ],
           },
           function () {
-          // close popup
-            window.close();
+            // close popup
+            //window.close();
           }
         );
       }

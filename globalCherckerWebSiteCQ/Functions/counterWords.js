@@ -1,7 +1,7 @@
 // console.log({wordsCounterContent});
 // (wordsCounterContent!== undefined) ? (delete wordsCounterContent , wordsCounterContent = {}) : wordsCounterContent = {};
 
-let counterWords = () =>{
+counterWords = () =>{
   // Fonction pour récupérer le texte lisible à partir d'un élément DOM en excluant les classes spécifiées
   function getTextFromElement(element, excludedClasses) {
     return [...element.childNodes]

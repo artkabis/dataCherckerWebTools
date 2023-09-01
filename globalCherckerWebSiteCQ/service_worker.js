@@ -164,15 +164,15 @@ let global_data = {};
 const db_name = "db_datas_checker";
 // Utilisez la fonction checkUserIndexDB pour récupérer userName
 let userDB;
-checkUserIndexDB()
-    .then((userName) => {
-        console.log(`Nom d'utilisateur récupéré : ${userName}`);
-        userDB = userName
-        // Faites ce que vous voulez avec userName ici
-    })
-    .catch((error) => {
-        console.error("Une erreur s'est produite : ", error);
-    });
+// checkUserIndexDB()
+//     .then((userName) => {
+//         console.log(`Nom d'utilisateur récupéré : ${userName}`);
+//         userDB = userName
+//         // Faites ce que vous voulez avec userName ici
+//     })
+//     .catch((error) => {
+//         console.error("Une erreur s'est produite : ", error);
+//     });
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {  
   let user, data_checker;
@@ -201,18 +201,19 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     cmpInterval ++;
     // console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<< CMP : ',{cmp}, 'globale user : ', global_data.user);
     // console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> interval count : ',{cmpInterval});
-    // console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> open interface data : ',{data_checker});
+    //console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> open interface data : ',{data_checker});
     if(cmp === 2){
       console.log('IIIIIIIIIIIIIIIIIIIISSSSSSSSSSSSSSSSSSSSSSSss interval function ready : ',{interCheck});
       clearInterval(interCheck);
-      if(data_checker ){
+      console.log('uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu : data_checker -> ',global_data.dataChecker);
+      if(global_data.dataChecker){
       global_data.user = (global_data.user) ? global_data.user : 'Customer';
       console.log('OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO les deux datas sont bien arrivées : ',{global_data});
       const dataCheckerParse = JSON.parse(global_data.dataChecker);
     creatDB(global_data.user, db_name, dataCheckerParse);
     console.log('CREATEDB lanche with the datas :  user = ',global_data.user, {db_name}, {dataCheckerParse});
 
-    
+    cmp = 0;
     const interfacePopupUrl = chrome.runtime.getURL("interface.html");
           chrome.windows.create({
             url: `${interfacePopupUrl}`, //?data=${encodeURIComponent(JSON.stringify(dataCheckerJSON))}
@@ -225,6 +226,6 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   };
   
   interCheck =  setInterval(checkDatas,500);
-  (cmp>2)&& clearInterval(interCheck);
+  (cmp==2)&& clearInterval(interCheck);
   
 });

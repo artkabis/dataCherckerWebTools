@@ -253,10 +253,10 @@ function initcheckerLinksAndImages(){
       console.log("url not valid : ", result.url);
       requestCompletedCount++;
     }
-    console.log({requestInitiatedCount}, {requestCompletedCount});
-    console.log('external cmp : ',{cmpFinal});
+    //console.log({requestInitiatedCount}, {requestCompletedCount});
+    // console.log('external cmp : ',{cmpFinal});
     dataChecker.img_check.nb_img = requestCompletedCount;
-    if (requestInitiatedCount === requestCompletedCount && cmpFinal < 1) {
+    if (requestCompletedCount >=requestInitiatedCount  && cmpFinal < 1) {
       setTimeout(function () {
         cmpFinal++;
         //console.log({cmpFinal});

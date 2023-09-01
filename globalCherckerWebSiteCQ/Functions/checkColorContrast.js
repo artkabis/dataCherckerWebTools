@@ -419,7 +419,7 @@ function isVisibleByPosition(getComputedStyle) {
 const elementsToExclude = [
     'script', 'noscript', 'hr', 'br', 'table', 'tbody', 'thead', 'tfoot', 'tr',
     'option', 'ul', 'ol', 'dl', 'style', 'link', 'iframe', 'frameset', 'frame', 'object', 'meta', 'area', 'img',
-    '[type=hidden]', '[type=color]'
+    '[type=hidden]', '[type=color], .vc_single_image-wrapper'
 ];
 let targets = [];
 function checkAllElementsInDocument() {
@@ -429,6 +429,7 @@ function checkAllElementsInDocument() {
     elementsToExclude.forEach((element) => {
         query += ':not(' + element + ')';
     });
+    console.log({query});
 
     const elementsToCheck = window.document.querySelectorAll(query);
     //sendMessageToBackgroundScript('getCurrentColorMatrix');
@@ -486,7 +487,7 @@ function checkAllElementsInDocument() {
         if (elementsReferences[identifier][tagName].indexOf(element) === -1) {
             elementsReferences[identifier][tagName].push(element);
         }
-        targets.push({id:i,target:element,infos:identifier});
+        targets.push({id:i,target:element,infos:identifier,visible:isVisible});
         //results[identifier].elements.target = this
         results[identifier].elements.id = i;
         results[identifier].elements[tagName]++;
@@ -521,33 +522,33 @@ function filtrerParContraste(objet, seuil) {
 
   // Parcourez chaque clé de l'objet
   for (const cle in objet) {
-      console.log({cle});
+      //console.log({cle});
       // const parseKey = JSON.parse(cle);
       // console.log({parseKey});
       const keyClean = JSON.parse(JSON.stringify(cle).replace(/'/g,''));
      
       let arrayKey = [];
       arrayKey.push(keyClean);
-       console.log(keyClean);
+       //console.log(keyClean);
     if (objet.hasOwnProperty(keyClean)) {
       const element = objet[cle];
         const elementValidation = element.validation;
         if(!verifierValidation(elementValidation)){
             elementsFiltres.push({ cle: cle, valeur: element });
         }
-        console.log({element},{elementValidation});
+        //console.log({element},{elementValidation});
         const cleanElem = JSON.parse(JSON.stringify(element).replace(/`/g,''));
-        console.log(cleanElem);
+        //console.log(cleanElem);
     }
   }
 
   return elementsFiltres;
 }
-console.log(resultContrast);
-console.log({targets})
+// console.log(resultContrast);
+// console.log({targets})
 const elementsFiltres = filtrerParContraste(resultContrast.results, seuilContraste);
 
-console.log({elementsFiltres});
+// console.log({elementsFiltres});
 // Créez un tableau pour stocker les éléments filtrés
 
 // Associez les données de resultContrast et targets en utilisant leurs ID correspondants
