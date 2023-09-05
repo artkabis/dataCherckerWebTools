@@ -46,7 +46,8 @@
   strongOrBold.each(function (i, t) {
     let strongParent;
     if (isDuda) {
-      strongParent = $(this).closest(".dmNewParagraph");
+      strongParent = $(this).closest(".dmRespCol") ? $(this).closest(".dmRespCol") : $(this).closest(".dmNewParagraph");
+      console.log('-------------------strong & bold  :::::::::::::::',this,$(this).closest(".dmNewParagraph"))
     }else if(isWP && $(this).closest('.wpb_text_column').length){
       strongParent = $(this).closest('.wpb_text_column');
     }else if(isWP && $(this).closest('.wpb_toggle_content').length){ 
@@ -56,10 +57,10 @@
      }else{
       strongParent = $(this).parent().parent().parent();
      }
-    const nbWordsParent = strongParent[0].innerText.trim().split(' ').length;
+    const nbWordsParent = (strongParent[0]) ? strongParent[0].innerText.trim().split(' ').length : 0;
 
     testStack = isWP 
-    isSlideDuda = (isDuda) ? $(this).closest(".slide-inner").length : 0;
+    isSlideDuda = (isDuda && $(this).closest(".slide-inner").length) ? true : false;
     if (t.textContent.length > 1 && t.textContent !== " " && !isHnClosest($(this)) && !isHnLink($(this)) && nbWordsParent >=20 && !isSlideDuda) {
         cmpBold++;
         boldArray.push({
@@ -103,6 +104,8 @@
           ? $(this).parents(".dmNewParagraph")[0].textContent.split(" ").length
           : $(this).parent().parent().parent()[0].textContent.split(" ")
       );
+
+      //isBold(target) && console.log(isBold(target),target,target[0].textContent);
     isBold(target) &&
       !isHnClosest($(this)) &&
       target[0].textContent !== "\n" &&

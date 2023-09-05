@@ -429,7 +429,6 @@ function checkAllElementsInDocument() {
     elementsToExclude.forEach((element) => {
         query += ':not(' + element + ')';
     });
-    console.log({query});
 
     const elementsToCheck = window.document.querySelectorAll(query);
     //sendMessageToBackgroundScript('getCurrentColorMatrix');
@@ -608,7 +607,7 @@ const elementsAssocies = associerDonnees(resultContrast, targets);
 console.log(
     "----------------------------- Start Check contrast valitidy --------------------------------------------"
   );
-  elementsAssocies.length && console.log('%c Attention vous avez des problèmes liésau contrast de vos textes','color:red');
+  elementsAssocies.length && console.log('%c Attention vous avez des problèmes liés au contrast de vos textes','color:red');
 console.log({elementsAssocies});
  // const lowContrast = resultContrast.results.forEach((c)=>console.log({c}));
  // console.log({resultContrast});
