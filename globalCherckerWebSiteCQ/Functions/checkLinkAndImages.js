@@ -253,16 +253,19 @@ function initcheckerLinksAndImages(){
       console.log("url not valid : ", result.url);
       requestCompletedCount++;
     }
-    //console.log({requestInitiatedCount}, {requestCompletedCount});
+    console.log({requestInitiatedCount}, {requestCompletedCount});
     // console.log('external cmp : ',{cmpFinal});
     dataChecker.img_check.nb_img = requestCompletedCount;
     if (requestCompletedCount >=requestInitiatedCount  && cmpFinal < 1) {
       setTimeout(function () {
         cmpFinal++;
         //console.log({cmpFinal});
-        console.log(" Fin du traitement du check des images size and alt");
-        ratio_scores.push(ratioScoreImg);
-        checkUrlImgDuplicate();
+       
+        if(cmpFinal === 1){
+          console.log(" Fin du traitement du check des images size and alt");
+          ratio_scores.push(ratioScoreImg);
+          checkUrlImgDuplicate();
+        }
       }, 300);
     }
   };
@@ -681,6 +684,6 @@ function initcheckerLinksAndImages(){
     );
     //$("#Wrapper").length &&
     checkerImageWP();
-  }, document.querySelectorAll("a").length * 210);
+  }, document.querySelectorAll("a").length * 180);
 }
 initcheckerLinksAndImages();
