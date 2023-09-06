@@ -121,9 +121,10 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
               "./Functions/checkOutlineHn.js",
               "./Functions/checkColorContrast.js",
               "./Functions/counterLettersHn.js",
+              "./Functions/initDataChecker.js",
               "./Functions/checkDataBindingDuda.js",
               "./Functions/checkLinkAndImages.js",
-              "./Functions/initDataChecker.js",
+
 
             ],
           },

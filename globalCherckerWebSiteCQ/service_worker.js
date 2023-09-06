@@ -146,10 +146,12 @@ const  detectOnotherInterface = async () => {
 const detectSoprod = async () =>{
   const allTabs = await chrome.tabs.query({});
   let isSoprodTab = {};
+  isSoprodTab.detected = false
   allTabs.forEach(async (tab, i) => {
-  if (tab.url.includes("soprod")) {
+  if (tab.url.includes("soprod") ) {//&& !isSoprodTab.detected
     isSoprodTab.detected = true;
-    console.log({isSoprodTab})
+    console.log({isSoprodTab});
+    //(!isSoprodTab.detected) && 
     checkUserSoprod(tab);
   }
 });
@@ -175,36 +177,37 @@ let userDB;
 //     });
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {  
-  let user, data_checker;
+  let user, data_checker, interCheck;
   if(request.action === "open_interface"){
     console.log('launch detected antoned interface');
     detectOnotherInterface();
     console.log('launch detected soprod tab and snip username ');
     detectSoprod();
      console.log(' ???????????????????????????????????????????? data de datachecker : ',request.data);
-     cmp= (cmp<2)&& 2;
+     cmp ++;
      console.log(' cmp + 1 in datachecker interface : ',cmp);
      data_checker = request.data
      global_data.dataChecker = request.data;
   }
   if (request.user) {
     console.log(' ???????????????????????????????????????????? data de user Soprod : ',request.user);
-    cmp = (cmp<1) && 1;
+    (cmp<1) && cmp++;
     console.log(' cmp + 1 in user soprod : ',cmp);
     user = request.user;
     global_data.user = user;
   }else{
     (cmp<1) && cmp++;
   }
-  let interCheck;
+  //const cleanInterval = () => clearInterval(interCheck);
   const checkDatas = () => {
     cmpInterval ++;
+    console.log('******* cmp in service-worker : ',{cmp});
     // console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<< CMP : ',{cmp}, 'globale user : ', global_data.user);
     // console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> interval count : ',{cmpInterval});
     //console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> open interface data : ',{data_checker});
     if(cmp === 2){
       console.log('IIIIIIIIIIIIIIIIIIIISSSSSSSSSSSSSSSSSSSSSSSss interval function ready : ',{interCheck});
-      clearInterval(interCheck);
+      //cleanInterval();
       console.log('uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu : data_checker -> ',global_data.dataChecker);
       if(global_data.dataChecker){
       global_data.user = (global_data.user) ? global_data.user : 'Customer';
@@ -225,7 +228,8 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
       }
   };
   
-  interCheck =  setInterval(checkDatas,500);
-  (cmp==2)&& clearInterval(interCheck);
+  //interCheck =  setInterval(checkDatas,500);
+  checkDatas()
+  console.log({interCheck});
   
 });
