@@ -266,7 +266,7 @@ function initcheckerLinksAndImages(){
           ratio_scores.push(ratioScoreImg);
           checkUrlImgDuplicate();
         }
-      }, 300);
+      }, 100);
     }
   };
 
@@ -684,6 +684,6 @@ function initcheckerLinksAndImages(){
     );
     //$("#Wrapper").length &&
     checkerImageWP();
-  }, document.querySelectorAll("a").length * 180);
+  }, document.querySelectorAll("a").length * 30);
 }
 initcheckerLinksAndImages();

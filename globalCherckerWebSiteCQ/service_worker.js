@@ -164,17 +164,6 @@ let cmp = 0;
 let cmpInterval = 0;
 let global_data = {};
 const db_name = "db_datas_checker";
-// Utilisez la fonction checkUserIndexDB pour récupérer userName
-let userDB;
-// checkUserIndexDB()
-//     .then((userName) => {
-//         console.log(`Nom d'utilisateur récupéré : ${userName}`);
-//         userDB = userName
-//         // Faites ce que vous voulez avec userName ici
-//     })
-//     .catch((error) => {
-//         console.error("Une erreur s'est produite : ", error);
-//     });
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {  
   let user, data_checker, interCheck;
