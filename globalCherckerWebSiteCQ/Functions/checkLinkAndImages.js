@@ -684,6 +684,6 @@ function initcheckerLinksAndImages(){
     );
     //$("#Wrapper").length &&
     checkerImageWP();
-  }, document.querySelectorAll("a").length * 30);
+  }, document.querySelectorAll("a").length * 100);
 }
 initcheckerLinksAndImages();
