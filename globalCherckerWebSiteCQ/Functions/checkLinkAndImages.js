@@ -91,14 +91,13 @@ function initcheckerLinksAndImages(){
             bgImg.onload = function () {
               args[5] = this.naturalWidth;
               args[6] = this.naturalHeight;
-              requestCompletedCount++;
               resolve();
             };
           });
         }
 
         fsize = response.headers.get("content-length");
-        requestCompletedCount++;
+        
         if (fsize) {
           const ratio = Number(
             ((args[5] / args[7] + args[6] / args[8]) / 2).toFixed(2)
@@ -177,7 +176,7 @@ function initcheckerLinksAndImages(){
             fsize > 317435 ? 0 : fsize > 256000 && fsize < 317435 ? 2.5 : 5
           );
           alt_scores.push(result.alt[2] !== false ? 5 : 0);
-
+          requestCompletedCount++;
           dataChecker.img_check.alt_img.push({
             alt_img_state: true,
             alt_img_src: result.url ? result.url : args[1],
