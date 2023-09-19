@@ -206,7 +206,7 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
             ],
           },
           function (results) {
-           window.close();
+           //window.close();
           }
         );
       }

@@ -26,6 +26,30 @@ DBOpenRequest.onsuccess = (event) => {
     
     console.log('11111111111111111111& interface username : ',{userName});
   console.log('datasCheckerDB datas : ',{datasCheckerDB});
+  fetch('http://127.0.0.1:8000/datasCheck/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify([{ user: userName, datas: datasCheckerDB }]),
+  })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Réponse non valide');
+      }
+      const contentType = response.headers.get('Content-Type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('La réponse n\'est pas au format JSON');
+      }
+      return response.json(); // Lisez la réponse JSON ici
+    })
+    .then(data => {
+      console.log('Réponse du serveur :', data);
+      // Vous pouvez accéder aux données renvoyées par le serveur ici
+    })
+    .catch(error => {
+      console.log('Erreur lors de la fin du traitement :', error);
+    });
   initInterface(userName,datasCheckerDB);
   };
 };

@@ -1,6 +1,6 @@
 //import {openDb,getObjectStore} from './Functions/utils.js';
 import {creatDB} from './Functions/creatIndexDB.js';
-import {checkUserSoprod} from "./Functions/checkUserSoprod.js";
+//import {checkUserSoprod} from "./Functions/checkUserSoprod.js";
 import { checkUserIndexDB } from './Functions/checkUserIndexDB.js';
 
 
@@ -143,20 +143,7 @@ const  detectOnotherInterface = async () => {
   });
 };
 
-const detectSoprod = async () =>{
-  const allTabs = await chrome.tabs.query({});
-  let isSoprodTab = {};
-  isSoprodTab.detected = false
-  allTabs.forEach(async (tab, i) => {
-  if (tab.url.includes("soprod") ) {//&& !isSoprodTab.detected
-    isSoprodTab.detected = true;
-    console.log({isSoprodTab});
-    //(!isSoprodTab.detected) && 
-    checkUserSoprod(tab);
-  }
-});
 
-}
 
 
 
@@ -164,61 +151,126 @@ let cmp = 0;
 let cmpInterval = 0;
 let global_data = {};
 const db_name = "db_datas_checker";
+const detecteSoprod = async () => {
+  console.log("detecting soprod tab");
+  const allTabs = await chrome.tabs.query({});
+  let isSoprodTab = {};
+  isSoprodTab.detected = false;
+  let userSoprod = "Customer"; // Nom d'utilisateur par défaut
+  let soprodTabsDetected = 0;
+
+  allTabs.map(async (tab, i) => {
+    if (tab.url.includes("soprod")) {
+      soprodTabsDetected++; // Incrémente le compteur de tabs "soprod" détectés
+
+      // Exécute le script dans le tab actuel s'il existe
+      if (tab.id) {
+        const result = await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          function(tab) {
+            let cmp = 0;
+            if (cmp === 0) {
+              let dropUser = document.querySelector(".dropdown-user .username");
+              const user = dropUser?.innerHTML;
+              if (user) {
+                cmp++;
+                userSoprod = user; // Met à jour le nom d'utilisateur
+                chrome.storage.sync.set({ user: userSoprod }, function () {
+                  console.log("---------------------storage sync user : ", {
+                    user,
+                  });
+                  chrome.runtime.sendMessage({ user: userSoprod });
+                });
+              }
+            }
+          },
+        });
+      }
+      if (userSoprod !== "Customer") {
+        // Si le nom d'utilisateur est mis à jour, sort de la boucle
+        return;
+      }
+    }
+    if (allTabs.length - 1 === i && userSoprod === "Customer") {
+      // Si l'onglet n'est pas lié à "soprod", le stocker comme dernier onglet non "soprod"
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        function(tab) {
+          chrome.storage.sync.set({ user: "Customer" }, function () {
+            chrome.runtime.sendMessage({ user: "Customer" });
+          });
+        },
+      });
+    }
+  });
+};
+
+
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {  
-  let user, data_checker, interCheck;
+  let user, data_checker, interCheck, cmpInterface = 0;
+
   if(request.action === "open_interface"){
-    console.log('launch detected antoned interface');
-    detectOnotherInterface();
-    console.log('launch detected soprod tab and snip username ');
-    detectSoprod();
-     console.log(' ???????????????????????????????????????????? data de datachecker : ',request.data);
-     cmp ++;
-     console.log(' cmp + 1 in datachecker interface : ',cmp);
-     data_checker = request.data
-     global_data.dataChecker = request.data;
+    cmpInterface++
+    if(cmpInterface===1 ){
+      console.log('launch detected antoned interface');
+      detectOnotherInterface();
+      console.log('launch detected soprod tab and snip username ');
+      detecteSoprod();
+      console.log(' ???????????????????????????????????????????? data de datachecker : ',request.data);
+      cmp++;
+      console.log(' cmp + 1 in datachecker interface : ',cmp);
+      data_checker = request.data
+      global_data.dataChecker = request.data;
+     
+    }
+    // clearInterval(interCheck);
   }
   if (request.user) {
-    console.log(' ???????????????????????????????????????????? data de user Soprod : ',request.user);
-    (cmp<1) && cmp++;
-    console.log(' cmp + 1 in user soprod : ',cmp);
-    user = request.user;
-    global_data.user = user;
-  }else{
-    (cmp<1) && cmp++;
+    console.log('request user soprod : ',request.user);
+    let cmpUserSoprod=0;
+    if(cmpUserSoprod===0){
+      cmpUserSoprod++
+      console.log(' ???????????????????????????????????????????? data de user Soprod : ',request.user);
+      (cmp===1) && cmp++;
+      console.log(' cmp + 1 in user soprod : ',cmp);
+      user = request.user;
+      global_data.user = user;
+    }
   }
-  //const cleanInterval = () => clearInterval(interCheck);
-  const checkDatas = () => {
-    cmpInterval ++;
-    console.log('******* cmp in service-worker : ',{cmp});
-    // console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<< CMP : ',{cmp}, 'globale user : ', global_data.user);
-    // console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> interval count : ',{cmpInterval});
-    //console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> open interface data : ',{data_checker});
-    if(cmp === 2){
-      console.log('IIIIIIIIIIIIIIIIIIIISSSSSSSSSSSSSSSSSSSSSSSss interval function ready : ',{interCheck});
-      //cleanInterval();
-      console.log('uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu : data_checker -> ',global_data.dataChecker);
-      if(global_data.dataChecker){
-      global_data.user = (global_data.user) ? global_data.user : 'Customer';
-      console.log('OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO les deux datas sont bien arrivées : ',{global_data});
-      const dataCheckerParse = JSON.parse(global_data.dataChecker);
-    creatDB(global_data.user, db_name, dataCheckerParse);
-    console.log('CREATEDB lanche with the datas :  user = ',global_data.user, {db_name}, {dataCheckerParse});
+  
+//const cleanInterval = () => clearInterval(interCheck);
+const checkDatas = () => {
+  cmpInterval ++;
+  console.log('******* cmp in service-worker : ',{cmp});
+  // console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<< CMP : ',{cmp}, 'globale user : ', global_data.user);
+  // console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> interval count : ',{cmpInterval});
+  //console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> open interface data : ',{data_checker});
+  if(cmp === 2){
+    console.log('IIIIIIIIIIIIIIIIIIIISSSSSSSSSSSSSSSSSSSSSSSss interval function ready : ',{interCheck});
+    //cleanInterval();
+    console.log('uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu : data_checker -> ',global_data.dataChecker);
+    if(global_data.dataChecker){
+    global_data.user = (global_data.user) ? global_data.user : 'Customer';
+    console.log('OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO les deux datas sont bien arrivées : ',{global_data});
+    const dataCheckerParse = JSON.parse(global_data.dataChecker);
+  creatDB(global_data.user, db_name, dataCheckerParse);
+  console.log('CREATEDB lanche with the datas :  user = ',global_data.user, {db_name}, {dataCheckerParse});
+  
 
-    cmp = 0;
-    const interfacePopupUrl = chrome.runtime.getURL("interface.html");
-          chrome.windows.create({
-            url: `${interfacePopupUrl}`, //?data=${encodeURIComponent(JSON.stringify(dataCheckerJSON))}
-            type: "popup",
-            width: 1000,
-            height: 1000,
-          });
-        }
+  cmp = 0;
+  const interfacePopupUrl = chrome.runtime.getURL("interface.html");
+        chrome.windows.create({
+          url: `${interfacePopupUrl}`, //?data=${encodeURIComponent(JSON.stringify(dataCheckerJSON))}
+          type: "popup",
+          width: 1000,
+          height: 1000,
+        });
       }
-  };
-  
-  //interCheck =  setInterval(checkDatas,500);
-  checkDatas()
-  console.log({interCheck});
-  
+    }
+};
+
+//interCheck =  setInterval(checkDatas,500);
+checkDatas()
+
 });

@@ -158,9 +158,9 @@
     dataChecker.alt_img_check.alt_img
   );
 
-  dataChecker.alt_img_check.global_score = Number(
+  dataChecker.alt_img_check.global_score = (scoreTabAltImg2.length)?Number(
     scoreTabAltImg2.reduce((a, b) => a + b) / scoreTabAltImg.length
-  ).toFixed(2);
+  ).toFixed(2): 5;
 
   console.log(
     { scoreTabAltImg2 },

@@ -1,30 +1,26 @@
 import { getActiveTabURL } from "./Functions/utils.js";
 import { richResultGoole } from "./Functions/richResultGoogle.js";
-import {toggleDesignMode} from "./Functions/toggleDesignMode.js";
-import {copyExpressionsSoprod} from "./Functions/copyExpressionsSoprod.js";
-import {dudaSitemap} from "./Functions/DudaSitemap.js";
-import {HnOutlineValidity} from "./Functions/HnOutlineValidity.js";
-
-
+import { toggleDesignMode } from "./Functions/toggleDesignMode.js";
+import { copyExpressionsSoprod } from "./Functions/copyExpressionsSoprod.js";
+import { dudaSitemap } from "./Functions/DudaSitemap.js";
+import { HnOutlineValidity } from "./Functions/HnOutlineValidity.js";
 
 chrome.tabs.query({ active: true, currentWindow: true }, function (tab) {
-chrome.scripting.executeScript({
-  target: { tabId: tab[0].id },
-  function: function () {
-    if(window.location.origin.includes('soprod')){
+  chrome.scripting.executeScript({
+    target: { tabId: tab[0].id },
+    function: function () {
+      if (window.location.origin.includes("soprod")) {
         setTimeout(function () {
-        const user = dropUser.innerHTML;
-        chrome.storage.sync.set({ user: user }, function () {
-          // Envoi d'un message à l'arrière-plan pour mettre à jour l'état de user
-          chrome.runtime.sendMessage({ user: user });
-        });
-      },100);
-
-    }
-
-  }
+          const user = dropUser.innerHTML;
+          chrome.storage.sync.set({ user: user }, function () {
+            // Envoi d'un message à l'arrière-plan pour mettre à jour l'état de user
+            chrome.runtime.sendMessage({ user: user });
+          });
+        }, 100);
+      }
+    },
+  });
 });
-})
 
 //Affichage de la version dans popup via manifest.version
 document.addEventListener("DOMContentLoaded", function () {
@@ -37,19 +33,15 @@ document.addEventListener("DOMContentLoaded", function () {
   versionDiv.innerText = "Version : " + version;
 });
 
-
 document.querySelector(".openSitemap").addEventListener("click", function () {
   console.log("btn sitemap : ", this);
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     chrome.scripting.executeScript({
       target: { tabId: tabs[0].id },
-      function(){
-        let sitemap = window.location.origin+"/page-sitemap.xml";
-         window.open(sitemap,
-          "_blank",
-          "width=900,height=600,toolbar=no"
-        );
-      }
+      function() {
+        let sitemap = window.location.origin + "/page-sitemap.xml";
+        window.open(sitemap, "_blank", "width=900,height=600,toolbar=no");
+      },
     });
   });
 });
@@ -90,8 +82,7 @@ document
   .addEventListener("click", function () {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       const activeTab = tabs[0];
-      HnOutlineValidity(activeTab)
-
+      HnOutlineValidity(activeTab);
     });
   });
 
@@ -109,8 +100,9 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
             files: [
               "./assets/jquery-3.6.4.min.js",
               "./assets/console.image.min.js",
-              "./Functions/checkAndAddJquery.js",              
-              
+              "./Functions/checkAndAddJquery.js",
+
+
               "./Functions/settingsWords.js",
               "./Functions/dataCheckerSchema.js",
               "./Functions/initLighthouse.js",
@@ -121,11 +113,10 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
               "./Functions/checkOutlineHn.js",
               "./Functions/checkColorContrast.js",
               "./Functions/counterLettersHn.js",
+              //"./Functions/checkUserSoprod.js",
               "./Functions/initDataChecker.js",
               "./Functions/checkDataBindingDuda.js",
               "./Functions/checkLinkAndImages.js",
-
-
             ],
           },
           function () {
@@ -137,7 +128,7 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
     });
   });
 });
-document.querySelector('#wordsCloud').addEventListener("click", function () {
+document.querySelector("#wordsCloud").addEventListener("click", function () {
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     var activeTab = tabs[0];
     var tabId = activeTab.id;
@@ -145,19 +136,18 @@ document.querySelector('#wordsCloud').addEventListener("click", function () {
       var tabContent = tab ? tab.content : null;
       console.log(tab, { tabContent });
       if (tab) {
-        chrome.scripting.executeScript(
-          {
-            target: { tabId: tab.id },
-            files: [
-              "./Functions/settingsWords.js",
-              "./Functions/counterWords.js",
-              "./Functions/wordsCountLexical.js",
-            ]
-          });
-        }
-      });
-    })
-  })
+        chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: [
+            "./Functions/settingsWords.js",
+            "./Functions/counterWords.js",
+            "./Functions/wordsCountLexical.js",
+          ],
+        });
+      }
+    });
+  });
+});
 //listen cors toggle cors activity
 var toggleButton = document.getElementById("corsButton");
 document.addEventListener("DOMContentLoaded", function () {

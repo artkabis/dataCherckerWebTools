@@ -21,6 +21,7 @@ export const checkUserIndexDB = () => {
                 userName = objectStoreRequest.result.user;
                 console.log('userName in checkUserIndexDB : ',{userName});
                 resolve(userName); // Résoudre la promesse avec la valeur de userName
+                return userName;
             };
             }
         };

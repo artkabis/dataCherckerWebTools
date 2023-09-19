@@ -66,14 +66,15 @@ function initcheckerLinksAndImages(){
     let bgImg = new Image();
     let fsize = "0";
     if (args[1] !== !!0) {
+      
       args[1] = args[1].includes("?") ? args[1].split("?")[0] : args[1];
       try {
         response = (!args[1].includes('data:image')) && await fetch(args[1], {
           method: "GET",
           //redirect: "manual", // Permet de suivre les redirections explicitement
           mode: "cors",
-        });
-
+        });//.then(response=>requestCompletedCount++);
+        
         if (response.redirected) {
           if (redirectCount >= 2) {
             throw new Error("Trop de redirections");
@@ -81,10 +82,11 @@ function initcheckerLinksAndImages(){
 
           const redirectUrl = response.headers.get("Location");
           if (redirectUrl) {
+            console.log("image avec redirection");
             redirectCount++;
           }
         }
-
+        requestCompletedCount++;
         if (isBgImage) {
           await new Promise((resolve) => {
             bgImg.src = args[1];
@@ -176,7 +178,6 @@ function initcheckerLinksAndImages(){
             fsize > 317435 ? 0 : fsize > 256000 && fsize < 317435 ? 2.5 : 5
           );
           alt_scores.push(result.alt[2] !== false ? 5 : 0);
-          requestCompletedCount++;
           dataChecker.img_check.alt_img.push({
             alt_img_state: true,
             alt_img_src: result.url ? result.url : args[1],
@@ -243,16 +244,18 @@ function initcheckerLinksAndImages(){
           ratio_img: result.ratio,
           ratio_img_score: ratioScoreImg,
         });
-        requestCompletedCount++;
+        
         console.log("%cNot available", "color:yellow");
         console.log(error, error.message, '  url : ' + args[1]);
         result && console.log({ result }, result.target);
+        
       }
     } else {
       console.log("url not valid : ", result.url);
-      requestCompletedCount++;
+   
     }
-    console.log({requestInitiatedCount}, {requestCompletedCount});
+    requestCompletedCount++;
+    //console.log({requestInitiatedCount}, {requestCompletedCount});
     // console.log('external cmp : ',{cmpFinal});
     dataChecker.img_check.nb_img = requestCompletedCount;
     if (requestCompletedCount >=requestInitiatedCount  && cmpFinal < 1) {
@@ -310,7 +313,7 @@ function initcheckerLinksAndImages(){
         $(this).attr("alt").length > 0 &&
         $(this).attr("alt") !== "";
       const isDudaImage = srcV && srcV.includes("cdn-website");
-      const checkStackMedias = (srcV.includes('/uploads/') || srcV.includes('/images/'));
+      //const checkStackMedias = (srcV.includes('/uploads/') || srcV.includes('/images/'));
 
       srcV =
         !isDudaImage &&
@@ -329,6 +332,7 @@ function initcheckerLinksAndImages(){
           !srcV.includes("gravityforms") &&
           !srcV.includes("static.cdn-website") &&
           !$(this).hasClass('leaflet-marker-icon') &&
+          !srcV.includes("5+star.svg") &&
           imagesForAnalyseImg.push({
             key: "src-img-" + i,
             value: [
@@ -429,7 +433,6 @@ function initcheckerLinksAndImages(){
     });
 
     const allImg = [...imagesForAnalyseBG, ...imagesForAnalyseImg];
-    let cmpAllImg = 0;
     console.log({ allImg });
     for (const item of allImg) {
       const content = item.value;
@@ -677,12 +680,14 @@ function initcheckerLinksAndImages(){
       );
     }
   });
+  const nbLinks = document.querySelectorAll("a").length;
+  console.log({nbLinks});
   setTimeout(function () {
     console.log(
       "--------------------- END check validity links -----------------------------"
     );
     //$("#Wrapper").length &&
     checkerImageWP();
-  }, document.querySelectorAll("a").length * 100);
+  }, (nbLinks>50) ? nbLinks * 210 : (nbLinks>30) ? nbLinks * 110 : nbLinks * 110);
 }
 initcheckerLinksAndImages();

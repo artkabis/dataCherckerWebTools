@@ -31,7 +31,7 @@ export const creatDB = (user, db_name, datas) => {
   };
 };
 const addData = (user, mydb, db_name, datas) => {
-  let userSoprod = user ? user : "Customer";
+  let userSoprod = user;
   const transaction = mydb
     ? mydb.transaction([db_name], "readwrite")
     : console.warn("Attention la bd d'indexDB n'est pas disponible");
