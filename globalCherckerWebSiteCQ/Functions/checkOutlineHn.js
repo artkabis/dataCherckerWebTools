@@ -30,7 +30,7 @@
   
   
   
-  let hnTagArray = [],rendu,validStructure=true;
+  let hnTagArray = [],rendu="",validStructure=true;
     hnTagContentArray = [];
   document.querySelectorAll("h1, h2, h3, h4, h5, h6").forEach(function (t, i) {
     hnTagArray.push(t.tagName.toLowerCase());
@@ -76,6 +76,7 @@
     console.log(`%c <${currentHn}> - ${currentHnContent} </${currentHn}>`,'color:green');
     previousHn = currentHn;
   });
+
  
     if (validStructure) {
       console.log("Structure des Hn valide.");
@@ -357,11 +358,11 @@
   //console.log('---------------------------------- HnReco',dataChecker.hn.hn_reco.hn);
 
   //rendu = rendu.replaceAll('"', "").replaceAll("'", "").slice(0, -1);
-  const renduTab = rendu.split("_");
+  let renduTab = rendu.split("_");
   let scoreOutlineHn = [];
   dataChecker.hn.hn_outline.hn = [];
-  console.log('-------------------------------- rendu  split : ',{renduTab});
   renduTab.forEach((t, i) => {
+    if(t.length > 0) {
     let validity = t.includes("Non valide") ? false : true;
     const score = (validity === false) ? 0 : 5;
     //console.log('t.includes("Non valide") : ',{t}, 'include Non valide : ',t.includes("Non valide"), {score})
@@ -374,6 +375,7 @@
       hn_validity_score: score,
     });
     scoreOutlineHn.push(score);
+  }
   });
   const hasZeroInOutlineHn = (array) => {
     return array.filter((value) => {
