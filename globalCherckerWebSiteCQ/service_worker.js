@@ -251,11 +251,13 @@ const checkDatas = () => {
     //cleanInterval();
     console.log('uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu : data_checker -> ',global_data.dataChecker);
     if(global_data.dataChecker){
+      const user = global_data.user;
+      console.log({user});
     global_data.user = (global_data.user) ? global_data.user : 'Customer';
     console.log('OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO les deux datas sont bien arrivées : ',{global_data});
     const dataCheckerParse = JSON.parse(global_data.dataChecker);
-  creatDB(global_data.user, db_name, dataCheckerParse);
-  console.log('CREATEDB lanche with the datas :  user = ',global_data.user, {db_name}, {dataCheckerParse});
+  creatDB(user, db_name, dataCheckerParse);
+  console.log('CREATEDB lanche with the datas :  user = ',user, {db_name}, {dataCheckerParse});
   
 
   cmp = 0;
