@@ -264,11 +264,12 @@ function initcheckerLinksAndImages(){
         //console.log({cmpFinal});
        
         if(cmpFinal === 1){
-          console.log(" Fin du traitement du check des images size and alt");
+          
           ratio_scores.push(ratioScoreImg);
           checkUrlImgDuplicate();
+          console.log(" Fin du traitement du check des images size and alt");
         }
-      }, 100);
+      }, 300);
     }
   };
 
