@@ -55,24 +55,24 @@
           const missingHnIndex = parseInt(previousHn.charAt(1)) + i;
           const missingHn = `h${missingHnIndex}`;
           const missingHnContent = `Missing Heading - ${missingHn}`;
-          rendu += `${currentHn} - ${currentHnContent} - Non valide_`;
+          rendu += `${currentHn} -- ${currentHnContent} - Non valide_`;
           console.log(`%c<${missingHn}> - ${missingHnContent}  !!!!  </${missingHn}>`,'color:red');
           validStructure =false;
         }
       }
       if (currentHn === "h1" && hasDuplicateH1()) {
-        rendu += `${currentHn} - ${currentHnContent} - Non valide_`;
+        rendu += `${currentHn} -- ${currentHnContent} - Non valide_`;
 
-       console.log(`%c<${currentHn}> Warning: Duplicate H1 - ${currentHnContent}   </${currentHn}>`,'color:red');
+       console.log(`%c<${currentHn}> Warning: Duplicate H1 -- ${currentHnContent}   </${currentHn}>`,'color:red');
        validStructure = false;
       }      
     }else if (index === 0 && currentHn !== "h1") {
-      rendu += `${currentHn} - ${currentHnContent} - Non valide_`;
+      rendu += `${currentHn} -- ${currentHnContent} - Non valide_`;
 
-     console.log(`%c<${currentHn}> Warning: Hn cannot be before H1 - ${currentHnContent}   </${currentHn}>`,'color:red');
+     console.log(`%c<${currentHn}> Warning: Hn cannot be before H1 -- ${currentHnContent}   </${currentHn}>`,'color:red');
      validStructure = false;
     }
-    rendu += `${currentHn} - ${currentHnContent} - valide_`;
+    rendu += `${currentHn} -- ${currentHnContent} - valide_`;
     console.log(`%c <${currentHn}> - ${currentHnContent} </${currentHn}>`,'color:green');
     previousHn = currentHn;
   });
@@ -369,9 +369,9 @@
     const cleanT = t.replaceAll('undefined','')
     //console.log('    detection score validity strcture heading Hn : ',{cleanT}, {validity}, {score});
     dataChecker.hn.hn_outline.hn.push({
-      hn_type: t.split(" - ")[0],
+      hn_type: t.split(" -- ")[0],
       hn_validity: validity,
-      hn_validity_message: t.split(" - ")[1],
+      hn_validity_message: t.split(" -- ")[1],
       hn_validity_score: score,
     });
     scoreOutlineHn.push(score);

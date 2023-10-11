@@ -473,7 +473,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         const dataCheckerParse = JSON.parse(global_data.dataChecker);
         creatDB(user, db_name, dataCheckerParse);
         console.log(
-          "CREATEDB lanche with the datas :  user = ",
+          "CREATEDB -> lanuche with the datas :  user = ",
           user,
           { db_name },
           { dataCheckerParse }

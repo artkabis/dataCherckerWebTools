@@ -115,7 +115,7 @@ dataChecker = {
     hn: {
       hn_check_state: "false",
       nb_hn: "1",
-      check_title: "Hn ",
+      check_title: "Hn",
       global_score: "1",
       hn_reco: {
         profil: ["CDP"],
