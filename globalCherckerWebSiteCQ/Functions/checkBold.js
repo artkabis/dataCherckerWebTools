@@ -61,7 +61,8 @@
 
     testStack = isWP 
     isSlideDuda = (isDuda && $(this).closest(".slide-inner").length) ? true : false;
-    if (t.textContent.length > 1 && t.textContent !== " " && !isHnClosest($(this)) && !isHnLink($(this)) && nbWordsParent >=20 && !isSlideDuda) {
+    isContentDataBinding = (isDuda && ("div[data-binding*='']") && $(this).find("div[data-binding*='']").length) ? true : false;
+    if (t.textContent.length > 1 && t.textContent !== " " && !isHnClosest($(this)) && !isHnLink($(this)) && nbWordsParent >=20 && !isSlideDuda && !isContentDataBinding) {
         cmpBold++;
         boldArray.push({
           target: t,
@@ -78,6 +79,7 @@
   $("#dm_content span").each(function (t) {
     const isDuda =$(this).closest('#dm');
     isSlide = $(this).closest(".slide-inner");
+    isContentDataBinding = (isDuda && $(this).find("div[data-binding]").length) ? true : false;
 
     
     let target = isMultiSpan($(this)) ? $(this).children() : $(this);
@@ -108,6 +110,7 @@
       //isBold(target) && console.log(isBold(target),target,target[0].textContent);
     isBold(target) &&
       !isHnClosest($(this)) &&
+      !isContentDataBinding &&
       target[0].textContent !== "\n" &&
       target[0].textContent !== "" &&
       target[0].textContent.length > 1 &&

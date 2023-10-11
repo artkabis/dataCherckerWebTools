@@ -5,22 +5,23 @@ import { copyExpressionsSoprod } from "./Functions/copyExpressionsSoprod.js";
 import { dudaSitemap } from "./Functions/DudaSitemap.js";
 import { HnOutlineValidity } from "./Functions/HnOutlineValidity.js";
 
-chrome.tabs.query({ active: true, currentWindow: true }, function (tab) {
-  chrome.scripting.executeScript({
-    target: { tabId: tab[0].id },
-    function: function () {
-      if (window.location.origin.includes("soprod")) {
-        setTimeout(function () {
-          const user = dropUser.innerHTML;
-          chrome.storage.sync.set({ user: user }, function () {
-            // Envoi d'un message à l'arrière-plan pour mettre à jour l'état de user
-            chrome.runtime.sendMessage({ user: user });
-          });
-        }, 100);
-      }
-    },
-  });
-});
+// chrome.tabs.query({ active: true, currentWindow: true }, function (tab) {
+//   chrome.scripting.executeScript({
+//     target: { tabId: tab[0].id },
+//     function: function () {
+//       if (window.location.origin.includes("soprod")) {
+//         setTimeout(function () {
+//           const dropUser
+//           const user = dropUser.innerHTML;
+//           chrome.storage.sync.set({ user: user }, function () {
+//             // Envoi d'un message à l'arrière-plan pour mettre à jour l'état de user
+//             chrome.runtime.sendMessage({ user: user });
+//           });
+//         }, 100);
+//       }
+//     },
+//   });
+// });
 
 //Affichage de la version dans popup via manifest.version
 document.addEventListener("DOMContentLoaded", function () {
