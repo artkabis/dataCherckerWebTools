@@ -58,7 +58,7 @@ function initcheckerLinksAndImages(){
   const checkUrlImg = async (args) => {
 
 
-  
+    let redirectCount=0;
     let result = false;
     requestInitiatedCount++;
     let response;
@@ -231,6 +231,7 @@ function initcheckerLinksAndImages(){
           });
         }
       } catch (error) {
+        console.log('link : ',args[1], error);
         dataChecker.img_check.ratio_img.push({
           ratio_img_state: true,
           ratio_img_src: result.url,
@@ -501,6 +502,7 @@ function initcheckerLinksAndImages(){
             console.log("node: ", _node);
             scoreCheckLink.push(0);
           }
+          (_node.closest('#dm') && _url.includes('site-privilege.pagesjaunes')) && console.log("%cAttention lien prépup WP présent dans Duda : "+_url+ ' - élément : '+_node,'color:red;');
 
           dataChecker.link_check.link.push({
             link_state: true,

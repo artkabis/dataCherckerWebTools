@@ -376,7 +376,7 @@ const containerContentCard = document.createElement("div");
     return containerContentCard;
   }else if(object.check_title === "Images alt"){
 
-    console.log("in alt image");
+    console.log("in alt image object");
     containerContentCard.className = "content_image_alt_check";
 
     const containerResumeImageAltCheck = document.createElement("div");
@@ -411,15 +411,10 @@ const containerContentCard = document.createElement("div");
       const containerAltImage = document.createElement("div");
       containerAltImage.className = "container_alt_image";
 
-      const spanAltImageScore = document.createElement("span");
-      spanAltImageScore.className = "span_alt_image_score";
-      spanAltImageScore.innerHTML = "Score du Alt: "+element.alt_img_score+"/5";
-
-      const spanAltImageState = document.createElement("span");
-      spanAltImageState.className = "span_alt_image_state";
-      spanAltImageState.appendChild(displayState(element.alt_img_state));
-
       const spanAltImageText = document.createElement("span");
+      
+      spanAltImageText.className = "span_alt_image_txt";
+      
       spanAltImageText.className = "span_alt_image_txt";
       spanAltImageText.innerHTML = "Texte Alt: "+element.alt_img_text;
 
@@ -431,17 +426,257 @@ const containerContentCard = document.createElement("div");
       linkAltImageSrc.className ="a_link_alt_img_src target";
       linkAltImageSrc.innerHTML = "Ouvrir l'image";
 
-      spanAltImageSrc.appendChild(linkAltImageSrc);
+      const spanAltImageScore = document.createElement("span");
+      if(element.alt_img_score>0){
+        spanAltImageScore.className = "span_alt_image_score_positif";
+      }else{
+        spanAltImageScore.className = "span_alt_image_score_negatif";
+      }
+      
+      spanAltImageScore.innerHTML = element.alt_img_score+"/5";
 
-      containerAltImage.appendChild(spanAltImageScore);
-      containerAltImage.appendChild(spanAltImageState);
+      spanAltImageSrc.appendChild(linkAltImageSrc);
       containerAltImage.appendChild(spanAltImageText);
       containerAltImage.appendChild(spanAltImageSrc);
-
+      containerAltImage.appendChild(spanAltImageScore);
 
       containerContentCard.appendChild(containerAltImage);
     });
 
+    return containerContentCard;
+
+  }else if(object.check_title === "Hn"){
+
+    console.log("in hn check object");
+    containerContentCard.className = "content_hn_check";
+
+    const containerResumeHnCheck = document.createElement("div");
+    containerResumeHnCheck.className = "container_resume_hn_check";
+
+    const spanTitleResumeHnCheck = document.createElement("span");
+    spanTitleResumeHnCheck.className = "title_resume_hn_check";
+    spanTitleResumeHnCheck.innerHTML = "Statut du check des Hn: ";
+
+    const spanStatutHnCheck = document.createElement("span");
+    spanStatutHnCheck.className = "span_state_hn_check";
+
+    spanStatutHnCheck.appendChild(displayState(object.hn_check_state));
+
+    const spanNbHnCheck = document.createElement("span");
+    spanNbHnCheck.className = "span_nb_hn_check";
+    spanNbHnCheck.innerHTML = "Nb de Hn: "+object.nb_hn;
+
+    const spanScoreHn = document.createElement("span");
+    spanScoreHn.className = "span_score_hn";
+    spanScoreHn.innerHTML = "Score Total: "+object.global_score;
+
+    containerResumeHnCheck.appendChild(spanTitleResumeHnCheck);
+    containerResumeHnCheck.appendChild(spanStatutHnCheck);
+    containerResumeHnCheck.appendChild(spanScoreHn);
+    containerResumeHnCheck.appendChild(spanNbHnCheck);
+
+    containerContentCard.appendChild(containerResumeHnCheck);
+
+    const containerHnOutline = document.createElement("div");
+    containerHnOutline.className = "container_hn_outline_check";
+
+    const headerHnOutline = document.createElement("div");
+    headerHnOutline.className = "header_hn_outline_check";
+
+    const titleHnOutline = document.createElement("div");
+    titleHnOutline.className = "title_hn_outline";
+    titleHnOutline.innerHTML = object.hn_outline.check_title + ":";
+
+    const hnOutlineNoteContainer = document.createElement("div");
+    hnOutlineNoteContainer.className = "hn_outline_note_container";
+    hnOutlineNoteContainer.innerHTML = object.hn_outline.global_score + "/5";
+
+    headerHnOutline.appendChild(titleHnOutline);
+    headerHnOutline.appendChild(hnOutlineNoteContainer);
+    headerHnOutline.appendChild(createIconScore(object.hn_outline.global_score));
+
+    containerHnOutline.appendChild(headerHnOutline);
+    const contentHnOutline = document.createElement("div");
+    contentHnOutline.className = "content_outline_check";
+    contentHnOutline.style.display = "none"; // Cacher le contenu par défaut
+
+    const toggleDiv = document.createElement("div");
+    toggleDiv.className = "toggle_button";
+    toggleDiv.classList.add("reversed"); // Ajouter la classe "reversed" pour que les flèches pointent vers le bas au début
+
+  headerHnOutline.addEventListener("click", () => {
+    if (contentHnOutline.style.display === "none") {
+      contentHnOutline.style.display = "block";
+      toggleDiv.classList.remove("reversed"); // Retirer la classe "reversed" pour que les flèches pointent vers le bas
+    } else {
+      contentHnOutline.style.display = "none";
+      toggleDiv.classList.add("reversed"); // Ajouter la classe "reversed" pour que les flèches pointent vers le haut
+    }
+  });
+
+  object.hn_outline.hn.forEach(element => {
+
+    const containerHn = document.createElement('div');
+    containerHn.className = "container_hn";
+
+    const spanTypeHn = document.createElement('span');
+    spanTypeHn.className = "span_type_hn";
+    spanTypeHn.innerHTML = "Type: "+element.hn_type;
+
+    const spanTexteHn = document.createElement('span');
+    spanTexteHn.className = "span_Texte_hn";
+    spanTexteHn.innerHTML = "Texte: "+element.hn_validity_message;
+
+    const spanOutlineScore = document.createElement("span");
+    if(element.hn_validity_score>0){
+      spanOutlineScore.className = "span_outline_score_positif";
+    }else{
+      spanOutlineScore.className = "span_outline_score_negatif";
+    }
+    
+    spanOutlineScore.innerHTML = element.hn_validity_score+"/5";
+
+    containerHn.appendChild(spanTypeHn);
+    containerHn.appendChild(spanTexteHn);
+    containerHn.appendChild(spanOutlineScore);
+    contentHnOutline.appendChild(containerHn);
+  });
+  
+    headerHnOutline.appendChild(toggleDiv);
+    containerHnOutline.appendChild(contentHnOutline);
+    containerContentCard.appendChild(containerHnOutline);
+
+    const containerHnReco = document.createElement("div");
+    containerHnReco.className = "container_hn_reco_check";
+
+    const headerHnReco = document.createElement("div");
+    headerHnReco.className = "header_hn_reco_check";
+
+    const titleHnReco = document.createElement("div");
+    titleHnReco.className = "title_hn_reco";
+    titleHnReco.innerHTML = object.hn_reco.check_title + ":";
+
+    const hnRecoNoteContainer = document.createElement("div");
+    hnRecoNoteContainer.className = "hn_reco_note_container";
+    hnRecoNoteContainer.innerHTML = object.hn_reco.global_score + "/5";
+
+    headerHnReco.appendChild(titleHnReco);
+    headerHnReco.appendChild(hnRecoNoteContainer);
+    headerHnReco.appendChild(createIconScore(object.hn_reco.global_score));
+
+    containerHnReco.appendChild(headerHnReco);
+    const contentHnReco = document.createElement("div");
+    contentHnReco.className = "content_reco_check";
+    contentHnReco.style.display = "none"; // Cacher le contenu par défaut
+
+    const containerResumeReco = document.createElement('div');
+    containerResumeReco.className = "container_resume_reco";
+
+    const spanStatusRecoCheck = document.createElement('span');
+    spanStatusRecoCheck.className = "span_status_reco_check";
+    spanStatusRecoCheck.innerHTML = "Statut du check des Reco: ";
+    
+    const spanDisplayState = document.createElement('span');
+    spanDisplayState.className = "span_display_state";
+
+    spanDisplayState.appendChild(displayState(object.hn_reco.hn_check_state));
+
+    const precoHnTexte = document.createElement('span');
+    precoHnTexte.className = "span_preco_reco_texte";
+    precoHnTexte.innerHTML = "Préco: "+object.hn_reco.hn_preco;
+    
+    containerResumeReco.appendChild(spanStatusRecoCheck);
+    containerResumeReco.appendChild(spanDisplayState);
+    containerResumeReco.appendChild(precoHnTexte);
+
+    const toggleDivReco = document.createElement("div");
+    toggleDivReco.className = "toggle_button";
+    toggleDivReco.classList.add("reversed"); // Ajouter la classe "reversed" pour que les flèches pointent vers le bas au début
+
+    headerHnReco.addEventListener("click", () => {
+    if (contentHnReco.style.display === "none") {
+      contentHnReco.style.display = "block";
+      toggleDivReco.classList.remove("reversed"); // Retirer la classe "reversed" pour que les flèches pointent vers le bas
+    } else {
+      contentHnReco.style.display = "none";
+      toggleDivReco.classList.add("reversed"); // Ajouter la classe "reversed" pour que les flèches pointent vers le haut
+    }
+  });
+
+  headerHnReco.appendChild(toggleDivReco);
+  contentHnReco.appendChild(containerResumeReco);
+
+  object.hn_reco.hn.forEach(element => {
+
+    const containerReco = document.createElement('div');
+    containerReco.className = "container_reco";
+
+    const containerTypeReco = document.createElement('span');
+    containerTypeReco.className = "container_type_reco";
+    containerTypeReco.innerHTML = "Type: "+element.hn_type;
+
+    const containerTextReco = document.createElement('span');
+    containerTextReco.className = "container_texte_reco";
+    containerTextReco.innerHTML = "Texte: "+element.hn_txt;
+
+    const spanREcoScore = document.createElement('span');
+    if(element.hn_score>0){
+      spanREcoScore.className = "span_reco_score_positif";
+    }else{
+      spanREcoScore.className = "span_reco_score_negatif";
+    }
+    
+    spanREcoScore.innerHTML = element.hn_score+"/5";
+
+    const containerRecoDetails = document.createElement('div');
+    containerRecoDetails.className = "container_reco_details";
+
+    const containerNbMots = document.createElement('span');
+    containerNbMots.className = "container_nb_mots";
+    containerNbMots.innerHTML = "Nb de mots: "+element.hn_words_count;
+
+    const precoHn = document.createElement('div');
+    precoHn.className = "preco_hn";
+    precoHn.innerHTML = "Préconisation: Nombre de mots comptabilisés (de 5 à 8)"
+
+
+    const containerNbLetter = document.createElement('span');
+    containerNbLetter.className = "container_nb_letter";
+    containerNbLetter.innerHTML = "Nb de lettres: "+element.hn_letters_count;
+
+    const listeMots = document.createElement('div');
+    listeMots.className = "container_liste_words";
+
+    element.hn_words_sliced.forEach(element => {
+      const pWord = document.createElement('span');
+      pWord.className = "p_word";
+      pWord.innerHTML = element+"  ";
+      listeMots.appendChild(pWord);
+    });
+
+
+    containerReco.appendChild(containerTypeReco);
+    containerReco.appendChild(containerTextReco);
+    containerReco.appendChild(spanREcoScore);
+    containerRecoDetails.appendChild(containerNbMots);
+    containerRecoDetails.appendChild(precoHn);
+    containerRecoDetails.appendChild(listeMots);
+    containerRecoDetails.appendChild(containerNbLetter);
+    containerReco.appendChild(containerRecoDetails);
+
+   
+    contentHnReco.appendChild(containerReco);
+  });
+
+  containerHnReco.appendChild(contentHnReco);
+
+  containerContentCard.appendChild(containerHnReco);
+
+    return containerContentCard;
+
+  }else if(object.check_title === "Images check"){
+
+    console.log("in images check object");
     return containerContentCard;
 
   }else{
