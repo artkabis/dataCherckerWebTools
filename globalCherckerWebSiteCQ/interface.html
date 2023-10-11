@@ -332,12 +332,12 @@
         }
 
         .content_card_meta_check,
-        .content_image_alt_check {
+        .content_image_alt_check, .content_hn_check{
             margin-top: 10px;
         }
 
         .container_resume_meta_check,
-        .container_resume_image_alt_check {
+        .container_resume_image_alt_check, .container_resume_hn_check {
             display: inline-flex;
         }
 
@@ -345,12 +345,12 @@
         .title_resume_image_alt_check {}
 
         .span_state_meta_check,
-        .span_state_image_alt_check {
+        .span_state_image_alt_check,.span_state_hn_check, .span_display_state {
             margin-left: 3px
         }
 
         .span_nb_meta_check,
-        .span_nb_alt_image_check {
+        .span_nb_alt_image_check, .span_nb_hn_check {
             margin-left: 15px
         }
 
@@ -388,7 +388,7 @@
             padding-top: 5px;
         }
 
-        .span_score_alt_image {
+        .span_score_alt_image, .span_score_hn {
             display: inline-block;
             margin-left: 15px;
         }
@@ -411,6 +411,88 @@
 
         .span_alt_image_txt, .span_alt_image_src{padding-left: 10px;}
 
+        .span_alt_image_score_positif, .span_alt_image_score_negatif {
+            float: right;
+            display: flex;
+            padding: 5px;
+            border-radius: 3px;
+        }
+
+        .span_alt_image_score_positif{background-color: darkkhaki;}
+
+        .span_alt_image_score_negatif{background-color: red;}
+
+        .span_alt_image_txt, .span_alt_image_src{padding-left: 10px;}
+
+        .span_alt_image_txt_undef{color:red;}
+
+        .title_hn_outline, .hn_outline_note_container, .title_hn_reco, .hn_reco_note_container{display: inline-block;}
+
+        .hn_outline_note_container, .hn_reco_note_container{padding-left: 5px;}
+
+        .container_hn_outline_check .icon_score, .container_hn_reco_check .icon_score{position: relative;top: 5px;padding-left: 15px;}
+
+        .container_hn_outline_check, .container_hn_reco_check{
+            width: 98%;
+            height: auto;
+            box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .2), 0 1px 5px 0 rgba(0, 0, 0, .12);
+            font-size: 18px;
+            margin-bottom: 2%;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        .header_hn_outline_check, .header_hn_reco_check{
+            display: block;
+            width: 100%;
+            align-items: center;
+            padding-bottom: 10px;
+            padding-top: 4px;
+            font-size: 20px;
+        }
+
+        .content_outline_check, .content_reco_check{
+            height: auto;
+            border-top: 1px solid #838383;
+            padding-bottom: 10px;
+            padding-top: 8px;
+        }
+
+        .header_hn_outline_check:hover, .header_hn_reco_check:hover{cursor:pointer}
+
+        .container_hn, .container_reco{
+            width: 98%;
+            height: auto;
+            box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .2), 0 1px 5px 0 rgba(0, 0, 0, .12);
+            font-size: 18px;
+            margin-bottom: 1%;
+            padding-left: 10px;
+            padding-right: 10px;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            border-radius: 5px;
+        }
+
+        .span_outline_score_positif, .span_outline_score_negatif, .span_reco_score_positif, .span_reco_score_negatif {
+            float: right;
+            display: flex;
+            padding: 3px;
+            border-radius: 3px;
+        }
+
+        .span_outline_score_positif, .span_reco_score_positif{background-color: darkkhaki;}
+
+        .span_outline_score_negatif, .span_reco_score_negatif{background-color: red;}
+
+        .span_Texte_hn, .container_texte_reco{padding-left: 10px;}
+
+        .container_type_reco, .span_type_hn{border: 1px solid;padding: 3px;border-radius: 3px;}
+
+        .container_reco_details{padding-top:5px;}
+
+        .container_resume_reco{display: inline-flex;}
+
+        .span_preco_reco_texte{padding-left:10px}
        
     </style>
 </head>
