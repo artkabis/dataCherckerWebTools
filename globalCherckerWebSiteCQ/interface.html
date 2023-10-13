@@ -6,7 +6,7 @@
     <title>DataChecker WebTools</title>
 
     <style>
-        body,
+         body,
         html {
             height: 100%;
             margin: 0;
@@ -332,12 +332,12 @@
         }
 
         .content_card_meta_check,
-        .content_image_alt_check, .content_hn_check{
+        .content_image_alt_check, .content_hn_check, .content_img_check{
             margin-top: 10px;
         }
 
         .container_resume_meta_check,
-        .container_resume_image_alt_check, .container_resume_hn_check {
+        .container_resume_image_alt_check, .container_resume_hn_check, .container_resume_image_check {
             display: inline-flex;
         }
 
@@ -350,7 +350,7 @@
         }
 
         .span_nb_meta_check,
-        .span_nb_alt_image_check, .span_nb_hn_check {
+        .span_nb_alt_image_check, .span_nb_hn_check, .span_nb_image_check {
             margin-left: 15px
         }
 
@@ -388,7 +388,7 @@
             padding-top: 5px;
         }
 
-        .span_score_alt_image, .span_score_hn {
+        .span_score_alt_image, .span_score_hn, .span_score_image {
             display: inline-block;
             margin-left: 15px;
         }
@@ -428,11 +428,11 @@
 
         .title_hn_outline, .hn_outline_note_container, .title_hn_reco, .hn_reco_note_container{display: inline-block;}
 
-        .hn_outline_note_container, .hn_reco_note_container{padding-left: 5px;}
+        .hn_outline_note_container, .hn_reco_note_container, .image_alt_note_container{padding-left: 5px;}
 
         .container_hn_outline_check .icon_score, .container_hn_reco_check .icon_score{position: relative;top: 5px;padding-left: 15px;}
 
-        .container_hn_outline_check, .container_hn_reco_check{
+        .container_hn_outline_check, .container_hn_reco_check, .container_image_alt{
             width: 98%;
             height: auto;
             box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .2), 0 1px 5px 0 rgba(0, 0, 0, .12);
@@ -478,6 +478,7 @@
             display: flex;
             padding: 3px;
             border-radius: 3px;
+            margin-left:auto;
         }
 
         .span_outline_score_positif, .span_reco_score_positif{background-color: darkkhaki;}
@@ -493,7 +494,71 @@
         .container_resume_reco{display: inline-flex;}
 
         .span_preco_reco_texte{padding-left:10px}
-       
+
+        .header_image_alt_check{display: inline-flex;}
+
+        .title_image_alt, .image_alt_note_container, .icon_score{display: inline-block;}
+
+        .container_image_alt .header_card_check{padding-top: 4px;}
+
+        .container_resume_link_check{display: inline-flex;padding-top:10px}
+
+        .span_statut_link_check{margin-left: 3px;}
+
+        .container_nb_link, .container_nb_link_total{margin-left: 15px;}
+
+        .container_link_resume{
+            display: flex;
+            padding-top:10px;
+            padding-bottom: 10px;
+        }
+
+        .container_state_title, .container_status{margin-left: 10px;}
+
+        .container_state_link{margin-left: 3px;}
+
+        .container_message, .container_state_link, .container_state_title{display: inline-block;}
+
+        .container_link_resume .icon_state_ok{display: inline-block;}
+
+        .container_link{
+            width: 98%;
+            height: auto;
+            box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .2), 0 1px 5px 0 rgba(0, 0, 0, .12);
+            font-size: 18px;
+            margin-bottom: 2%;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+       .a_link_url_src{padding-top: 10px;padding-bottom: 5px;display: block;}
+
+       .container_resume_bold_check{display: inline-flex;padding-top: 10px;}
+
+       .span_bold_check_state{margin-left:3px}
+
+       .container_nb_bold{margin-left: 10px;}
+
+       .container_bold_content{display: block;}
+
+       .bold_title_state, .container_state_bold{display: inline-block;}
+
+       .container_bold{display: block;
+        width: 98%;
+            height: auto;
+            box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .2), 0 1px 5px 0 rgba(0, 0, 0, .12);
+            font-size: 18px;
+            margin-bottom: 2%;
+            padding-left: 10px;
+            padding-right: 10px;
+        padding-top: 10px;
+    padding-bottom: 10px;}
+
+       .container_bold .icon_state{display: inline-block;margin-left: 3px;}
+
+       .container_bold_txt{margin-top: 5px;}
+
+       .container_bold_nb_word{margin-left: 15px;}
+
     </style>
 </head>
 
