@@ -24,7 +24,8 @@
 - Check outline Hn validity.
 - Toggle Cors (to fetch request from another domain)
 - Check inner and outer navigation (Duda nav) and open links sitemap in new window.
-- Check the correctness of the spelling of the content of the web page.
+- Verify the accuracy of the webpage's content spelling.
+- Cloud of most used words in the web page.
 - Soprod: Copy all expressions and localities.
 
 ## Installation (fr) :
