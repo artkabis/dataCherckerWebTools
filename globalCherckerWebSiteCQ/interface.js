@@ -677,9 +677,235 @@ const containerContentCard = document.createElement("div");
   }else if(object.check_title === "Images check"){
 
     console.log("in images check object");
+    containerContentCard.className = "content_img_check";
+
+    const containerResumeImageCheck = document.createElement("div");
+    containerResumeImageCheck.className = "container_resume_image_check";
+
+    const spanTitleResumeImageCheck = document.createElement("span");
+    spanTitleResumeImageCheck.className = "title_resume_image_check";
+    spanTitleResumeImageCheck.innerHTML = "Statut du check des Images: ";
+
+    const spanStatutImageCheck = document.createElement("span");
+    spanStatutImageCheck.className = "span_state_image_alt_check";
+
+    spanStatutImageCheck.appendChild(displayState(object.img_check_state));
+
+    const spanScoreImage = document.createElement("span");
+    spanScoreImage.className = "span_score_image";
+    spanScoreImage.innerHTML = "Score Total: "+object.global_score;
+
+    const spanNbImageCheck = document.createElement("span");
+    spanNbImageCheck.className = "span_nb_image_check";
+    spanNbImageCheck.innerHTML = "Nb de Images: "+object.nb_img;
+
+    containerResumeImageCheck.appendChild(spanTitleResumeImageCheck);
+    containerResumeImageCheck.appendChild(spanStatutImageCheck);
+    containerResumeImageCheck.appendChild(spanScoreImage);
+    containerResumeImageCheck.appendChild(spanNbImageCheck);
+
+    const containerImageAlt = document.createElement('div');
+    containerImageAlt.className = "container_image_alt";
+
+    const headerImageAlt = document.createElement("div");
+    headerImageAlt.className = "header_card_check";
+
+    const titleImageAlt = document.createElement("div");
+    titleImageAlt.className = "title_image_alt";
+    titleImageAlt.innerHTML = "Images Alt: ";
+
+    const imageAltNoteContainer = document.createElement("div");
+    imageAltNoteContainer.className = "image_alt_note_container";
+    imageAltNoteContainer.innerHTML = object.global_alt_scores + "/5";
+
+    headerImageAlt.appendChild(titleImageAlt);
+    headerImageAlt.appendChild(imageAltNoteContainer);
+    headerImageAlt.appendChild(createIconScore(object.global_alt_scores));
+
+
+    const contentImage = document.createElement('div');
+    contentImage.className = "content_image_check";
+    contentImage.style.display = "none"; // Cacher le contenu par défaut
+
+    const toggleDivImage = document.createElement("div");
+    toggleDivImage.className = "toggle_button";
+    toggleDivImage.classList.add("reversed"); // Ajouter la classe "reversed" pour que les flèches pointent vers le bas au début
+
+  
+
+    headerImageAlt.addEventListener("click", () => {
+    if (contentImage.style.display === "none") {
+      contentImage.style.display = "block";
+      toggleDivImage.classList.remove("reversed"); // Retirer la classe "reversed" pour que les flèches pointent vers le bas
+    } else {
+      contentImage.style.display = "none";
+      toggleDivImage.classList.add("reversed"); // Ajouter la classe "reversed" pour que les flèches pointent vers le haut
+    }
+  });
+
+  headerImageAlt.appendChild(toggleDivImage);
+
+    containerImageAlt.appendChild(headerImageAlt);
+    containerImageAlt.appendChild(contentImage);
+
+    
+    containerContentCard.appendChild(containerResumeImageCheck);
+    containerContentCard.appendChild(containerImageAlt);
+
     return containerContentCard;
 
-  }else{
+  }else if(object.check_title === "Links validities"){
+
+    const containerLinkCheck = document.createElement('div');
+    containerLinkCheck.className = "container_link_check";
+
+    const containerResumeLinkCheck = document.createElement('div');
+    containerResumeLinkCheck.className = "container_resume_link_check";
+
+    const spanStatutTitleLinkCheck = document.createElement('div');
+    spanStatutTitleLinkCheck.className = "span_statut_title_link_check";
+    spanStatutTitleLinkCheck.innerHTML = "Statut du check Link: ";
+
+    const spanStatutLinkCheck = document.createElement('span');
+    spanStatutLinkCheck.className = "span_statut_link_check";
+    spanStatutLinkCheck.appendChild(displayState(object.link_check_state));
+
+    const containerNbLink = document.createElement('div');
+    containerNbLink.className = "container_nb_link";
+    containerNbLink.innerHTML = "Nb de link valide: "+object.nb_link;
+
+    const containerNbLinkTotal = document.createElement('span');
+    containerNbLinkTotal.className = "container_nb_link_total";
+    containerNbLinkTotal.innerHTML = "Nb de link Total: "+object.link.length;
+
+    const containerLinkCheckContent = document.createElement('div');
+    containerLinkCheckContent.className = "container_link_check_content";
+
+    object.link.forEach(element =>{
+
+      const containerLink = document.createElement('div');
+      containerLink.className = "container_link";
+
+      const containerLinkResume = document.createElement('div');
+      containerLinkResume.className = "container_link_resume";
+
+      const containerMessage = document.createElement('span');
+      containerMessage.className = "container_message";
+      containerMessage.innerHTML = "Message: "+element.link_msg;
+
+      const containerStateTitle = document.createElement('span');
+      containerStateTitle.className = "container_state_title";
+      containerStateTitle.innerHTML = "Status du check: ";
+
+      const containerStateLink = document.createElement('span');
+      containerStateLink.className = "container_state_link";
+      containerStateLink.appendChild(displayState(element.link_state));
+
+      const containerStatus = document.createElement('span');
+      containerStatus.className = "container_status";
+      containerStatus.innerHTML = "Status: "+element.link_status;
+
+      const containerNoteLink = document.createElement('span');
+      containerNoteLink.className = "container_note_link";
+
+      if(element.link_score>0){
+        containerNoteLink.className = "span_reco_score_positif";
+      }else{
+        containerNoteLink.className = "span_reco_score_negatif";
+      }
+      
+      containerNoteLink.innerHTML = element.link_score+"/5";
+
+      const containerLinkText = document.createElement('div');
+      containerLinkText.className = "container_link_text";
+      containerLinkText.innerHTML = "Texte: "+element.link_text;
+
+
+      const containerLinkUrl = document.createElement("a");
+      containerLinkUrl.href = element.link_url;
+      containerLinkUrl.className ="a_link_url_src target";
+      containerLinkUrl.innerHTML = element.link_url;
+
+
+      containerLinkResume.appendChild(containerMessage);
+      containerLinkResume.appendChild(containerStateTitle);
+      containerLinkResume.appendChild(containerStateLink);
+      containerLinkResume.appendChild(containerStatus);
+      containerLinkResume.appendChild(containerNoteLink);
+
+      containerLink.appendChild(containerLinkResume);
+      containerLink.appendChild(containerLinkText);
+      containerLink.appendChild(containerLinkUrl);
+
+      containerLinkCheckContent.appendChild(containerLink);
+    });
+
+    containerResumeLinkCheck.appendChild(spanStatutTitleLinkCheck);
+    containerResumeLinkCheck.appendChild(spanStatutLinkCheck);
+    containerResumeLinkCheck.appendChild(containerNbLink);
+    containerResumeLinkCheck.appendChild(containerNbLinkTotal);
+    containerLinkCheck.appendChild(containerResumeLinkCheck);
+    containerLinkCheck.appendChild(containerLinkCheckContent);
+    containerContentCard.appendChild(containerLinkCheck);
+    return containerContentCard;
+
+  }else if(object.check_title === "validité des préco lié au bold des textes."){
+
+    const containerResumeBoldCheck = document.createElement('div');
+    containerResumeBoldCheck.className = "container_resume_bold_check";
+
+    const spanBoldTitle = document.createElement('span');
+    spanBoldTitle.className = "span_bold_title";
+    spanBoldTitle.innerHTML = "Statut du check bold: ";
+
+    const span_bold_check_state = document.createElement('span');
+    span_bold_check_state.className = "span_bold_check_state";
+    span_bold_check_state.appendChild(displayState(object.bold_check_state));
+
+    const containerNbBold = document.createElement('span');
+    containerNbBold.className = "container_nb_bold";
+    containerNbBold.innerHTML = "Nb de bold: "+object.nb_bold;
+
+    const containerBoldContent = document.createElement('div');
+    containerBoldContent.className = "container_bold_content";
+
+    object.bold_txt.forEach(element =>{
+
+      const containerBold = document.createElement('div');
+      containerBold.className = "container_bold";
+
+      const bold_title_state = document.createElement('span');
+      bold_title_state.className = "bold_title_state";
+      bold_title_state.innerHTML = "Statut du check: ";
+
+      const containerStateBold = document.createElement('span');
+      containerStateBold.className = "container_state_bold";
+      containerStateBold.appendChild(displayState(element.bold_txt_state));
+
+      const containerBoldNbWord = document.createElement('span');
+      containerBoldNbWord.className = "container_bold_nb_word";
+      containerBoldNbWord.innerHTML = "Nb de mots: "+element.bold_nb_words;
+
+      const containerBoldText = document.createElement('div');
+      containerBoldText.className = "container_bold_txt";
+      containerBoldText.innerHTML = "Texte: "+element.bold_txt; 
+
+      containerBold.appendChild(bold_title_state);
+      containerBold.appendChild(containerStateBold);
+      containerBold.appendChild(containerBoldNbWord);
+      containerBold.appendChild(containerBoldText);
+      containerBoldContent.appendChild(containerBold);
+
+    });
+
+    containerResumeBoldCheck.appendChild(spanBoldTitle);
+    containerResumeBoldCheck.appendChild(span_bold_check_state);
+    containerResumeBoldCheck.appendChild(containerNbBold);
+    containerContentCard.appendChild(containerResumeBoldCheck);
+    containerContentCard.appendChild(containerBoldContent);
+    return containerContentCard;
+  }
+    else{
     return containerContentCard;
   }
 
