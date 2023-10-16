@@ -62,10 +62,11 @@ function initcheckerLinksAndImages(){
     let result = false;
     requestInitiatedCount++;
     let response;
+    const isBas64Img = (args[1].includes('data:image'))
     const isBgImage = args[4].includes("bg");
     let bgImg = new Image();
     let fsize = "0";
-    if (args[1] !== !!0) {
+    if (args[1] !== !!0 && !isBas64Img) {
       
       args[1] = args[1].includes("?") ? args[1].split("?")[0] : args[1];
       try {
@@ -252,7 +253,7 @@ function initcheckerLinksAndImages(){
         
       }
     } else {
-      console.log("url not valid : ", result.url);
+      console.log("url not valid : ", result.url, args[1]);
    
     }
     requestCompletedCount++;
@@ -315,10 +316,12 @@ function initcheckerLinksAndImages(){
         $(this).attr("alt").length > 0 &&
         $(this).attr("alt") !== "";
       const isDudaImage = srcV && srcV.includes("cdn-website");
+      const isBas64Img = srcV && srcV.includes("data:image")
       //const checkStackMedias = (srcV.includes('/uploads/') || srcV.includes('/images/'));
 
       srcV =
         !isDudaImage &&
+        !isBas64Img &&
         srcV &&
         srcV.at(0).includes("/") &&
         srcV.includes("/wp-content/")
@@ -326,6 +329,7 @@ function initcheckerLinksAndImages(){
             "/wp-content/" +
             srcV.split("/wp-content/")[1]
           : (src && !srcV.includes("http") && !srcV.at(0).includes('/')) ? window.location.origin +'/'+srcV : srcV;
+          srcV = (srcV && srcV.includes('data:image') && srcV.includes('http'))  ? 'data:image'+srcV.split('data:image')[1] : srcV;
 
       if (srcV) {
         $(this) && srcV;
@@ -366,7 +370,7 @@ function initcheckerLinksAndImages(){
         let _this = $(this);
         let customImg = new Image();
         bgimg =
-          bgimg.includes("http") || bgimg.includes("data:image/")
+          bgimg.includes("http") || bgimg.includes('data:image')
             ? bgimg
             : window.location.origin + bgimg;
         const isDudaImage =

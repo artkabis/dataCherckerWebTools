@@ -104,8 +104,11 @@
       .replaceAll("  ", " ");
     let words = tagContent.split(" ");
     const exclusesWords = [
+      "-",
+      "_",
       "&",
       "?",
+      '!',
       ":",
       "je",
       "me",

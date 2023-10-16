@@ -29,11 +29,13 @@
   dataChecker.alt_img_check.alt_img = [];
   let isWP = $("#Content").length;
   $("img, svg").each(function (i, t) {
+    const isSVG = t.tagName === "svg";
     let src = $(this).attr("src")
       ? $(this).attr("src")
       : $(this).attr("data-src");
     const isDudaImage = src && src.includes("cdn-website");
     //console.log({src});
+
     src =
       !isDudaImage &&
       src &&
@@ -45,18 +47,19 @@
         : ( src && !src.includes("http") && !src.at(0).includes('/')) ? window.location.origin +'/'+src : src;
     let alt;
     const excludes =
-      this.tagName !== "svg" &&
       this.getAttribute("class") !== "lb-image" &&
       !$(this).hasClass("leaflet-marker-icon");
+      src = (isSVG) ?"no-src-svg" : src;
     const filterDomain =
       src &&
       !src.includes("mappy") &&
       !src.includes("cdn.manager.solocal.com") &&
       !src.includes("static.cdn-website");
 
-    if (filterDomain && excludes) {
+
+    if (filterDomain && excludes && t.tagName !=="svg") {
       alt = $(this).attr("alt");
-      !alt && alt === ""
+      !alt && alt === "" || alt === undefined
         ? (console.log(`%cNO ALT >>> ${src}`, "color:red"),
           (nb_alt_imgs_wrong += 1),
           dataChecker.alt_img_check.alt_img.push({
@@ -82,13 +85,13 @@
           );
     } else if (
       this.tagName == "svg" &&
-      this.getAttribute("alt") &&
-      this.getAttribute("alt").length < 1
+      !this.getAttribute("alt")
     ) {
       console.log(
-        `%cNO ALT SVG >>> ${(this.getAttribute("alt"), this)}`,
+        `%cNO ALT SVG >>>`,
         "color:red"
       );
+      console.log('Node : ',t);
       nb_alt_imgs_wrong += 1;
       dataChecker.alt_img_check.alt_img.push({
         alt_img_state: true,
@@ -130,7 +133,7 @@
         }).catch(err=> (accessibleImage) && console.log(err))
       : this.tagName === "svg" &&
         filterDomain &&
-        excludes &&
+        excludes && isDudaImage &&
         console.log(
           `%cFichier SVG :  %c${
             !this.getAttribute("alt")

@@ -281,13 +281,15 @@ chrome.runtime.onInstalled.addListener(once);
 chrome.runtime.onStartup.addListener(once);
 let user_soprod;
 /****** check all tab and remove interface*/
-const detectOnotherInterface = async () => {
-  const allTabs = await chrome.tabs.query({});
-  allTabs.forEach((tab, i) => {
-    if (!tab.url.startsWith("chrome://")) {
-      tab.url.includes("interface.html") && chrome.tabs.remove(tab.id);
-    }
+let allTabs = [];
+ (async()=>await chrome.tabs
+    .query({})
+    .then((data) => data.filter((tab) => allTabs.push(tab))))();
+const detectOnotherInterface = (allTabs) => {
+  chrome.tabs.query({}, tabs => {tabs.forEach((tab, i) => {
+    tab.url.includes("interface.html") && chrome.tabs.remove(tab.id);
   });
+});
 };
 
 let cmp = 0;
@@ -296,10 +298,8 @@ let global_data = {};
 const db_name = "db_datas_checker";
 const detecteSoprod = async () => {
   console.log("detecting soprod tab");
-  const allTabs = await chrome.tabs
-    .query({})
-    .then((data) => data.filter((tab) => !tab.url.includes("chrome")));
-  console.log({ allTabs });
+  
+  console.log('in detecteSoprod : ',{ allTabs });
   let isSoprodTab = {};
   isSoprodTab.detected = false;
   let userSoprod = undefined;
@@ -345,26 +345,29 @@ const detecteSoprod = async () => {
         return;
       }
     } else {
-      console.log(
-        "tab length and i",
-        allTabs.length - 1,
-        i,
-        " userSoprod is undefined : ",
-        userSoprod
-      );
-      const storageUser = await chrome.storage.sync.get("user");
-      console.log("get user storage :; ", storageUser);
-      console.log(
-        "is valide user soprod : ",
-        storageUser.user,
-        "includes SO : ",
-        storageUser.user.includes("SO")
-      );
+      
       if (
-        allTabs.length - 1 === i &&
-        storageUser.user === undefined &&
-        !storageUser.user.includes("SO")
+        allTabs.length - 1 === i 
       ) {
+
+        console.log(
+          "tab length and i",
+          allTabs.length - 1,
+          i,
+          " userSoprod is undefined : ",
+          userSoprod
+        );
+        const storageUser = await chrome.storage.sync.get("user");
+        console.log("get user storage :; ", storageUser);
+        console.log(
+          "is valide user soprod : ",
+          storageUser.user,
+          "includes SO : ",
+          storageUser.user.includes("SO")
+        );
+        if(
+          storageUser.user === undefined &&
+          !storageUser.user.includes("SO")){
         console.log("mise en place du name par défaut !!!");
         // Si l'onglet n'est pas lié à "soprod", le stocker comme dernier onglet non "soprod"
         await chrome.scripting.executeScript({
@@ -375,7 +378,7 @@ const detecteSoprod = async () => {
             });
           },
         });
-      } else if (storageUser.user.includes("SO")) {
+      }else if (storageUser.user.includes("SO")) {
         console.log(
           "user detected and username includes SO : " +
             storageUser.user.includes("SO"),
@@ -398,6 +401,7 @@ const detecteSoprod = async () => {
           },
         });
       }
+      } 
     }
   });
 };
@@ -411,8 +415,8 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   if (request.action === "open_interface") {
     cmpInterface++;
     if (cmpInterface === 1) {
-      console.log("launch detected antoned interface");
-      detectOnotherInterface();
+      console.log("launch detected antoned interface",allTabs);
+      detectOnotherInterface(allTabs);
       console.log("launch detected soprod tab and snip username ");
       detecteSoprod();
       console.log(

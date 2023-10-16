@@ -34,7 +34,7 @@ export const dudaSitemap = (tab) => {
         navInDecode.push(
           finalNavIn.map((node) => {
             return {
-              title: decodeURIComponent(escape(node.title)),
+              title: node.title,
               alias: node.alias,
               path: node.path,
               inNavigation: node.inNavigation,
@@ -51,7 +51,7 @@ export const dudaSitemap = (tab) => {
         navOutDecode.push(
           finalNavOut.map((node) => {
             return {
-              title:  decodeURIComponent(escape(node.title)),
+              title:  node.title,
               alias: node.alias,
               path: node.path,
               inNavigation: node.inNavigation,
