@@ -88,6 +88,8 @@ document
   });
 
 document.querySelector("#analyserBtn").addEventListener("click", function () {
+  var toggleButton = document.getElementById("corsButton");
+  toggleButton.click();
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     var activeTab = tabs[0];
     var tabId = activeTab.id;
@@ -152,21 +154,22 @@ document.querySelector("#wordsCloud").addEventListener("click", function () {
 //listen cors toggle cors activity
 var toggleButton = document.getElementById("corsButton");
 document.addEventListener("DOMContentLoaded", function () {
-  chrome.storage.sync.set({ corsEnabled: true }, function () {
+  let corsEnabled = false;
+  chrome.storage.sync.set({ corsEnabled: corsEnabled }, function () {
     // update state of cors
-    let corsEnabled = true;
+    
     toggleButton.checked = corsEnabled;
-    toggleButton.textContent = corsEnabled ? "Désactiver" : "Activer";
+    toggleButton.textContent = !corsEnabled ? "Désactiver" : "Activer";
     console.log("click toggle cors : ", { corsEnabled });
     // send message in service-worker for update state
-    chrome.runtime.sendMessage({ corsEnabled: true });
+    chrome.runtime.sendMessage({ corsEnabled: corsEnabled });
   });
 
   // get actualy state of corsEnabled value
   chrome.storage.sync.get("corsEnabled", function (result) {
     var corsEnabled = result.corsEnabled;
     toggleButton.checked = corsEnabled; // update state checkbox
-    toggleButton.textContent = corsEnabled ? "Désactiver" : "Activer";
+    toggleButton.textContent = !corsEnabled ? "Désactiver" : "Activer";
 
     // listen event click checkbox
     toggleButton.addEventListener("click", function () {

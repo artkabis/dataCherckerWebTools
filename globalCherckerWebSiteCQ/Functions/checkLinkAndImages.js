@@ -506,6 +506,13 @@ function initcheckerLinksAndImages(){
             );
             console.log("node: ", _node);
             scoreCheckLink.push(0);
+          }else if(res.status === 301){
+            console.log(
+              `!!!! ATENTION REDIRECTION 301 -> url: ${_url} %c${_txt} -> %cstatus: %c${response.status}`,
+              "color:cornflowerblue;",
+              "color:white;",
+              "color:orange"
+            );
           }
           (_node.closest('#dm') && _url.includes('site-privilege.pagesjaunes')) && console.log("%cAttention lien prépup WP présent dans Duda : "+_url+ ' - élément : '+_node,'color:red;');
 
