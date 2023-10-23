@@ -513,6 +513,7 @@ function initcheckerLinksAndImages(){
               "color:white;",
               "color:orange"
             );
+            scoreCheckLink.push(5);
           }
           (_node.closest('#dm') && _url.includes('site-privilege.pagesjaunes')) && console.log("%cAttention lien prépup WP présent dans Duda : "+_url+ ' - élément : '+_node,'color:red;');
 

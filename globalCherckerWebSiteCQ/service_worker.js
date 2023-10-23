@@ -277,8 +277,8 @@ const once = () => {
   });
 };
 
-chrome.runtime.onInstalled.addListener(once);
-chrome.runtime.onStartup.addListener(once);
+// chrome.runtime.onInstalled.addListener(once);
+// chrome.runtime.onStartup.addListener(once);
 let user_soprod;
 /****** check all tab and remove interface*/
 let allTabs = [];

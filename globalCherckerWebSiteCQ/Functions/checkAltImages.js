@@ -85,7 +85,7 @@
           );
     } else if (
       this.tagName == "svg" &&
-      !this.getAttribute("alt")
+      !this.getAttribute("alt") && $(this).attr("class") && !$(this).attr("class").includes("close")
     ) {
       console.log(
         `%cNO ALT SVG >>>`,
