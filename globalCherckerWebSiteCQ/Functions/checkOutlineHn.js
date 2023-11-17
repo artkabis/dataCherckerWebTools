@@ -304,8 +304,8 @@
       .replaceAll("t’", "")
       .replaceAll("  ", " ")
       .replace(/\s\s+/g, ' ');
-      console.log('****************** ',cleanTagContent, tagContent.length);
     const nbLetters = cleanTagContent.length;
+    const nbLettersNoSpace = cleanTagContent.replace(/\s+/g, '').length;
     const tagName = t.tagName;
     
     let words = tagContent.split(" ");
@@ -315,6 +315,7 @@
     console.log({
       [tagName]: cleanTagContent,
       " nb lettres": nbLetters,
+      "nb lettre sans espaces": nbLettersNoSpace,
       "nombre de mots comptabilisés (de 5 à 8) ": Number(words.length),
       "mots comptabilisés": words.join(",").replaceAll("\n", " "),
       node: t,
