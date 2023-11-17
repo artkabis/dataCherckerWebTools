@@ -13,6 +13,8 @@ settingWords.replaceWords = [
   ];
   settingWords.exclusesWords = [
     ":",
+    "(",
+    ")", 
     "?",
     "&",
     "a",
@@ -63,6 +65,7 @@ settingWords.replaceWords = [
     "comme",
     "commencé",
     "d'",
+    "d’",
     "d’aucun",
     "d’aucuns",
     "d'autres",
