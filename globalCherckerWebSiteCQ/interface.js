@@ -1,3 +1,5 @@
+"use strict";
+
 import * as confetti from "./assets/canvas-confetti.mjs";
 
 console.log("------------ in interface script -----------");
@@ -74,6 +76,14 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
 
 const initInterface = (userName, datas) =>{
+
+ //Désactivation des cors une fois les datas envoyé au server : 
+     chrome.storage.sync.get("corsEnabled", function (result) {
+      var corsEnabled = result.corsEnabled;
+      chrome.storage.sync.set({ corsEnabled: corsEnabled }, function () {
+        corsEnabled && chrome.runtime.sendMessage({ corsEnabled: false });
+      });
+    }); 
 const dataChecker = datas;
 window["dataCheck"] = dataChecker;
 document.querySelector('header .user-name .name').textContent = userName;

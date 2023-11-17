@@ -1,11 +1,12 @@
+"use strict";
 //import {openDb,getObjectStore} from './Functions/utils.js';
 import { creatDB } from "./Functions/creatIndexDB.js";
 //import {checkUserSoprod} from "./Functions/checkUserSoprod.js";
-import { checkUserIndexDB } from "./Functions/checkUserIndexDB.js";
+//import { checkUserIndexDB } from "./Functions/checkUserIndexDB.js";
 
 // Définir le nom de votre cache
-const cacheName = "dataschecker-cache";
-const extensionBasePath = self.registration.scope;
+//const cacheName = "dataschecker-cache";
+//const extensionBasePath = self.registration.scope;
 // Liste des ressources à mettre en cache (URL complètes)
 const resourcesToCache = [
   "./popup.html",

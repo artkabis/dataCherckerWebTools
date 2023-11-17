@@ -140,13 +140,5 @@ initDataChecker = (size_scores, ratio_scores, alt_scores, scoreCheckLink) => {
       "%c--------------------------------------------Fin du traitement globale du checkerImages ----------------------------------------------------------------",
       "color:green"
     );
-
-    // Écouteur d'événement pour le clic sur le bouton
-    chrome.storage.sync.get("corsEnabled", function (result) {
-      var corsEnabled = result.corsEnabled;
-      chrome.storage.sync.set({ corsEnabled: corsEnabled }, function () {
-        corsEnabled && chrome.runtime.sendMessage({ corsEnabled: false });
-      });
-    });
   }
 };

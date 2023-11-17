@@ -467,8 +467,33 @@ function initcheckerLinksAndImages(){
   }
   let timeout = 30000;
 
-
-  function check(_url, _txt, _node) {
+  let linksAnalyse = [];
+  let linksStack = document.querySelector("#Content")
+    ? $("#Content a, .social-bar a")
+    : $("#dm_content a, .dmCall, .dmFooterContainer a");
+    linksStack = (!document.querySelector("#Content") && !document.querySelectorAll("#dm_content")) ? $("body a") : linksStack;
+    let linksStackFilter = [];
+    linksStack.each(function(i,t){
+      const href = $(this).attr("href");
+       const verif =
+       href &&
+      !href.includes("tel:") &&
+      !href.includes("mailto:") &&
+      !href.includes("javascript:") &&
+      !href.includes("logflare") &&
+      !href.includes("solocal.com") &&
+      !href.includes("sp.report-uri") &&
+      !href.includes("chrome-extension") &&
+      !href.includes("mappy") &&
+      !href.includes("bloctel.gouv.fr") &&
+      !href.includes("client.adhslx.com");
+       (verif) &&  linksStackFilter.push(t);
+    });
+  
+  const nbLinks = linksStackFilter.length;
+  (nbLinks === 0) && checkerImageWP();
+  let iterationsLinks = 0;
+  const check = (_url, _txt, _node) =>{
     const response = {
       status: null,
       document: null,
@@ -505,6 +530,7 @@ function initcheckerLinksAndImages(){
               "color:red"
             );
             console.log("node: ", _node);
+            _node.style.border = 'solid 3px red';
             scoreCheckLink.push(0);
           }else if(res.status === 301){
             console.log(
@@ -527,10 +553,19 @@ function initcheckerLinksAndImages(){
           });
 
           dataChecker.link_check.link_check_state = true;
+          iterationsLinks ++;
+          (iterationsLinks === nbLinks) && (console.log(
+            "--------------------- END check validity links -----------------------------"
+          ),checkerImageWP());
         })
         .catch((error) => {
-          response.status = 404;
+          iterationsLinks ++;
+          _node.style.border = 'solid 3px red';
+
           resolve(response);
+          (iterationsLinks === nbLinks) && (console.log(
+            "--------------------- END check validity links -----------------------------"
+          ),checkerImageWP());
         });
 
       fetchTimeout = setTimeout(() => {
@@ -539,12 +574,9 @@ function initcheckerLinksAndImages(){
       }, (timeout += 1000));
     });
   }
-  let linksAnalyse = [];
-  const linksStack = document.querySelector("#Content")
-    ? document.querySelectorAll("#Content a, .social-bar a")
-    : document.querySelectorAll("#dm_content a, .dmCall, .dmFooterContainer a");
+  
   dataChecker.link_check.nb_link = linksStack.length;
-  $.each(linksStack, function (i, t) {
+  $.each(linksStackFilter, function (i, t) {
     let url = t.href;
     if (url) {
       url =
@@ -567,18 +599,19 @@ function initcheckerLinksAndImages(){
         !url.includes("mappy") &&
         !url.includes("bloctel.gouv.fr") &&
         !url.includes("client.adhslx.com") &&
-        prepubRefonteWPCheck &&
+       // prepubRefonteWPCheck &&
         url.at(0) !== "#";
       const externalLink = !url.includes(window.location.origin);
-      const txtContent =
+      let txtContent =
         url &&
         url.at(-4) &&
         !url.at(-4).includes(".") &&
         t.textContent.length > 1
           ? ",  text : " + t.textContent.replace(/(\r\n|\n|\r)/gm, "")
           : "";
+          txtContent = ($(this).find('svg') && $(this).find('svg').attr('alt')) ? ",  text : "+$(this).find('svg').attr('alt')  : txtContent;
       ((verif &&
-        url.includes(window.location.origin) &&
+        //url.includes(window.location.origin) &&
         url.includes("https")) ||
         url.includes("de.cdn-website.com")) &&
         check(new URL(url).href, txtContent, t, externalLink);
@@ -592,8 +625,8 @@ function initcheckerLinksAndImages(){
         console.log(
           `%c Vérifier le lien ${
             url.includes("linkedin.com") ? "Linkedin" : ""
-          }${t.textContent.replace(/(\r\n|\n|\r)/gm, "")} manuellement >>>`,
-          "color:red"
+          }${txtContent} manuellement >>>`,
+          "color:orange"
         ),
           console.log(new URL(url).href, t);
       } else if (
@@ -605,18 +638,15 @@ function initcheckerLinksAndImages(){
         console.log(
           `%c Vérifier le lien ${
             url.includes("linkedin.com") ? "Linkedin" : ""
-          } ${t.textContent.replace(
-            /(\r\n|\n|\r)/gm,
-            ""
-          )} manuellement et SECURISEZ LE via "https" si ceci est possible >>>`,
-          "color:red"
+          } ${txtContent} manuellement et SECURISEZ LE via "https" si ceci est possible >>>`,
+          "color:orange"
         ),
           console.log(new URL(url).href, t);
       }
 
-      verif &&
-        url.includes("https") && !url.includes("google.com") && !url.includes("youtube") &&
-        check(new URL(url).href, txtContent, t, externalLink);
+      // verif &&
+      //   url.includes("https") && !url.includes("google.com") && !url.includes("youtube") &&
+      //   check(new URL(url).href, txtContent, t, externalLink);
 
       checkPhoneNumber = new RegExp(
         /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/
@@ -664,7 +694,7 @@ function initcheckerLinksAndImages(){
     }
   });
   let linksCounts = {};
-  $("#Content a, #dm_content a").each(function (i, t) {
+  linksStack.each(function (t,i) {
     href = $(this).attr("href");
     href &&
       href.length > 1 &&
@@ -673,7 +703,6 @@ function initcheckerLinksAndImages(){
       href.at(0) !== "#" &&
       linksAnalyse.push(href);
   });
-
   linksAnalyse.forEach((element) => {
     linksCounts[element] = (linksCounts[element] || 0) + 1;
   });
@@ -696,14 +725,13 @@ function initcheckerLinksAndImages(){
       );
     }
   });
-  const nbLinks = document.querySelectorAll("a").length;
   console.log({nbLinks});
-  setTimeout(function () {
-    console.log(
-      "--------------------- END check validity links -----------------------------"
-    );
-    //$("#Wrapper").length &&
-    checkerImageWP();
-  }, (nbLinks>50) ? nbLinks * 210 : (nbLinks>30) ? nbLinks * 110 : nbLinks * 110);
+  // setTimeout(function () {
+  //   console.log(
+  //     "--------------------- END check validity links -----------------------------"
+  //   );
+  //   //$("#Wrapper").length &&
+  //   checkerImageWP();
+  // }, (nbLinks>50) ? nbLinks * 210 : (nbLinks>30) ? nbLinks * 110 : nbLinks * 110);
 }
 initcheckerLinksAndImages();
