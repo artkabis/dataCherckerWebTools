@@ -91,8 +91,6 @@
   dataChecker.hn.hn_reco.hn.length = 0;
   allTagHn.forEach((t, i) => {
     nbHn++;
-    const nbLetters = t.textContent.length;
-    const tagName = t.tagName;
     const tagContent = t.textContent.trim()
       .replaceAll("\n", " ")
       .replaceAll(",", " ")
@@ -102,6 +100,9 @@
       .replaceAll("l’", "")
       .replaceAll("t’", "")
       .replaceAll("  ", " ");
+    const nbLetters = tagContent.length;
+    const tagName = t.tagName;
+    
     let words = tagContent.split(" ");
     const exclusesWords = [
       "-",
@@ -322,7 +323,7 @@
 
         hn_words_count: Number(words.length),
 
-        hn_preco: "Nombre de mots comptabilisés (de 5 à 8)",
+        hn_preco: "Entre 50 et 90 caractères",
 
         hn_score: 0,
       });
@@ -351,7 +352,7 @@
 
         hn_words_count: Number(words.length),
 
-        hn_preco: "Nombre de mots comptabilisés (de 5 à 8)",
+        hn_preco: "Entre 50 et 90 caractères",
 
         hn_score: 5,
       });
