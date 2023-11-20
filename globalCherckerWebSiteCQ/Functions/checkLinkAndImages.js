@@ -504,9 +504,9 @@ function initcheckerLinksAndImages(){
         mode: "cors",
       })
         .then((res) => {
-          (iterationsLinks === 0)&&  console.log(
+          (iterationsLinks === 0)&&  (console.log(
             "--------------------- Start check validity links -----------------------------"
-          );
+          ),  console.log({nbLinks}));
           clearTimeout(fetchTimeout);
           response.status = res.status;
           response.document = res.responseText;
@@ -733,7 +733,7 @@ function initcheckerLinksAndImages(){
       }
     });
 }
-  console.log({nbLinks});
+
   // setTimeout(function () {
   //   console.log(
   //     "--------------------- END check validity links -----------------------------"
