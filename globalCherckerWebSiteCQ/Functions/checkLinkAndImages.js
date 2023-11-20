@@ -446,9 +446,7 @@ function initcheckerLinksAndImages(){
     }
   };
 
-  console.log(
-    "--------------------- Start check validity links -----------------------------"
-  );
+
   let sliderButtonValidity = false;
   if ($(".dmImageSlider .slide-button-visible").length) {
     sliderButtonValidity =
@@ -466,8 +464,8 @@ function initcheckerLinksAndImages(){
   let timeout = 30000;
 
   let linksAnalyse = [];
-  let linksStack = document.querySelector("#Content")
-    ? $("#Content a, .social-bar a")
+  let linksStack = document.querySelector("#Wrapper")
+    ? $("#Wrapper a")
     : $("#dm_content a, .dmCall, .dmFooterContainer a[href]");
     linksStack = linksStack.length ? linksStack : $("body a");
     let linksStackFilter = [];
@@ -491,6 +489,7 @@ function initcheckerLinksAndImages(){
   (nbLinks === 0) && checkerImageWP();
   let iterationsLinks = 0;
   const check = (_url, _txt, _node) =>{
+    
     const response = {
       status: null,
       document: null,
@@ -505,6 +504,9 @@ function initcheckerLinksAndImages(){
         mode: "cors",
       })
         .then((res) => {
+          (iterationsLinks === 0)&&  console.log(
+            "--------------------- Start check validity links -----------------------------"
+          );
           clearTimeout(fetchTimeout);
           response.status = res.status;
           response.document = res.responseText;
@@ -551,6 +553,7 @@ function initcheckerLinksAndImages(){
 
           dataChecker.link_check.link_check_state = true;
           iterationsLinks ++;
+
           (iterationsLinks === nbLinks) && (console.log(
             "--------------------- END check validity links -----------------------------"
           ),checkerImageWP());
@@ -563,7 +566,7 @@ function initcheckerLinksAndImages(){
 
           (iterationsLinks === nbLinks) && (console.log(
             "--------------------- END check validity links -----------------------------"
-          ),checkerImageWP());
+          ),checkerImageWP(),checkLinksDuplicate());
         });
 
       fetchTimeout = setTimeout(() => {
@@ -575,6 +578,10 @@ function initcheckerLinksAndImages(){
   }
   
   dataChecker.link_check.nb_link = linksStack.length;
+  // console.log(
+  //   "--------------------- Start check validity links -----------------------------"
+  // );
+  
   $.each(linksStackFilter, function (i, t) {
     let url = t.href;
     if (url) {
@@ -692,38 +699,40 @@ function initcheckerLinksAndImages(){
       );
     }
   });
-  let linksCounts = {};
-  linksStack.each(function (t,i) {
-    href = $(this).attr("href");
-    href &&
-      href.length > 1 &&
-      !href.includes("bloctel.gouv.fr") &&
-      !href.includes("client.adhslx.com") &&
-      href.at(0) !== "#" &&
-      linksAnalyse.push(href);
-  });
-  linksAnalyse.forEach((element) => {
-    linksCounts[element] = (linksCounts[element] || 0) + 1;
-  });
+  const checkLinksDuplicate = () =>{
+    let linksCounts = {};
+    linksStack.each(function (t,i) {
+      href = $(this).attr("href");
+      href &&
+        href.length > 1 &&
+        !href.includes("bloctel.gouv.fr") &&
+        !href.includes("client.adhslx.com") &&
+        href.at(0) !== "#" &&
+        linksAnalyse.push(href);
+    });
+    linksAnalyse.forEach((element) => {
+      linksCounts[element] = (linksCounts[element] || 0) + 1;
+    });
 
-  const entries = Object.entries(linksCounts);
-  const sortedEntries = entries.sort((a, b) => a[1] - b[1]);
-  sortedEntries.forEach(([link, count]) => {
-    const relativLink =
-      link.at(0) === "/" ? window.location.origin + link : link;
-    if (count > 1) {
-      console.log(
-        `%c Attention, vous avez des liens dupliqués sur la page : `,
-        "color: orange"
-      );
-      console.log(
-        `%cLien : %c${relativLink} - Nombre de duplications : %c${count}`,
-        "color: orange",
-        "color:aliceblue",
-        "color:red"
-      );
-    }
-  });
+    const entries = Object.entries(linksCounts);
+    const sortedEntries = entries.sort((a, b) => a[1] - b[1]);
+    sortedEntries.forEach(([link, count]) => {
+      const relativLink =
+        link.at(0) === "/" ? window.location.origin + link : link;
+      if (count > 1) {
+        console.log(
+          `%c Attention, vous avez des liens dupliqués sur la page : `,
+          "color: orange"
+        );
+        console.log(
+          `%cLien : %c${relativLink} - Nombre de duplications : %c${count}`,
+          "color: orange",
+          "color:aliceblue",
+          "color:red"
+        );
+      }
+    });
+}
   console.log({nbLinks});
   // setTimeout(function () {
   //   console.log(
