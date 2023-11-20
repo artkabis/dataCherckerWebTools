@@ -54,7 +54,8 @@ function initcheckerLinksAndImages(){
     return urlsRepetees;
   };
 
-
+  let cmpBgImg = 0;
+  let allUrlsImages = [];
   const checkUrlImg = async (args) => {
 
 
@@ -87,7 +88,7 @@ function initcheckerLinksAndImages(){
             redirectCount++;
           }
         }
-        requestCompletedCount++;
+        //requestCompletedCount++;
         if (isBgImage) {
           await new Promise((resolve) => {
             bgImg.src = args[1];
@@ -214,7 +215,7 @@ function initcheckerLinksAndImages(){
           } else {
             ratioScoreImg = 5;
           }
-          let statusScoreImg = (response.status =='404') ? 0 : 5;
+          //let statusScoreImg = (response.status =='404') ? 0 : 5;
           
 
           dataChecker.img_check.ratio_img.push({
@@ -261,19 +262,14 @@ function initcheckerLinksAndImages(){
     //console.log({requestInitiatedCount}, {requestCompletedCount});
     // console.log('external cmp : ',{cmpFinal});
     dataChecker.img_check.nb_img = requestCompletedCount;
-    if (requestCompletedCount >=requestInitiatedCount  && cmpFinal < 1) {
-      setTimeout(function () {
-        cmpFinal++;
-        //console.log({cmpFinal});
-       
-        if(cmpFinal === 1){
-          
-          ratio_scores.push(ratioScoreImg);
-          checkUrlImgDuplicate();
-          console.log(" Fin du traitement du check des images size and alt");
-        }
-      }, 300);
+    
+    if (requestCompletedCount === allUrlsImages.length) {
+      ratio_scores.push(ratioScoreImg);
+      console.log(" Fin du traitement du check des images size and alt")
+      checkUrlImgDuplicate();
+
     }
+    // console.log(requestCompletedCount+'/'+requestInitiatedCount, '      allUrlsImages : ',allUrlsImages.length)
   };
 
   
@@ -301,6 +297,7 @@ function initcheckerLinksAndImages(){
         : "OK"
     );
     initDataChecker(size_scores,ratio_scores, alt_scores, scoreCheckLink);
+
   };
 
   const checkerImageWP = () => {
@@ -357,8 +354,7 @@ function initcheckerLinksAndImages(){
       }
     });
 
-    let cmpBgImg = 0;
-    let allUrlsImages = [];
+   
     $("html *").each(function (i, t) {
       if (
         $(this).css("background-image") &&
@@ -441,8 +437,10 @@ function initcheckerLinksAndImages(){
 
     const allImg = [...imagesForAnalyseBG, ...imagesForAnalyseImg];
     console.log({ allImg });
+    let cmpImages = 0;
     for (const item of allImg) {
       const content = item.value;
+      cmpImages++;
       checkUrlImg(content);
       allUrlsImages.push(item.value[1]);
     }
@@ -470,8 +468,8 @@ function initcheckerLinksAndImages(){
   let linksAnalyse = [];
   let linksStack = document.querySelector("#Content")
     ? $("#Content a, .social-bar a")
-    : $("#dm_content a, .dmCall, .dmFooterContainer a");
-    linksStack = (!document.querySelector("#Content") && !document.querySelectorAll("#dm_content")) ? $("body a") : linksStack;
+    : $("#dm_content a, .dmCall, .dmFooterContainer a[href]");
+    linksStack = linksStack.length ? linksStack : $("body a");
     let linksStackFilter = [];
     linksStack.each(function(i,t){
       const href = $(this).attr("href");
@@ -489,7 +487,6 @@ function initcheckerLinksAndImages(){
       !href.includes("client.adhslx.com");
        (verif) &&  linksStackFilter.push(t);
     });
-  
   const nbLinks = linksStackFilter.length;
   (nbLinks === 0) && checkerImageWP();
   let iterationsLinks = 0;
@@ -529,7 +526,7 @@ function initcheckerLinksAndImages(){
               "color:white;",
               "color:red"
             );
-            console.log("node: ", _node);
+            console.log("Lien en erreur dans le DOM de cette page web : ", _node);
             _node.style.border = 'solid 3px red';
             scoreCheckLink.push(0);
           }else if(res.status === 301){
@@ -563,6 +560,7 @@ function initcheckerLinksAndImages(){
           _node.style.border = 'solid 3px red';
 
           resolve(response);
+
           (iterationsLinks === nbLinks) && (console.log(
             "--------------------- END check validity links -----------------------------"
           ),checkerImageWP());
@@ -573,6 +571,7 @@ function initcheckerLinksAndImages(){
         resolve(response);
       }, (timeout += 1000));
     });
+
   }
   
   dataChecker.link_check.nb_link = linksStack.length;
