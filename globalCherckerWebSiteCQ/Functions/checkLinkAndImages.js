@@ -259,17 +259,13 @@ function initcheckerLinksAndImages(){
    
     }
     requestCompletedCount++;
-    //console.log({requestInitiatedCount}, {requestCompletedCount});
-    // console.log('external cmp : ',{cmpFinal});
     dataChecker.img_check.nb_img = requestCompletedCount;
     
     if (requestCompletedCount === allUrlsImages.length) {
       ratio_scores.push(ratioScoreImg);
       console.log(" Fin du traitement du check des images size and alt")
       checkUrlImgDuplicate();
-
     }
-    // console.log(requestCompletedCount+'/'+requestInitiatedCount, '      allUrlsImages : ',allUrlsImages.length)
   };
 
   
@@ -327,8 +323,7 @@ function initcheckerLinksAndImages(){
             "/wp-content/" +
             srcV.split("/wp-content/")[1]
           : (src && !srcV.includes("http") && !srcV.at(0).includes('/')) ? window.location.origin +'/'+srcV : srcV;
-          srcV = (srcV && srcV.includes('data:image') && srcV.includes('http'))  ? 'data:image'+srcV.split('data:image')[1] : srcV;
-
+      srcV = (srcV && srcV.includes('data:image') && srcV.includes('http'))  ? 'data:image'+srcV.split('data:image')[1] : srcV;
       if (srcV) {
         $(this) && srcV;
         !srcV.includes("mappy") &&
@@ -462,34 +457,43 @@ function initcheckerLinksAndImages(){
     }
   }
   let timeout = 30000;
-
-  let linksAnalyse = [];
+  let cmp_url = 0;
+  let urlsScanned = [];
+  const verifExcludesUrls = (url) =>{
+    return url!==undefined &&
+    url.length>1&&
+    !url.includes("tel:") &&
+    !url.includes("mailto:") &&
+    !url.includes("javascript:") &&
+    !url.includes("logflare") &&
+    !url.includes("solocal.com") &&
+    !url.includes("sp.report-uri") &&
+    !url.includes("chrome-extension") &&
+    !url.includes("mappy") &&
+    !url.includes("bloctel.gouv.fr") &&
+    !url.includes("client.adhslx.com") &&
+    url.at(0) !=='?' &&
+    !(url.length === 1 && url.includes('#'));
+  }
+  let urlsNotSecure = [];
   let linksStack = document.querySelector("#Wrapper")
     ? $("#Wrapper a")
-    : $("#dm_content a, .dmCall, .dmFooterContainer a[href]");
+    : $("#dm a[href]");
     linksStack = linksStack.length ? linksStack : $("body a");
     let linksStackFilter = [];
     linksStack.each(function(i,t){
       const href = $(this).attr("href");
-       const verif =
-       href &&
-      !href.includes("tel:") &&
-      !href.includes("mailto:") &&
-      !href.includes("javascript:") &&
-      !href.includes("logflare") &&
-      !href.includes("solocal.com") &&
-      !href.includes("sp.report-uri") &&
-      !href.includes("chrome-extension") &&
-      !href.includes("mappy") &&
-      !href.includes("bloctel.gouv.fr") &&
-      !href.includes("client.adhslx.com");
-       (verif) &&  linksStackFilter.push(t);
+      (verifExcludesUrls(href)) &&  linksStackFilter.push(t);
+      t.getAttribute("href").includes('http:') && urlsNotSecure.push(t.getAttribute("href"))
     });
+
+  //console.log('liens à analyser : ',urlsScanned);
   const nbLinks = linksStackFilter.length;
   (nbLinks === 0) && checkerImageWP();
   let iterationsLinks = 0;
   const check = (_url, _txt, _node) =>{
-    
+    cmp_url++;
+    _txt = _txt.trim();
     const response = {
       status: null,
       document: null,
@@ -498,7 +502,9 @@ function initcheckerLinksAndImages(){
     //dataChecker.link_check.nb_link = nbLinks;
     return new Promise(function (resolve, reject) {
       let fetchTimeout = null;
-      fetch(_url, {
+      const startDoubleSlash  = /^\/\//;
+      _url = _url.match(startDoubleSlash) !==null ? 'https:'+_url : _url;
+      !(_url.includes('http:')) && fetch(_url, {
         method: "GET",
         //redirect: "manual", // Permet de suivre les redirections explicitement
         mode: "cors",
@@ -530,6 +536,8 @@ function initcheckerLinksAndImages(){
             );
             console.log("Lien en erreur dans le DOM de cette page web : ", _node);
             _node.style.border = 'solid 3px red';
+            _node.setAttribute('title','Erreur'+ response.status);
+
             scoreCheckLink.push(0);
           }else if(res.status === 301){
             console.log(
@@ -553,17 +561,18 @@ function initcheckerLinksAndImages(){
 
           dataChecker.link_check.link_check_state = true;
           iterationsLinks ++;
-
-          (iterationsLinks === nbLinks) && (console.log(
+          console.log('Lien analysés : ',iterationsLinks +'/'+ nbLinks);
+          (iterationsLinks === nbLinks-urlsNotSecure.length) && (console.log(
             "--------------------- END check validity links -----------------------------"
           ),checkerImageWP());
         })
         .catch((error) => {
           iterationsLinks ++;
           _node.style.border = 'solid 3px red';
+          _node.setAttribute('title','Erreur'+ response.status);
 
           resolve(response);
-
+          console.log('Lien analysés : ',iterationsLinks +'/'+ nbLinks);
           (iterationsLinks === nbLinks) && (console.log(
             "--------------------- END check validity links -----------------------------"
           ),checkerImageWP(),checkLinksDuplicate());
@@ -594,19 +603,7 @@ function initcheckerLinksAndImages(){
         url.includes("solocaldudaadmin.eu-responsivesiteeditor")
           ? true
           : !url.includes("pagesjaunes");
-      const verif =
-        !url.includes("tel:") &&
-        !url.includes("mailto:") &&
-        !url.includes("javascript:") &&
-        !url.includes("logflare") &&
-        !url.includes("solocal.com") &&
-        !url.includes("sp.report-uri") &&
-        !url.includes("chrome-extension") &&
-        !url.includes("mappy") &&
-        !url.includes("bloctel.gouv.fr") &&
-        !url.includes("client.adhslx.com") &&
-       // prepubRefonteWPCheck &&
-        url.at(0) !== "#";
+      
       const externalLink = !url.includes(window.location.origin);
       let txtContent =
         url &&
@@ -616,60 +613,52 @@ function initcheckerLinksAndImages(){
           ? ",  text : " + t.textContent.replace(/(\r\n|\n|\r)/gm, "")
           : "";
           txtContent = ($(this).find('svg') && $(this).find('svg').attr('alt')) ? ",  text : "+$(this).find('svg').attr('alt')  : txtContent;
-      ((verif &&
-        //url.includes(window.location.origin) &&
-        url.includes("https")) ||
-        url.includes("de.cdn-website.com")) &&
+          verifExcludesUrls(url) &&
         check(new URL(url).href, txtContent, t, externalLink);
 
       if (
-        verif &&
+        verifExcludesUrls(url) &&
         externalLink &&
         !url.includes("de.cdn-website.com") &&
-        url.includes("https")
+        url.includes("https") &&
+        url.includes('linkedin')
       ) {
         console.log(
-          `%c Vérifier le lien ${
-            url.includes("linkedin.com") ? "Linkedin" : ""
-          }${txtContent} manuellement >>>`,
+          `%c Vérifier le lien "Linkedin" : 
+          ${txtContent} manuellement >>>`,
           "color:orange"
         ),
           console.log(new URL(url).href, t);
+          check(new URL(url).href, txtContent, t, externalLink);
       } else if (
-        verif &&
+        verifExcludesUrls(url) &&
         externalLink &&
         !url.includes("de.cdn-website.com") &&
-        !url.includes("https")
+        url.includes("http:")
       ) {
         console.log(
-          `%c Vérifier le lien ${
-            url.includes("linkedin.com") ? "Linkedin" : ""
-          } ${txtContent} manuellement et SECURISEZ LE via "https" si ceci est possible >>>`,
+          `%c Vérifier le lien ${txtContent} manuellement et SECURISEZ LE via "https" si ceci est possible >>>`,
           "color:orange"
         ),
           console.log(new URL(url).href, t);
+          check(new URL(url).href, txtContent, t, externalLink);
       }
-
-      // verif &&
-      //   url.includes("https") && !url.includes("google.com") && !url.includes("youtube") &&
-      //   check(new URL(url).href, txtContent, t, externalLink);
 
       checkPhoneNumber = new RegExp(
         /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/
       ).test(url.replaceAll(" ", "").split("tel:")[1]);
 
       url.includes("tel:") &&
-        (checkPhoneNumber
-          ? console.log(
+      (checkPhoneNumber
+        ? console.log(
               `%cNuméro de téléphone detécté :${url} - Validité : OK`,
               "color:green"
-            )
-          : console.log(
+          )
+        : console.log(
               `%cNuméro de téléphone detécté :${url} - Validité : KO`,
               "color:red"
-            ));
-
-      //linksAnalyse.push(url)
+          )
+      );
     }
     const dudaPhone =
       $(this).attr("class") !== undefined &&
@@ -713,6 +702,7 @@ function initcheckerLinksAndImages(){
     linksAnalyse.forEach((element) => {
       linksCounts[element] = (linksCounts[element] || 0) + 1;
     });
+    console.log('All links : ',linksAnalyse);
 
     const entries = Object.entries(linksCounts);
     const sortedEntries = entries.sort((a, b) => a[1] - b[1]);
@@ -732,14 +722,6 @@ function initcheckerLinksAndImages(){
         );
       }
     });
-}
-
-  // setTimeout(function () {
-  //   console.log(
-  //     "--------------------- END check validity links -----------------------------"
-  //   );
-  //   //$("#Wrapper").length &&
-  //   checkerImageWP();
-  // }, (nbLinks>50) ? nbLinks * 210 : (nbLinks>30) ? nbLinks * 110 : nbLinks * 110);
+  }
 }
 initcheckerLinksAndImages();

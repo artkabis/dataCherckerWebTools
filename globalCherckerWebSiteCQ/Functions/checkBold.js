@@ -47,7 +47,7 @@
     let strongParent;
     if (isDuda) {
       strongParent = $(this).closest(".dmRespCol") ? $(this).closest(".dmRespCol") : $(this).closest(".dmNewParagraph");
-      console.log('-------------------strong & bold  :::::::::::::::',this,$(this).closest(".dmNewParagraph"))
+      console.log('-------------------strong & bold  :::::::::::::::',this,$(this).closest(".dmNewParagraph"),$(this).closest(".dmNewParagraph").text().length);
     }else if(isWP && $(this).closest('.wpb_text_column').length){
       strongParent = $(this).closest('.wpb_text_column');
     }else if(isWP && $(this).closest('.wpb_toggle_content').length){ 
