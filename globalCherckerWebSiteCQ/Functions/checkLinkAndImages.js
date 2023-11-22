@@ -561,7 +561,7 @@ function initcheckerLinksAndImages(){
 
           dataChecker.link_check.link_check_state = true;
           iterationsLinks ++;
-          console.log('Lien analysés : ',iterationsLinks +'/'+ nbLinks);
+          console.log('Link checked : ',iterationsLinks +'/'+ nbLinks);
           (iterationsLinks === nbLinks-urlsNotSecure.length) && (console.log(
             "--------------------- END check validity links -----------------------------"
           ),checkerImageWP());
