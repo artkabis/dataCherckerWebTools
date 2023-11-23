@@ -10,6 +10,7 @@ counterWords = () =>{
         if (node.nodeType === Node.TEXT_NODE) {
           return node.textContent;
         } else if (node.nodeType === Node.ELEMENT_NODE && !node.closest('form') ) {
+
           const tagName = node.tagName.toLowerCase();
           const classes = node.classList;
           //(classes.includes('vc_btn3')) &&  console.log('node : ', node, 'padding : ',node.style.padding);
@@ -21,8 +22,7 @@ counterWords = () =>{
           ) {
             return "";
           }
-
-          if (tagName !== "script" && tagName !== "style") {
+          if (!tagName.includes("script") && !tagName.includes("style") && !tagName.includes("img") && !tagName.includes("source") && !tagName.includes("video") && !tagName.includes("picture")) {
             // Exclure les balises SCRIPT et STYLE (ou ajouter d'autres balises à exclure si nécessaire)
             return getTextFromElement(node, excludedClasses);
           }
@@ -66,11 +66,11 @@ counterWords = () =>{
   }
 
   // Fonction pour récupérer le texte lisible des éléments correspondant aux sélecteurs en excluant les classes spécifiées et en supprimant les sauts de ligne et les doubles espaces
-  function getReadableTextFromSelectors(
+  const getReadableTextFromSelectors= (
     selectors,
     excludedClasses,
     excludedWords
-  ) {
+  ) => {
     let allText = "";
 
     for (const selector of selectors) {
@@ -100,12 +100,14 @@ counterWords = () =>{
   // Liste des sélecteurs pour récupérer le texte
   const selectors = [
     "#Content",
-    "#dm_content .dmNewParagraph:not(.proliveContainer)"//, 'body:not(#dmRoot):not(.page) div[class^="content"]', 'div[class*="main"]', '#bodyContent',
+    "#dm_content .dmNewParagraph:not(.proliveContainer)",
+    "main"
+    //'div[class^="page"]',//, 'body:not(#dmRoot):not(.page) div[class^="content"]', 'div[class*="main"]', '#bodyContent',
   ];
 
   // Appelle la fonction pour récupérer le texte lisible des éléments correspondant aux sélecteurs en excluant les classes spécifiées et en supprimant les sauts de ligne et les doubles espaces
   const textFromSelectors = getReadableTextFromSelectors(
-    selectors,
+    selectors ? selectors : ['body'],
     excludedClasses,
     replaceWords
   );

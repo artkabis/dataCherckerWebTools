@@ -484,7 +484,7 @@ function initcheckerLinksAndImages(){
     linksStack.each(function(i,t){
       const href = $(this).attr("href");
       (verifExcludesUrls(href)) &&  linksStackFilter.push(t);
-      t.getAttribute("href").includes('http:') && urlsNotSecure.push(t.getAttribute("href"))
+      (t && t.getAttribute("href") && t.getAttribute("href").includes('http:')) && urlsNotSecure.push(t.getAttribute("href"));
     });
 
   //console.log('liens à analyser : ',urlsScanned);
