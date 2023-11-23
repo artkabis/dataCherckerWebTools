@@ -47,7 +47,7 @@
     let strongParent;
     if (isDuda) {
       strongParent = $(this).closest(".dmRespCol") ? $(this).closest(".dmRespCol") : $(this).closest(".dmNewParagraph");
-      console.log('-------------------strong & bold  :::::::::::::::',this,$(this).closest(".dmNewParagraph"),$(this).closest(".dmNewParagraph").text().length);
+      //console.log('-------------------strong & bold  :::::::::::::::',this,$(this).closest(".dmNewParagraph"),$(this).closest(".dmNewParagraph").text().length,' colonne : ',strongParent);
     }else if(isWP && $(this).closest('.wpb_text_column').length){
       strongParent = $(this).closest('.wpb_text_column');
     }else if(isWP && $(this).closest('.wpb_toggle_content').length){ 
@@ -57,11 +57,13 @@
      }else{
       strongParent = $(this).parent().parent().parent();
      }
-    const nbWordsParent = (strongParent[0]) ? strongParent[0].innerText.trim().split(' ').length : 0;
+
+    const nbWordsParent = (strongParent[0]) ? strongParent[0].textContent.trim().split(' ').length : 0;
 
     testStack = isWP 
     isSlideDuda = (isDuda && $(this).closest(".slide-inner").length) ? true : false;
     isContentDataBinding = (isDuda && ("div[data-binding*='']") && $(this).find("div[data-binding*='']").length) ? true : false;
+
     if (t.textContent.length > 1 && t.textContent !== " " && !isHnClosest($(this)) && !isHnLink($(this)) && nbWordsParent >=20 && !isSlideDuda && !isContentDataBinding) {
         cmpBold++;
         boldArray.push({

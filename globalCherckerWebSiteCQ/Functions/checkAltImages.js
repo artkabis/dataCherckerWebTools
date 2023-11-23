@@ -68,7 +68,7 @@
             alt_img_text: "ALT non valide.",
             alt_img_score: 0,
           }),
-          scoreTabAltImg.push(0))
+          scoreTabAltImg.push(0), $(this).before(`<span class="alt_tooltip" style="position:relative;top:0;left:0;background:brown;color:white;padding:5px;margin:5px;box-shadow: 0 0 5px 0 rgb( 0 0 0 / 80%);width: max-content;display: inline-block !important;font-family: monospace;font-size: 13px !important;line-height: 15px !important;z-index:999999;">!!! ALT MANQUANT !!!</span>`))
         : dataChecker.alt_img_check.alt_img.push(
             {
               alt_img_state: true,
@@ -81,7 +81,8 @@
               alt_img_text: alt,
               alt_img_score: 5,
             },
-            scoreTabAltImg.push(5)
+            scoreTabAltImg.push(5),      $(this).before(`<span class="alt_tooltip" style="position:relative;top:0;left:0;background:brown;color:white;padding:5px;margin:5px;box-shadow: 0 0 5px 0 rgb( 0 0 0 / 80%);width: max-content;display: inline-block !important;font-family: monospace;font-size: 13px !important;line-height: 15px !important;z-index:999999;">ALT: "${alt}"</span>`)
+
           );
     } else if (
       this.tagName == "svg" &&
@@ -92,6 +93,7 @@
         "color:red"
       );
       console.log('Node : ',t);
+      $(this).before(`<span class="alt_tooltip" style="position:relative;top:0;left:0;background:brown;color:white;padding:5px;margin:5px;box-shadow: 0 0 5px 0 rgb( 0 0 0 / 80%);width: max-content;display: inline-block !important;font-family: monospace;font-size: 13px !important;line-height: 15px !important;z-index:999999;">!!! ALT MANQUANT !!!</span>`)
       nb_alt_imgs_wrong += 1;
       dataChecker.alt_img_check.alt_img.push({
         alt_img_state: true,
@@ -111,7 +113,8 @@
         alt_img_text: this.getAttribute("alt"),
         alt_img_score: 5,
       });
-      scoreTabAltImg.push(0);
+      scoreTabAltImg.push(5);
+      $(this).before(`<span class="alt_tooltip" style="position:absolute;top:-50%;left:0;background:white;color:red">${alt}</span>`)
     }
     let validUrl;
     try{validUrl = new URL(src).href && true}catch(e){validUrl = false};
