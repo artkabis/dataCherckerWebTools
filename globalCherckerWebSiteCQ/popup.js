@@ -1,4 +1,21 @@
 (function ($) {
+
+  // Utilisez l'API chrome.runtime.getManifest() pour accéder aux informations du manifest
+  const manifest = chrome.runtime.getManifest();
+  const version = manifest.version;
+  document.addEventListener("DOMContentLoaded", function () {
+
+    // Utilisez la valeur récupérée comme bon vous semble
+    console.log("Version de l'extension : " + version);
+
+    // Faites ce que vous voulez avec la variable 'version', par exemple, l'afficher dans une div HTML
+    var versionDiv = document.getElementById("version");
+
+    console.log({versionDiv});
+    versionDiv.innerText = "Version : " + version;
+  });
+
+
   function executeScriptInTab(tab, sitemap) {
     chrome.scripting.executeScript({
       target: { tabId: tab.id },
