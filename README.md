@@ -1,4 +1,4 @@
-# Global checker website - chrome extension
+# Global checker website - chrome & Edge extension (Firefox : console only)
 
 
 ## Checklist:
@@ -7,22 +7,27 @@
 - Check only alt images (tag img for Duda and WP).
 - Check validity phone number format
 - Check Hn validity (letter length, word length, and number of words).
-- Check outline validity structure.
+- Check the validity structure of the title plan (specify Hn missing).
 - View letter Hn length in mousehover.
 - View words length in webpage.
+- View alt check in webpage.
+- View 404 error request status links in webpage.
 - Check valid links (status 200, 404, 300, and output external manual check external links or parameter paths).
 - Check content text links.
 - Check image size (KB, MB, GB), ratio (image vs container), alt, title, and image format: background-image, img tag, base64, svg.
 - Check duplicate images (do not count logo images and cloned owl images).
+- Check databinding in Duda builder.
 - Launch runPagespeed and return FCP, LCP, TTI, performance score, alt images KO, and stack website.
 
 ## Other tools:
+- Detect username if your connect to work tool.
 - Check sitemap (Duda and WP).
 - Check schema markup (Google microdata).
 - Check outline Hn validity.
 - Toggle Cors (to fetch request from another domain)
 - Check inner and outer navigation (Duda nav) and open links sitemap in new window.
-- Check the correctness of the spelling of the content of the web page.
+- Verify the accuracy of the webpage's content spelling.
+- Cloud of most used words in the web page.
 - Soprod: Copy all expressions and localities.
 
 ## Installation (fr) :
