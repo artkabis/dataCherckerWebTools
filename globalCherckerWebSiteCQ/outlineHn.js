@@ -19,7 +19,7 @@ javascript:(()=>{
     const h1Texts = Array.from(h1Tags).map((h1) => h1.innerText.toLowerCase());
     const uniqueH1Texts = new Set(h1Texts);
     
-    return h1Texts.length !== uniqueH1Texts.size;
+    return h1Texts.length >1;
     };
     const getHeadingStyle = (isValid, currentHnIndex, parentStyle) => {
         const backgroundColor = isValid ? parentStyle.backgroundColor : 'orange';
