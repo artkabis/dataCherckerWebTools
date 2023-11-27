@@ -231,41 +231,56 @@ function init() {
         );
       });
 
+    //Counter Hn in hovered
+    $(document).on("mouseover", "h1,h2,h3,h4,h5,h6", function () {
+      const txt = $(this) ? $(this)[0].innerText : false;
+      const txtLength = txt ? txt.trim().length : false;
+      txtLength &&
+        $(this).attr(
+          "title",
+          $(this)[0].tagName +
+            " - Nombre de caractéres : " +
+            txtLength +
+            "\nTexte pris en compte : \n" +
+            txt
+        );
+    });
 
-      //Counter Hn in hovered
-      $(document).on('mouseover','h1,h2,h3,h4,h5,h6',function(){
-        const txt = $(this)[0].innerText;
-        const txtLength = txt.trim().length;
-        $(this).attr('title',$(this)[0].tagName+' - Nombre de caractéres : '+txtLength+ '\nTexte pris en compte : \n'+txt)
-    })
-    
-
-    //Counter words in content page 
+    //Counter words in content page
     const countWords = (text) => {
       // Supprime les espaces en début et en fin de chaîne
       text = text.trim();
       // Remplace les sauts de ligne par un espace
-      text = text.replace(/\n/g, ' ');
+      text = text.replace(/\n/g, " ");
       // Remplace les doubles espaces consécutifs par un seul espace
-      text = text.replace(/\s{2,}/g, ' ');
-      text = text.replaceAll('Button','').replaceAll('Afficher davantage','').replaceAll('John Doe','').replaceAll('City skyline','').replaceAll('Photo By:','').replaceAll('Birthday Sparks','').replaceAll('Fashion Magazine','').replaceAll('Blurred Lines','').replaceAll('Photo by:','');
-     
+      text = text.replace(/\s{2,}/g, " ");
+      text = text
+        .replaceAll("Button", "")
+        .replaceAll("Afficher davantage", "")
+        .replaceAll("John Doe", "")
+        .replaceAll("City skyline", "")
+        .replaceAll("Photo By:", "")
+        .replaceAll("Birthday Sparks", "")
+        .replaceAll("Fashion Magazine", "")
+        .replaceAll("Blurred Lines", "")
+        .replaceAll("Photo by:", "");
+
       // Divise le texte en mots en utilisant les espaces comme séparateurs
-      const words = text.split(' ');
+      const words = text.split(" ");
       // Retourne le nombre de mots
-      console.log('nombre de mot dans la page : ',words.length,'\nTexte regroupé de la page : ',[{text}]);
+      console.log(
+        "nombre de mot dans la page : ",
+        words.length,
+        "\nTexte regroupé de la page : ",
+        [{ text }]
+      );
       return words.length;
-    }
-
-
+    };
 
     // Obtient le contenu du div avec l'ID "content"
-    const contentDiv = document.getElementById('dm_content');
-    const contentText = contentDiv.textContent;
-    const wordCount = countWords(contentText);
-
-
-
+    const contentDiv = $("#dm_content, #Content")[0];
+    const contentText = contentDiv ? contentDiv.textContent : false;
+    contentText && countWords(contentText);
 
     //Start meta check
     const title = $('meta[property="og:title"]').attr("content");
@@ -419,88 +434,151 @@ function init() {
     console.log(
       "----------------------------- Check Hn Validity --------------------------------------------"
     );
-    let rendu = "",
-      h2Count = 0,
-      h3Count = 0;
+
+    let rendu = "";
+    let h1Count = 0;
+    let h2Count = 0;
+    let h3Count = 0;
+    const h1Indexes = [];
+
     const verifierStructureHn = (HnArray) => {
       const niveaux = ["h1", "h2", "h3", "h4", "h5", "h6"];
+      let hasH1 = false;
       let hasH2 = false;
+      let hasH3 = false;
+      let validStructure = true;
 
       for (let i = 0; i < HnArray.length; i++) {
         const balise = HnArray[i];
         const niveauActuel = niveaux.indexOf(balise.nodeName.toLowerCase());
-        if (balise.nodeName.toLowerCase() === "h2") {
-          hasH2 = true;
-          h2Count++;
-        }
-        if (hasH2 && balise.nodeName.toLowerCase() === "h3") {
-          h3Count++;
-        }
-        if (balise.textContent.length < 3) {
-          rendu += `${balise.nodeName.toLowerCase()} - Non valide (moins de trois caractères)_`;
-          console.log(
-            `%c${balise.nodeName.toLowerCase()} - Non valide (moins de trois caractères)`,
-            "color: red"
-          );
-          continue;
-        }
 
-        if (niveauActuel === -1) {
-          rendu += `${balise.nodeName.toLowerCase()} - Non valide_`;
-          console.log(
-            `%c${balise.nodeName.toLowerCase()} - Non valide`,
-            "color: red"
-          );
-          continue;
-        }
-
-        if (i === 0) {
-          if (balise.nodeName.toLowerCase() === "h1") {
-            rendu += `${balise.nodeName.toLowerCase()} - Valide_`;
-            console.log(
-              `%c${balise.nodeName.toLowerCase()} - Valide`,
-              "color: green"
-            );
+        if (balise.nodeName.toLowerCase() === "h1") {
+          h1Count++;
+          if (!h1Indexes.includes(i)) {
+            h1Indexes.push(i);
+            if (i === 0) {
+              rendu += `${balise.nodeName.toLowerCase()} - Valide_`;
+              console.log(
+                `%c${balise.nodeName.toLowerCase()} - Valide`,
+                "color: green"
+              );
+              hasH1 = true;
+            } else if (i === 0 && niveauActuel !== "h1") {
+              rendu += `${balise.nodeName.toLowerCase()} - Non valide (premier tag doit être h1)_`;
+              console.log(
+                `%c${balise.nodeName.toLowerCase()} - Non valide (premier tag doit être h1)`,
+                "color: red"
+              );
+              validStructure = false;
+            }
           } else {
-            rendu += `${balise.nodeName.toLowerCase()} - Non valide (premier tag doit être h1)_`;
-            console.log(
-              `%c${balise.nodeName.toLowerCase()} - Non valide (premier tag doit être h1)`,
-              "color: red"
-            );
-          }
-        } else {
-          if (balise.nodeName.toLowerCase() === "h1") {
             rendu += `${balise.nodeName.toLowerCase()} - Non valide (doublon)_`;
             console.log(
               `%c${balise.nodeName.toLowerCase()} - Non valide (doublon)`,
               "color: red"
             );
-          } else {
-            // Vérifier si le niveau actuel est inférieur au niveau précédent de plus de 1
-            if (
-              Math.abs(
-                niveauActuel -
-                  niveaux.indexOf(HnArray[i - 1].nodeName.toLowerCase())
-              ) > 1
-            ) {
-              rendu += `${balise.nodeName.toLowerCase()} - Non valide_`;
+            validStructure = false;
+          }
+
+          if (h1Count > 1 && i > 0) {
+            if (balise.nodeName.toLowerCase() === "h1") {
+              rendu += `${balise.nodeName.toLowerCase()} - Non valide (doublon)_`;
               console.log(
-                `%c${balise.nodeName.toLowerCase()} - Non valide`,
+                `%c${balise.nodeName.toLowerCase()} - Non valide (doublon)`,
                 "color: red"
               );
-            } else {
-              rendu += `${balise.nodeName.toLowerCase()}' - Valide_`;
-              console.log(
-                `%c${balise.nodeName.toLowerCase()} - Valide`,
-                "color: green"
-              );
+              validStructure = false;
             }
+          }
+        } else if (balise.nodeName.toLowerCase() === "h2") {
+          if (!hasH1) {
+            rendu += `${balise.nodeName.toLowerCase()} - Non valide (h1 manquant)_`;
+            console.log(
+              `%c${balise.nodeName.toLowerCase()} - Non valide (h1 manquant)`,
+              "color: red"
+            );
+            validStructure = false;
+          } else {
+            h2Count++;
+            rendu += `${balise.nodeName.toLowerCase()} - Valide_`;
+            console.log(
+              `%c${balise.nodeName.toLowerCase()} - Valide`,
+              "color: green"
+            );
+            hasH2 = true;
+          }
+        } else if (balise.nodeName.toLowerCase() === "h3") {
+          if (!hasH1 || !hasH2) {
+            rendu += `${balise.nodeName.toLowerCase()} - Non valide (h1 ou h2 manquant)_`;
+            console.log(
+              `%c${balise.nodeName.toLowerCase()} - Non valide (h1 ou h2 manquant)`,
+              "color: red"
+            );
+            validStructure = false;
+          } else {
+            h3Count++;
+            rendu += `${balise.nodeName.toLowerCase()} - Valide_`;
+            console.log(
+              `%c${balise.nodeName.toLowerCase()} - Valide`,
+              "color: green"
+            );
+            hasH3 = true;
+          }
+        } else if (balise.nodeName.toLowerCase() === "h4") {
+          if (!hasH1 || !hasH2 || !hasH3) {
+            rendu += `${balise.nodeName.toLowerCase()} - Non valide (h1, h2 ou h3 manquant)_`;
+            console.log(
+              `%c${balise.nodeName.toLowerCase()} - Non valide (h1, h2 ou h3 manquant)`,
+              "color: red"
+            );
+            validStructure = false;
+          } else {
+            rendu += `${balise.nodeName.toLowerCase()} - Valide_`;
+            console.log(
+              `%c${balise.nodeName.toLowerCase()} - Valide`,
+              "color: green"
+            );
+          }
+        } else {
+          // Vérifier si le niveau actuel est inférieur au niveau précédent ou a des niveaux intermédiaires manquants
+          const niveauPrecedent = niveaux.indexOf(
+            HnArray[i - 1].nodeName.toLowerCase()
+          );
+          if (niveauActuel <= niveauPrecedent) {
+            rendu += `${balise.nodeName.toLowerCase()} - Non valide_`;
+            console.log(
+              `%c${balise.nodeName.toLowerCase()} - Non valide`,
+              "color: red"
+            );
+            validStructure = false;
+          } else if (niveauActuel - niveauPrecedent > 1) {
+            for (let j = niveauPrecedent + 1; j < niveauActuel; j++) {
+              rendu += `${niveaux[j]} - Non valide (niveau manquant)_`;
+              console.log(
+                `%c${niveaux[j]} - Non valide (niveau manquant)`,
+                "color: red"
+              );
+              validStructure = false;
+            }
+          } else {
+            rendu += `${balise.nodeName.toLowerCase()} - Valide_`;
+            console.log(
+              `%c${balise.nodeName.toLowerCase()} - Valide`,
+              "color: green"
+            );
           }
         }
       }
-    };
 
+      if (validStructure) {
+        console.log("Structure des Hn valide.");
+      } else {
+        console.log("Structure des Hn invalide.");
+      }
+    };
     const allTagHn = document.querySelectorAll("h1,h2,h3,h4,h5,h6");
+    const HnArray = Array.from(allTagHn, (element) => element);
+    verifierStructureHn(HnArray);
     let globalScoreHnReco = [],
       nbHn = 0;
     dataChecker.hn.hn_reco.hn.length = 0;
@@ -771,8 +849,7 @@ function init() {
     console.log(
       "----------------------------- START check Hn outline validity -----------------------------"
     );
-    const HnArray = Array.from(allTagHn, (element) => element);
-    verifierStructureHn(HnArray);
+
 
     rendu = rendu.replaceAll('"', "").replaceAll("'", "").slice(0, -1);
     const renduTab = rendu.split("_");
@@ -815,9 +892,6 @@ function init() {
 
     console.log(
       "----------------------------- END check Hn outline validity -----------------------------"
-    );
-    console.log(
-      "----------------------------- END Check Hn Validity --------------------------------------------"
     );
 
     const strongOrBold = $(
@@ -1368,7 +1442,11 @@ function init() {
       dataChecker.link_check.nb_link = nbLinks;
       return new Promise(function (resolve, reject) {
         let fetchTimeout = null;
-        fetch(_url)
+        fetch(_url, {
+          method: "GET",
+          //redirect: "manual", // Permet de suivre les redirections explicitement
+          mode: "cors",
+        })
           .then((res) => {
             clearTimeout(fetchTimeout);
             response.status = res.status;
@@ -1419,7 +1497,9 @@ function init() {
     let linksAnalyse = [];
     const linksStack = document.querySelector("#Content")
       ? document.querySelectorAll("#Content a, .social-bar a")
-      : document.querySelectorAll("#dm_content a, .dmCall, .dmFooterContainer a");
+      : document.querySelectorAll(
+          "#dm_content a, .dmCall, .dmFooterContainer a"
+        );
     $.each(linksStack, function (i, t) {
       let url = t.href;
       if (url) {
@@ -1453,9 +1533,11 @@ function init() {
           t.textContent.length > 1
             ? ",  text : " + t.textContent.replace(/(\r\n|\n|\r)/gm, "")
             : "";
-        ((verif && url.includes(window.location.origin)) ||
+        ((verif &&
+          url.includes(window.location.origin) &&
+          url.includes("https")) ||
           url.includes("de.cdn-website.com")) &&
-          check(url, txtContent, t, externalLink);
+          check(new URL(url).href, txtContent, t, externalLink);
 
         if (
           verif &&
@@ -1487,7 +1569,9 @@ function init() {
             console.log(new URL(url).href, t);
         }
 
-        verif && check(url, txtContent, t, externalLink);
+        verif &&
+          url.includes("https") &&
+          check(new URL(url).href, txtContent, t, externalLink);
 
         checkPhoneNumber = new RegExp(
           /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/
@@ -1685,7 +1769,11 @@ function init() {
 
       dataChecker.state_check = true;
       console.log({ dataChecker });
-      console.log('%c--------------------------------------------Fin du traitement globale du checkerImages ----------------------------------------------------------------','color:green');
+      chrome.runtime.sendMessage({ action: 'open_interface', data :JSON.stringify(dataChecker) });
+      console.log(
+        "%c--------------------------------------------Fin du traitement globale du checkerImages ----------------------------------------------------------------",
+        "color:green"
+      );
 
       // Écouteur d'événement pour le clic sur le bouton
       chrome.storage.sync.get("corsEnabled", function (result) {

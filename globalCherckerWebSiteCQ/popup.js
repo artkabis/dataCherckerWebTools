@@ -101,7 +101,6 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
           {
             target: { tabId: tab.id },
             files: [
-              "./Functions/settingsOptions.js",
               "./assets/jquery-3.6.4.min.js",
               "./assets/console.image.min.js",
               "./Functions/checkAndAddJquery.js",
