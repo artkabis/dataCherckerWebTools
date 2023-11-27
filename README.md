@@ -10,6 +10,8 @@
 - Check the validity structure of the title plan (specify Hn missing).
 - View letter Hn length in mousehover.
 - View words length in webpage.
+- View alt check in webpage.
+- View 404 error request status links in webpage.
 - Check valid links (status 200, 404, 300, and output external manual check external links or parameter paths).
 - Check content text links.
 - Check image size (KB, MB, GB), ratio (image vs container), alt, title, and image format: background-image, img tag, base64, svg.
