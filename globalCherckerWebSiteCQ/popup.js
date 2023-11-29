@@ -104,6 +104,7 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
               "./assets/jquery-3.6.4.min.js",
               "./assets/console.image.min.js",
               "./Functions/checkAndAddJquery.js",
+              './Functions/settingsOptions.js',
 
 
               "./Functions/settingsWords.js",

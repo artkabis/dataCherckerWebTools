@@ -475,20 +475,23 @@ function initcheckerLinksAndImages(){
     url.at(0) !=='?' &&
     !(url.length === 1 && url.includes('#'));
   }
-  let urlsNotSecure = [];
+  let warningLinks = [];
   let linksStack = document.querySelector("#Wrapper")
-    ? $("#Wrapper a")
-    : $("#dm a[href]");
+    ? $('#Wrapper a[href]')
+    : $('#dm a[href]');
     linksStack = linksStack.length ? linksStack : $("body a");
     let linksStackFilter = [];
     linksStack.each(function(i,t){
       const href = $(this).attr("href");
-      (verifExcludesUrls(href)) &&  linksStackFilter.push(t);
-      (t && t.getAttribute("href") && t.getAttribute("href").includes('http:')) && urlsNotSecure.push(t.getAttribute("href"));
+      (verifExcludesUrls(href) &&  !t.getAttribute("href").includes('linkedin.') && !t.getAttribute("href").includes('http:')) &&  linksStackFilter.push(t);
+      (t.getAttribute("href").includes('http:') || t.getAttribute("href").includes('linkedin.')) && warningLinks.push({target:t, url:t.getAttribute("href")})
     });
 
   //console.log('liens à analyser : ',urlsScanned);
   const nbLinks = linksStackFilter.length;
+  //console.log('liens à check : ',{linksStackFilter}, '   url : ', linksStack.href, ' nombre de liens : ',linksStackFilter.length);
+
+
   (nbLinks === 0) && checkerImageWP();
   let iterationsLinks = 0;
   const check = (_url, _txt, _node) =>{
@@ -504,7 +507,8 @@ function initcheckerLinksAndImages(){
       let fetchTimeout = null;
       const startDoubleSlash  = /^\/\//;
       _url = _url.match(startDoubleSlash) !==null ? 'https:'+_url : _url;
-      !(_url.includes('http:')) && fetch(_url, {
+      //(!_url.includes('http:') )&& !_url.includes('.linkedin.com') && 
+      fetch(_url, {
         method: "GET",
         //redirect: "manual", // Permet de suivre les redirections explicitement
         mode: "cors",
@@ -512,7 +516,19 @@ function initcheckerLinksAndImages(){
         .then((res) => {
           (iterationsLinks === 0)&&  (console.log(
             "--------------------- Start check validity links -----------------------------"
-          ),  console.log({nbLinks}));
+          ),  console.log({nbLinks}),  //Message d'alerte pour les liens http: et lindein qui ne peuvent être envoyé dans la requête
+          warningLinks.forEach((t,i) =>{
+            const url = t.url;
+            const target = t.target;
+            let isLinkedin = (url.includes('linkedin')) ? "Linkedin" : "";
+            let isNosecure = (url.includes('http:')) ? "ATTENTION VOTRE LE EST EN HTTP ET DONC NON SECURISE : AJOUTER HTTPS" : "";
+            console.log(
+            `%c ${isNosecure} - Vérifier le lien  ${isLinkedin}: 
+            ${new URL(url).href} manuellement >>>`,
+            `color:${isNosecure ? 'red' : 'orange'}`);
+            target.style.border = isNosecure ?  'solid 3px red' : '';
+            target.setAttribute('title', isNosecure ?  'HTTP - No secure' : '');
+            }));
           clearTimeout(fetchTimeout);
           response.status = res.status;
           response.document = res.responseText;
@@ -534,10 +550,8 @@ function initcheckerLinksAndImages(){
               "color:white;",
               "color:red"
             );
-            console.log("Lien en erreur dans le DOM de cette page web : ", _node);
+            _node.setAttribute('title','Erreur : '+ response.status);
             _node.style.border = 'solid 3px red';
-            _node.setAttribute('title','Erreur'+ response.status);
-
             scoreCheckLink.push(0);
           }else if(res.status === 301){
             console.log(
@@ -562,14 +576,15 @@ function initcheckerLinksAndImages(){
           dataChecker.link_check.link_check_state = true;
           iterationsLinks ++;
           console.log('Link checked : ',iterationsLinks +'/'+ nbLinks);
-          (iterationsLinks === nbLinks-urlsNotSecure.length) && (console.log(
+          (iterationsLinks === nbLinks) && (console.log(
             "--------------------- END check validity links -----------------------------"
           ),checkerImageWP());
         })
         .catch((error) => {
           iterationsLinks ++;
           _node.style.border = 'solid 3px red';
-          _node.setAttribute('title','Erreur'+ response.status);
+            const msgStatus = response.status === null ? 'insecure resource' : response.status;
+          _node.setAttribute('title','Erreur : '+ msgStatus);
 
           resolve(response);
           console.log('Lien analysés : ',iterationsLinks +'/'+ nbLinks);
@@ -586,6 +601,7 @@ function initcheckerLinksAndImages(){
 
   }
   
+
   dataChecker.link_check.nb_link = linksStack.length;
   // console.log(
   //   "--------------------- Start check validity links -----------------------------"
