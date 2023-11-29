@@ -7,8 +7,28 @@
 </head>
 <body>
     <h1>Option CheckerWebsite</h1>
-    <input id="role-input" type="text" placeholder="Entrez votre rôle (cdp, webdesigner ou all)" />
-    <button id="save-btn">Enregistrer les options</button>
+    <form id="form-settings">
+        <label for="profil-user-controller-input">Identifiant du contrôleur</label>
+        <input id="profil-user-controller-input" type="text" placeholder="Entrez votre username exemple (pour le prenom : greg, et nom : nicolle) ->gnicolle" />
+        <br>
+        <label for="profil-type-input">Profil contrôllé</label>
+        <input id="profil-type-input" type="text" placeholder="Entrez votre rôle (cdp, webdesigner ou all)" />
+        <br>
+        <label for="min-meta-title-caractere-input">min meta title</label>
+        <input id="min-meta-title-caractere-input" type="text" placeholder="Entrez le nombre minimum de caractère pour la meta title" />
+        <br>
+        <label for="max-meta-title-caractere-input">max meta title</label>
+        <input id="max-meta-title-caractere-input" type="text" placeholder="Entrez le nombre maximum de caractère pour la meta title" />
+        <br>
+        <label for="min-meta-desc-caractere-input">min meta desc</label>
+        <input id="min-meta-desc-caractere-input" type="text" placeholder="Entrez le nombre minimum de caractère pour la meta description" />
+        <br>
+        <label for="max-meta-desc-caractere-input">max meta desc</label>
+        <input id="max-meta-desc-caractere-input" type="text" placeholder="Entrez le nombre maximum de caractère pour la meta description" />
+        <br>
+        <button id="save-btn">Enregistrer les options</button><button id="reset-btn">Récupérer les paramètre par défaut</button>
+    </form>
+    
     <script type="module" src="options.js"></script>
 </body>
 </html>
