@@ -8,6 +8,10 @@ const metaTitleMinInput = getById("min-meta-title-caractere-input");
 const metaTitleMaxInput = getById("max-meta-title-caractere-input");
 const metaDescMinInput = getById("min-meta-desc-caractere-input");
 const metaDescMaxInput = getById("max-meta-desc-caractere-input");
+const hnCaractereMinInput = getById("min-hn-caractere-input");
+const hnCaractereMaxInput = getById("max-hn-caractere-input");
+const boldMinInput = getById("min-bold-expression-input");
+const boldMaxInput = getById("max-bold-expression-input");
 
 const updateField = (key, value) => {
   const inputElement = getById(`${key.toLowerCase().replaceAll('_', '-')}-input`);
@@ -91,7 +95,10 @@ metaTitleMinInput.addEventListener('change', () => updateCheckerToolsSettings('M
 metaTitleMaxInput.addEventListener('change', () => updateCheckerToolsSettings('MAX_META_TITLE_CARACTERE', Number(metaTitleMaxInput.value)));
 metaDescMinInput.addEventListener('change', () => updateCheckerToolsSettings('MIN_META_DESC_CARACTERE', Number(metaDescMinInput.value)));
 metaDescMaxInput.addEventListener('change', () => updateCheckerToolsSettings('MAX_META_DESC_CARACTERE', Number(metaDescMaxInput.value)));
-
+hnCaractereMinInput.addEventListener('change', () => updateCheckerToolsSettings('MIN_HN_CARACTERE', Number(hnCaractereMinInput.value)));
+hnCaractereMaxInput.addEventListener('change', () => updateCheckerToolsSettings('MAX_HN_CARACTERE', Number(hnCaractereMaxInput.value)));
+boldMinInput.addEventListener('change', () => updateCheckerToolsSettings('MIN_BOLD_EXPRESSION', Number(boldMinInput.value)));
+boldMaxInput.addEventListener('change', () => updateCheckerToolsSettings('MAX_BOLD_EXPRESSION', Number(boldMaxInput.value)));
 restBtn.addEventListener('click', () => {
   chrome.storage.sync.remove('checkerToolsSettings', function () {
     console.log('checkerToolsSettings supprimé du stockage sync');
