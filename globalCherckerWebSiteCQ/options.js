@@ -2,6 +2,9 @@ const getById = (id) => document.getElementById(id);
 const saveBtn = getById("save-btn");
 const restBtn = getById("reset-btn");
 
+
+
+//Inputs option
 const profilUserController = getById("profil-user-controller-input");
 const roleInput = getById("profil-type-input");
 const metaTitleMinInput = getById("min-meta-title-caractere-input");
