@@ -534,6 +534,11 @@ function initcheckerLinksAndImages(){
           response.document = res.responseText;
           isLinkedin = res.status === 999;
           txtLinkedin = isLinkedin ? "Lien Linkedin : " : "";
+          const isButton = ((_node &&_node.style.padding && parseInt(_node.style.padding)>=5) ||  
+                            (_node.getAttribute('class') ? (_node.getAttribute('class').includes('dmButtonLink') ||
+                             _node.getAttribute('class').includes('vc_btn3')) : false
+                            ));
+          console.log('__ Is a button ? ',{isButton});
           resolve(response);
           if (res.ok || isLinkedin) {
             console.log(
@@ -587,7 +592,7 @@ function initcheckerLinksAndImages(){
           _node.setAttribute('title','Erreur : '+ msgStatus);
 
           resolve(response);
-          console.log('Lien analysés : ',iterationsLinks +'/'+ nbLinks);
+          console.log('Lien analysés : ',iterationsLinks +'/'+ nbLinks, '   en erreur : ',error);
           (iterationsLinks === nbLinks) && (console.log(
             "--------------------- END check validity links -----------------------------"
           ),checkerImageWP(),checkLinksDuplicate());
