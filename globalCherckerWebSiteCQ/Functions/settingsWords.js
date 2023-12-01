@@ -16,6 +16,7 @@ settingWords.replaceWords = [
     "(",
     ")", 
     "?",
+    "!",
     "&",
     "a",
     "à",
