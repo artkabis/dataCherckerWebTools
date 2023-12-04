@@ -47,7 +47,6 @@
     let strongParent;
     if (isDuda) {
       strongParent = $(this).closest(".dmRespCol") ? $(this).closest(".dmRespCol") : $(this).closest(".dmNewParagraph");
-      //console.log('-------------------strong & bold  :::::::::::::::',this,$(this).closest(".dmNewParagraph"),$(this).closest(".dmNewParagraph").text().length,' colonne : ',strongParent);
     }else if(isWP && $(this).closest('.wpb_text_column').length){
       strongParent = $(this).closest('.wpb_text_column');
     }else if(isWP && $(this).closest('.wpb_toggle_content').length){ 
@@ -130,7 +129,7 @@
       
   });console.log({boldArray});
 
-  // Créer un nouvel tableau pour stocker les éléments uniques
+  // Créer un nouveau tableau pour stocker les éléments uniques
   const objSansDoublons = [];
 
   // Parcourir l'array initial boldArray
@@ -150,7 +149,7 @@
       nbWordsParent >= 25
     ) {
       !$isMultiSpan && objSansDoublons.push({
-        target, // Modification : Ne pas accéder à [0] pour conserver l'élément DOM
+        target,
         texte_duplique: isDuplicate,
         text,
         nbWords,
@@ -219,7 +218,6 @@
   } else if (nbBold < 1 && nbBold > 10) {
     scroreBold = 0;
   } else if (nbBold >= 3 && nbBold <= 5) {
-    console.log("____________________________________________ bold ok ");
     scroreBold = 5;
   }
   dataChecker.bold_check.global_score = scroreBold ? scroreBold : 0;

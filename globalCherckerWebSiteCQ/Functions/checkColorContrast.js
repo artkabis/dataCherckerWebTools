@@ -28,8 +28,6 @@ const colorService = function() {
             element._wcc._isVisible = false;
             return isParentVisible;
         }
-        //element._wcc._target = element;
-
         const getComputedStyle = document.defaultView.getComputedStyle(element, null);
         isVisible = getComputedStyle.getPropertyValue('display') !== 'none' &&
             getComputedStyle.getPropertyValue('visibility') !== 'hidden' &&
