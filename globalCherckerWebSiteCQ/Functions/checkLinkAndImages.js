@@ -541,7 +541,7 @@ function initcheckerLinksAndImages(){
                             (_node.getAttribute('class') ? (_node.getAttribute('class').includes('dmButtonLink') ||
                              _node.getAttribute('class').includes('vc_btn3')) : false
                             ));
-          console.log('__ Is a button ? ',{isButton});
+          //console.log('__ Is a button ? ',{isButton});
           resolve(response);
           if (res.ok || isLinkedin) {
             console.log(
