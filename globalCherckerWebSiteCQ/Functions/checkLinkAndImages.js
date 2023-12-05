@@ -501,8 +501,6 @@ function initcheckerLinksAndImages(){
       status: null,
       document: null,
     };
-    //_url = (_url.includes('solocaldudaadmin.eu-responsivesiteeditor.com'))? window.location.href.split('?')[0]+_url.split('solocaldudaadmin.eu-responsivesiteeditor.com')[1] : _url
-    //dataChecker.link_check.nb_link = nbLinks;
     return new Promise(function (resolve, reject) {
       let fetchTimeout = null;
       const startDoubleSlash  = /^\/\//;
@@ -534,14 +532,12 @@ function initcheckerLinksAndImages(){
           response.document = res.responseText;
           isLinkedin = res.status === 999;
           txtLinkedin = isLinkedin ? "Lien Linkedin : " : "";
-          //console.log('>>>>>>>>>>>>>>>>>><<< node : ',_node,'-------------------- width : ',_node.style.width, 'width value : ',parseInt(_node.style.width),'   height : ',_node.style.height , '   height value : ', parseInt(_node.style.height));
           const isButton = ((_node && (_node.style.padding && parseInt(_node.style.padding)>=5 ||
            _node.style.width && parseInt(_node.style.width)>=15 ||
             _node.style.height && parseInt(_node.style.height)>=15) || _node.clientHeight >=10 || _node.clientWidth >=10) ||
                             (_node.getAttribute('class') ? (_node.getAttribute('class').includes('dmButtonLink') ||
                              _node.getAttribute('class').includes('vc_btn3')) : false
                             ));
-          //console.log('__ Is a button ? ',{isButton});
           resolve(response);
           if (res.ok || isLinkedin) {
             console.log(
