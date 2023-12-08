@@ -159,10 +159,6 @@
     scoreTabAltImg2.push((i.alt_img_score && String(i.alt_img_text) !=='undefined') ? 5 : 0);
     i.alt_img_score = (i.alt_img_score && String(i.alt_img_text) !=='undefined') ? 5 : 0;
 });
-  console.log(
-    "______________________alt img : ",
-    dataChecker.alt_img_check.alt_img
-  );
 
   dataChecker.alt_img_check.global_score = (scoreTabAltImg2.length)?Number(
     scoreTabAltImg2.reduce((a, b) => a + b) / scoreTabAltImg.length
