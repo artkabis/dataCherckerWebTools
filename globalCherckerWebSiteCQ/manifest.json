@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Full check Solocal Website",
+  "name": "Health checker Website",
   "version": "2.5.0",
   "background": {
     "service_worker": "service_worker.js",
