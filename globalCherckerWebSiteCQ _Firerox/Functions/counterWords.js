@@ -1,13 +1,19 @@
-(() => {
+// console.log({wordsCounterContent});
+// (wordsCounterContent!== undefined) ? (delete wordsCounterContent , wordsCounterContent = {}) : wordsCounterContent = {};
+counterWords = () =>{
   // Fonction pour récupérer le texte lisible à partir d'un élément DOM en excluant les classes spécifiées
   function getTextFromElement(element, excludedClasses) {
     return [...element.childNodes]
       .map((node) => {
+       
         if (node.nodeType === Node.TEXT_NODE) {
           return node.textContent;
-        } else if (node.nodeType === Node.ELEMENT_NODE && !node.closest('form')) {
+        } else if (node.nodeType === Node.ELEMENT_NODE && !node.closest('form') ) {
+
           const tagName = node.tagName.toLowerCase();
           const classes = node.classList;
+          //(classes.includes('vc_btn3')) &&  console.log('node : ', node, 'padding : ',node.style.padding);
+
 
           // Vérifier si l'élément a une classe à exclure
           if (
@@ -15,8 +21,7 @@
           ) {
             return "";
           }
-
-          if (tagName !== "script" && tagName !== "style") {
+          if (!tagName.includes("script") && !tagName.includes("style") && !tagName.includes("img") && !tagName.includes("source") && !tagName.includes("video") && !tagName.includes("picture")) {
             // Exclure les balises SCRIPT et STYLE (ou ajouter d'autres balises à exclure si nécessaire)
             return getTextFromElement(node, excludedClasses);
           }
@@ -60,11 +65,11 @@
   }
 
   // Fonction pour récupérer le texte lisible des éléments correspondant aux sélecteurs en excluant les classes spécifiées et en supprimant les sauts de ligne et les doubles espaces
-  function getReadableTextFromSelectors(
+  const getReadableTextFromSelectors= (
     selectors,
     excludedClasses,
     excludedWords
-  ) {
+  ) => {
     let allText = "";
 
     for (const selector of selectors) {
@@ -85,35 +90,23 @@
   }
 
   // Liste des classes à exclure
-  const excludedClasses = [
-    "vc_btn3-container",
-    "pj-prolive-hc",
-    "dmButtonLink",
-    "proliveContainer",
-  ];
+  const excludedClasses = settingWords.excludedClasses;
 
   // Liste des mots à exclure
-  const replaceWords = [
-    "Button",
-    "Afficher davantage",
-    "John Doe",
-    "City skyline",
-    "Photo By:",
-    "Birthday Sparks",
-    "Fashion Magazine",
-    "Blurred Lines",
-    "Photo by:",
-  ];
+  const replaceWords = settingWords.replaceWords;
+  console.log({excludedClasses},{replaceWords});
 
   // Liste des sélecteurs pour récupérer le texte
   const selectors = [
-    "#Content",".Content",".content",
-    "#dm_content .dmNewParagraph:not(.proliveContainer)", 'body:not(#dmRoot):not(.page) div[class^="content"]', 'div[class*="main"]',
+    "#Content",
+    "#dm_content .dmNewParagraph:not(.proliveContainer)",
+    "main"
+    //'div[class^="page"]',//, 'body:not(#dmRoot):not(.page) div[class^="content"]', 'div[class*="main"]', '#bodyContent',
   ];
 
   // Appelle la fonction pour récupérer le texte lisible des éléments correspondant aux sélecteurs en excluant les classes spécifiées et en supprimant les sauts de ligne et les doubles espaces
   const textFromSelectors = getReadableTextFromSelectors(
-    selectors,
+    selectors ? selectors : ['body'],
     excludedClasses,
     replaceWords
   );
@@ -125,4 +118,9 @@
     "Nombre de mots (en excluant les espaces des numéros de téléphone et les mots spécifiés) :",
     wordCount
   );
-})();
+  return {words:textFromSelectors, count_words :wordCount};
+}
+counterWords();
+//wordsCounterContent = counterWords();
+
+

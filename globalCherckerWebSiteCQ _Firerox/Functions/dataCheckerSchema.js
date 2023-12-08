@@ -1,7 +1,9 @@
-
-
 dataChecker = {
     url_site: window.location.href,
+    url_online: (document.querySelector('link[rel="canonical"]') && document.querySelector('link[rel="canonical"]').getAttribute('href') && 
+    document.querySelector('link[rel="canonical"]').getAttribute('href').includes('/site/')) ? 
+    document.querySelector('link[rel="canonical"]').getAttribute('href').split('/site/')[0] : 
+    document.querySelector('link[rel="canonical"]').getAttribute('href') ? !document.querySelector('link[rel="canonical"]').getAttribute('href') : '',
     global_score: "2",
     state_check: "false",
     cdp_global_score: {
@@ -115,7 +117,7 @@ dataChecker = {
     hn: {
       hn_check_state: "false",
       nb_hn: "1",
-      check_title: "Hn ",
+      check_title: "Hn",
       global_score: "1",
       hn_reco: {
         profil: ["CDP"],

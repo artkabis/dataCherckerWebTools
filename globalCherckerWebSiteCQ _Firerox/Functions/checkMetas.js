@@ -1,18 +1,23 @@
 (($) => {
   //Start meta check
+  const MIN_META_TITLE_CARACTERES = currentSettings.MIN_META_TITLE_CARACTERE;
+  const MAX_META_TITLE_CARACTERES = currentSettings.MAX_META_TITLE_CARACTERE
+  const MIN_META_DESC_CARACTERES = currentSettings.MIN_META_DESC_CARACTERE;
+  const MAX_META_DESC_CARACTERES = currentSettings.MAX_META_DESC_CARACTERE;
+
   const title = $('meta[property="og:title"]').attr("content");
   const desc = $('meta[name="description"]').attr("content");
   dataChecker.hn.hn_reco.hn = [];
   let titleLength,
     checkTitle,
-    recoTitle = " Entre 50 et 60 caractères.",
+    recoTitle = ` Entre ${MIN_META_TITLE_CARACTERES} et ${MAX_META_TITLE_CARACTERES} caractères.`,
     checkValideTitle,
     scoreTitle;
   if (title) {
     titleLength = title.length ? title.length : 0;
     checkTitle = titleLength > 0;
 
-    checkValideTitle = titleLength >= 50 && titleLength <= 65 ? true : false;
+    checkValideTitle = titleLength >= MIN_META_TITLE_CARACTERES && titleLength <= MAX_META_TITLE_CARACTERES ? true : false;
     scoreTitle = checkValideTitle ? 2.5 : 0;
 
     //data title
@@ -33,7 +38,7 @@
   }
 
   // desc
-  const recoDesc = " Entre 140 et 156 caractères.";
+  const recoDesc = ` Entre ${MIN_META_DESC_CARACTERES} et ${MAX_META_DESC_CARACTERES} caractères.`;
   let scoreDesc = 0,
     checkDesc,
     descLength = 0,
@@ -42,7 +47,7 @@
     descLength = desc.length;
     checkDesc = descLength > 0;
 
-    checkValideDesc = descLength >= 140 && descLength <= 156 ? true : false;
+    checkValideDesc = descLength >= MIN_META_DESC_CARACTERES && descLength <= MAX_META_DESC_CARACTERES ? true : false;
     scoreDesc = checkValideDesc ? 2.5 : 0;
 
     //data desc
@@ -84,13 +89,13 @@
   );
   title && checkTitle
     ? console.log(
-        `%c Meta title : ${title} -> caractère : ${titleLength} ----- (de 50 à 65)`,
+        `%c Meta title : ${title} -> caractère : ${titleLength} ----- (de ${MIN_META_TITLE_CARACTERES} à ${MAX_META_TITLE_CARACTERES})`,
         `color:${checkValideTitle ? "green" : "red"}`
       )
     : console.log(`%c Meta title non présente !!!`, `color:red`);
   desc && desc.length > 0
     ? console.log(
-        `%c Meta description : ${desc} -> caractère : ${descLength} ----- (de 140 à 156)`,
+        `%c Meta description : ${desc} -> caractère : ${descLength} ----- (de ${MIN_META_DESC_CARACTERES} à ${MAX_META_DESC_CARACTERES})`,
         `color:${checkValideDesc ? "green" : "red"}`
       )
     : console.log(`%c Meta desc non présente !!!`, `color:red`);

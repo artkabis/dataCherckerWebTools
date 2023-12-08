@@ -44,12 +44,26 @@
     isWP = $('#Content').length;
     isDuda = $('#dm').length;
   strongOrBold.each(function (i, t) {
-    
-      const nbWordsParentWP = (isWP) ? $(this).closest('.vc_column-inner')[0].innerText.trim().split(' ').length : $(this).parent().parent()[0].innerText.trim().split(' ').length;
+    let strongParent;
+    if (isDuda) {
+      strongParent = $(this).closest(".dmRespCol") ? $(this).closest(".dmRespCol") : $(this).closest(".dmNewParagraph");
+    }else if(isWP && $(this).closest('.wpb_text_column').length){
+      strongParent = $(this).closest('.wpb_text_column');
+    }else if(isWP && $(this).closest('.wpb_toggle_content').length){ 
+      strongParent = $(this).closest('.wpb_toggle_content');
+     }else if((!isDuda && !isWP)){
+      strongParent = $(this).parent().parent().parent();
+     }else{
+      strongParent = $(this).parent().parent().parent();
+     }
+
+    const nbWordsParent = (strongParent[0]) ? strongParent[0].textContent.trim().split(' ').length : 0;
 
     testStack = isWP 
-    isSlideDuda = (isDuda) ? $(this).parents(".slide-inner").length : 0;
-    if (t.textContent.length > 1 && t.textContent !== " " && !isHnClosest($(this)) && !isHnLink($(this)) && nbWordsParentWP >=70 && !isSlideDuda) {
+    isSlideDuda = (isDuda && $(this).closest(".slide-inner").length) ? true : false;
+    isContentDataBinding = (isDuda && ("div[data-binding*='']") && $(this).find("div[data-binding*='']").length) ? true : false;
+
+    if (t.textContent.length > 1 && t.textContent !== " " && !isHnClosest($(this)) && !isHnLink($(this)) && nbWordsParent >=20 && !isSlideDuda && !isContentDataBinding) {
         cmpBold++;
         boldArray.push({
           target: t,
@@ -57,8 +71,7 @@
           nbWords: t.textContent.includes(" ")
             ? t.textContent.split(" ").length
             : 1,
-          nbWordsParent: (isWP) ? nbWordsParentWP
-            : (isDuda) ? $(this).closest(".dmNewParagraph")[0].textContent.split(" ").length :  (isWP) ? $(this).closest('.vc_column-inner')[0].textContent.split(" ").length : $(this).parent().parent().parent()[0].textContent.split(" ").length,
+          nbWordsParent: nbWordsParent
         });
     }
   });
@@ -67,6 +80,7 @@
   $("#dm_content span").each(function (t) {
     const isDuda =$(this).closest('#dm');
     isSlide = $(this).closest(".slide-inner");
+    isContentDataBinding = (isDuda && $(this).find("div[data-binding]").length) ? true : false;
 
     
     let target = isMultiSpan($(this)) ? $(this).children() : $(this);
@@ -93,8 +107,11 @@
           ? $(this).parents(".dmNewParagraph")[0].textContent.split(" ").length
           : $(this).parent().parent().parent()[0].textContent.split(" ")
       );
+
+      //isBold(target) && console.log(isBold(target),target,target[0].textContent);
     isBold(target) &&
       !isHnClosest($(this)) &&
+      !isContentDataBinding &&
       target[0].textContent !== "\n" &&
       target[0].textContent !== "" &&
       target[0].textContent.length > 1 &&
@@ -112,7 +129,7 @@
       
   });console.log({boldArray});
 
-  // Créer un nouvel tableau pour stocker les éléments uniques
+  // Créer un nouveau tableau pour stocker les éléments uniques
   const objSansDoublons = [];
 
   // Parcourir l'array initial boldArray
@@ -126,13 +143,13 @@
     );
 
     if (
-      text.length > 2 &&
-      !target.closest(".slide-inner") &&
-      !target.closest("#Footer") &&
+       text.length > 2 &&
+       !target.closest(".slide-inner") &&
+       !target.closest("#Footer") &&
       nbWordsParent >= 25
     ) {
       !$isMultiSpan && objSansDoublons.push({
-        target, // Modification : Ne pas accéder à [0] pour conserver l'élément DOM
+        target,
         texte_duplique: isDuplicate,
         text,
         nbWords,
@@ -201,7 +218,6 @@
   } else if (nbBold < 1 && nbBold > 10) {
     scroreBold = 0;
   } else if (nbBold >= 3 && nbBold <= 5) {
-    console.log("____________________________________________ bold ok ");
     scroreBold = 5;
   }
   dataChecker.bold_check.global_score = scroreBold ? scroreBold : 0;
