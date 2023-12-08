@@ -97,41 +97,46 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
       var tabContent = tab ? tab.content : null;
       console.log(tab, { tabContent });
       if (tab) {
-        chrome.scripting.executeScript(
-          {
-            target: { tabId: tab.id },
-            files: [
-              "./assets/jquery-3.6.4.min.js",
-              "./assets/console.image.min.js",
-              "./Functions/checkAndAddJquery.js",
-              './Functions/settingsOptions.js',
-
-
-              "./Functions/settingsWords.js",
-              "./Functions/dataCheckerSchema.js",
-              "./Functions/initLighthouse.js",
-              "./Functions/counterWords.js",
-              "./Functions/checkMetas.js",
-              "./Functions/checkAltImages.js",
-              "./Functions/checkBold.js",
-              "./Functions/checkOutlineHn.js",
-              "./Functions/checkColorContrast.js",
-              "./Functions/counterLettersHn.js",
-              //"./Functions/checkUserSoprod.js",
-              "./Functions/initDataChecker.js",
-              "./Functions/checkDataBindingDuda.js",
-              "./Functions/checkLinkAndImages.js",
-            ],
-          },
-          function () {
-            // close popup
-            window.close();
-          }
-        );
-      }
+        chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: [
+            "./Functions/clear.js",
+            "./assets/jquery-3.6.4.min.js",
+            "./assets/console.image.min.js",
+            "./Functions/checkAndAddJquery.js",
+            './Functions/settingsOptions.js',
+          ],        
+        }, () => {
+          setTimeout(() => {
+          chrome.scripting.executeScript(
+            {
+              target: { tabId: tab.id },
+              files: [
+                "./Functions/settingsWords.js",
+                "./Functions/dataCheckerSchema.js",
+                "./Functions/initLighthouse.js",
+                "./Functions/counterWords.js",
+                "./Functions/checkMetas.js",
+                "./Functions/checkAltImages.js",
+                "./Functions/checkBold.js",
+                "./Functions/checkOutlineHn.js",
+                "./Functions/checkColorContrast.js",
+                "./Functions/counterLettersHn.js",
+                //"./Functions/checkUserSoprod.js",
+                "./Functions/initDataChecker.js",
+                "./Functions/checkDataBindingDuda.js",
+                "./Functions/checkLinkAndImages.js",
+              ],
+            }, () => {
+              // Fermez la fenêtre contextuelle
+              window.close();
+            });
+          }, 50);
+          });
+        };
+      });
     });
   });
-});
 document.querySelector("#wordsCloud").addEventListener("click", function () {
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     var activeTab = tabs[0];
