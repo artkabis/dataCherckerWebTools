@@ -488,10 +488,12 @@ function initcheckerLinksAndImages() {
       !t.getAttribute("href").includes("linkedin.") &&
       !t.getAttribute("href").includes("https:") &&
       !t.getAttribute("href").includes("tel:") &&
+      t.getAttribute("href").at(0) !== "#" &&
       linksStackFilter.push({ target: t, href: href });
     (t.getAttribute("href").includes("http:") ||
       t.getAttribute("href").includes("linkedin.") ||
       t.getAttribute("href").includes("tel:")) &&
+      t.getAttribute("href").at(0) === "#" &&
       warningLinks.push({ target: t, url: t.getAttribute("href") });
   });
 
@@ -706,6 +708,8 @@ function initcheckerLinksAndImages() {
 
   $.each(linksStackFilter, function (i, t) {
     let url = t.href;
+    const _this = t.target;
+    const $this = $(t.target);
     if (url && !url.includes("tel:")) {
       url =
         url.at(0) === "/" || (url.at(0) === "?" && !url.includes("tel:"))
@@ -726,10 +730,11 @@ function initcheckerLinksAndImages() {
           ? ",  text : " + t.target.textContent.replace(/(\r\n|\n|\r)/gm, "")
           : "";
       txtContent =
-        $(this).find("svg") && $(this).find("svg").attr("alt")
-          ? ",  text : " + $(this).find("svg").attr("alt")
+      $this.find("svg") && $this.find("svg").attr("alt")
+          ? ",  text : " + $this.find("svg").attr("alt")
           : txtContent;
-      verifExcludesUrls(url) &&
+          console.log('###############################',url, $this);
+      (new URL(url).href && verifExcludesUrls(url)) &&
         check(new URL(url).href, txtContent, t.target, externalLink);
 
       if (
