@@ -733,7 +733,6 @@ function initcheckerLinksAndImages() {
       $this.find("svg") && $this.find("svg").attr("alt")
           ? ",  text : " + $this.find("svg").attr("alt")
           : txtContent;
-          console.log('###############################',url, $this);
       (new URL(url).href && verifExcludesUrls(url)) &&
         check(new URL(url).href, txtContent, t.target, externalLink);
 
