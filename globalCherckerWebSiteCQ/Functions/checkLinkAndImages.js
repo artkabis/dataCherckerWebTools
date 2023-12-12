@@ -1,3 +1,6 @@
+MAX_SIZE_BYTES_IMAGE = currentSettings.MAX_SIZE_BYTES_IMAGE || 317435;
+MAX_RATIO_IMAGE = currentSettings.MAX_RATIO_IMAGE || 3;
+
 function initcheckerLinksAndImages() {
   let urlsDuplicate = [],
     requestInitiatedCount = 0,
@@ -132,12 +135,12 @@ function initcheckerLinksAndImages() {
               "color: red"
             );
           } else if (
-            ratio > 3 &&
+            ratio > MAX_RATIO_IMAGE &&
             String(ratio) !== "Infinity" &&
             sizeInKb > 70
           ) {
             console.log(
-              "%c Warning : ratio supérieur à 3 : " + ratio,
+              `%c Warning : ratio supérieur à ${MAX_RATIO_IMAGE} : " ${ratio}`,
               "color: orange"
             );
           } else if (
@@ -146,21 +149,19 @@ function initcheckerLinksAndImages() {
             (args[5] >= 900 || (args[6] >= 900 && sizeInKb > 70))
           ) {
             console.log(
-              "%c Warning : ratio supérieur à 2 : " +
-                ratio +
-                "  pour une image dépassant les 900px",
+              `%c Warning : ratio supérieur à 2 : ${ratio}  pour une image dépassant les 900px`,
               "color: orange"
             );
           }
           /*256000 Bytes = 250 KB*/
-          if (fsize > 256000 && fsize < 317435) {
+          if (fsize > 256000 && fsize < MAX_SIZE_BYTES_IMAGE) {
             console.log(
               `%c Warning - la taille de l'image dépasse 250 KB : ${formatBytes(
                 fsize
               )}  url : ${result.url}`,
               "color: orange"
             );
-          } /*317435 Bytes = 310 KB*/ else if (fsize > 317435) {
+          } /*317435 Bytes = 310 KB*/ else if (fsize > MAX_SIZE_BYTES_IMAGE) {
             console.log(
               `%c Warning - la taille de l'image dépasse 310 KB : ${formatBytes(
                 fsize
@@ -174,7 +175,7 @@ function initcheckerLinksAndImages() {
             urlsDuplicate.push({ url: result.url, target: result.target });
 
           size_scores.push(
-            fsize > 317435 ? 0 : fsize > 256000 && fsize < 317435 ? 2.5 : 5
+            fsize > MAX_SIZE_BYTES_IMAGE ? 0 : fsize > 256000 && fsize < MAX_SIZE_BYTES_IMAGE ? 2.5 : 5
           );
           alt_scores.push(result.alt[2] !== false ? 5 : 0);
           dataChecker.img_check.alt_img.push({
@@ -190,7 +191,7 @@ function initcheckerLinksAndImages() {
               size_img_score:
                 fsize > 317435
                   ? 0
-                  : fsize > 256000 && fsize < 317435
+                  : fsize > 256000 && fsize < MAX_SIZE_BYTES_IMAGE
                   ? 2.5
                   : 5
                   ? response.status === "404"

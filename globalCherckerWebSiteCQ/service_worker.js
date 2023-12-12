@@ -421,7 +421,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
       console.log("launch detected soprod tab and snip username ");
       detecteSoprod();
       console.log(
-        " ???????????????????????????????????????????? data de datachecker : ",
+        "Data de datachecker : ",
         request.data
       );
       cmp++;
@@ -437,7 +437,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     if (cmpUserSoprod === 0) {
       cmpUserSoprod++;
       console.log(
-        " ???????????????????????????????????????????? data de user Soprod : ",
+        " Data de user Soprod : ",
         request.user
       );
       cmp === 1 && cmp++;
@@ -446,33 +446,27 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
       global_data.user = user;
     }
   }
-
-  //const cleanInterval = () => clearInterval(interCheck);
   const checkDatas = () => {
     cmpInterval++;
-    console.log("******* cmp in service-worker : ", { cmp });
-    // console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<< CMP : ',{cmp}, 'globale user : ', global_data.user);
-    // console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> interval count : ',{cmpInterval});
-    //console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> open interface data : ',{data_checker});
     if (cmp === 2) {
       console.log(
-        "IIIIIIIIIIIIIIIIIIIISSSSSSSSSSSSSSSSSSSSSSSss interval function ready : ",
+        "Interval function ready : ",
         { interCheck }
       );
       //cleanInterval();
       console.log(
-        "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu : data_checker -> ",
+        "Data_checker -> ",
         global_data.dataChecker
       );
       if (global_data.dataChecker) {
         const user = global_data.user;
         console.log(
-          "________________+++++++++++++ user pour envoi vers indexDB : ",
+          "User pour envoi vers indexDB : ",
           global_data.user
         );
         global_data.user = global_data.user ? global_data.user : "Customer";
         console.log(
-          "OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO les deux datas sont bien arrivées : ",
+          "Les deux datas sont bien arrivées : ",
           { global_data }
         );
         const dataCheckerParse = JSON.parse(global_data.dataChecker);
@@ -495,7 +489,5 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
       }
     }
   };
-
-  //interCheck =  setInterval(checkDatas,500);
   checkDatas();
 });

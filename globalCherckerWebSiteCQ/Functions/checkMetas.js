@@ -1,9 +1,9 @@
 (($) => {
   //Start meta check
-  const MIN_META_TITLE_CARACTERES = currentSettings.MIN_META_TITLE_CARACTERE;
-  const MAX_META_TITLE_CARACTERES = currentSettings.MAX_META_TITLE_CARACTERE
-  const MIN_META_DESC_CARACTERES = currentSettings.MIN_META_DESC_CARACTERE;
-  const MAX_META_DESC_CARACTERES = currentSettings.MAX_META_DESC_CARACTERE;
+  MIN_META_TITLE_CARACTERES = currentSettings.MIN_META_TITLE_CARACTERE || 50;
+  MAX_META_TITLE_CARACTERES = currentSettings.MAX_META_TITLE_CARACTERE || 65;
+  MIN_META_DESC_CARACTERES = currentSettings.MIN_META_DESC_CARACTERE || 140;
+  MAX_META_DESC_CARACTERES = currentSettings.MAX_META_DESC_CARACTERE || 156;
 
   const title = $('meta[property="og:title"]').attr("content");
   const desc = $('meta[name="description"]').attr("content");

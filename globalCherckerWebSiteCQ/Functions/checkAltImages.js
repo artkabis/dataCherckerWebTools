@@ -1,4 +1,7 @@
 (($) => {
+
+  ($('.alt_tooltip').length) && $('.alt_tooltip').each(function(){$(this).remove();});//remove old reference alt_tooltip
+  
   let accessibleImage = false;
   async function getImageAsBase64(imageUrl, validUrl) {
     if(validUrl){
