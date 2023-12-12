@@ -1,6 +1,6 @@
 // Paramètres par défaut
-if (typeof defaultSettings === 'undefined') {
-  let defaultSettings = {
+
+  defaultSettings = {
     PROFIL_USER_CONTROLLER:'Customer',
     PROFIL_TYPE: 'CDP/WEB',
     MIN_META_TITLE_CARACTERE: 50,
@@ -42,6 +42,3 @@ if (typeof defaultSettings === 'undefined') {
       console.log('Settings updated in content script:', currentSettings);
     }
   });
-}else{
-  console.log('settings option DTU : ',currentSettings);
-}
