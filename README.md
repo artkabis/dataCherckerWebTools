@@ -18,6 +18,7 @@
 - Check duplicate images (do not count logo images and cloned owl images).
 - Check databinding in Duda builder.
 - Launch runPagespeed and return FCP, LCP, TTI, performance score, alt images KO, and stack website.
+- Custom options DTU : min and max characters meta, Hn, max bold, images size, etc.
 
 ## Other tools:
 - Detect username if your connect to work tool.
