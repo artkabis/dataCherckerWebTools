@@ -1,5 +1,3 @@
-// Paramètres par défaut
-
   defaultSettings = {
     PROFIL_USER_CONTROLLER:'Customer',
     PROFIL_TYPE: 'CDP/WEB',
