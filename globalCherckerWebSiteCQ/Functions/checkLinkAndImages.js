@@ -465,6 +465,7 @@ function initcheckerLinksAndImages() {
       url.length > 1 &&
       //!url.includes("tel:") &&
       !url.includes("mailto:") &&
+      //!url.includes('tel:') &&
       !url.includes("javascript:") &&
       !url.includes("logflare") &&
       !url.includes("solocal.com") &&
@@ -486,16 +487,15 @@ function initcheckerLinksAndImages() {
   linksStack.each(function (i, t) {
     const href = $(this).attr("href");
     verifExcludesUrls(href) &&
-      !t.getAttribute("href").includes("linkedin.") &&
-      !t.getAttribute("href").includes("https:") &&
-      !t.getAttribute("href").includes("tel:") &&
-      t.getAttribute("href").at(0) !== "#" &&
+      !href.includes("linkedin.") &&
+      (href.includes("https:") || (href.at(0) === '/' && href.length>2)) &&
+      !href.includes("tel:") &&
       linksStackFilter.push({ target: t, href: href });
-    (t.getAttribute("href").includes("http:") ||
-      t.getAttribute("href").includes("linkedin.") ||
-      t.getAttribute("href").includes("tel:")) &&
-      t.getAttribute("href").at(0) === "#" &&
-      warningLinks.push({ target: t, url: t.getAttribute("href") });
+    (href.includes("http:") ||
+    href.includes("linkedin.") ||
+    href.includes("tel:") ||
+      !verifExcludesUrls(href))  &&
+      warningLinks.push({ target: t, url: href });
   });
 
   //console.log('liens à analyser : ',urlsScanned);
@@ -567,6 +567,7 @@ function initcheckerLinksAndImages() {
       const startDoubleSlash = /^\/\//;
       _url = _url.match(startDoubleSlash) !== null ? "https:" + _url : _url;
       //(!_url.includes('http:') )&& !_url.includes('.linkedin.com') &&
+      
       fetch(_url, {
         method: "GET",
         //redirect: "manual", // Permet de suivre les redirections explicitement
@@ -585,10 +586,10 @@ function initcheckerLinksAndImages() {
               let isNosecure = url.includes("http:")
                 ? "ATTENTION VOTRE LE EST EN HTTP ET DONC NON SECURISE : AJOUTER HTTPS"
                 : "";
-              !url.includes("tel:") &&
+                verifExcludesUrls(url) && !url.includes('tel:') && 
                 (console.log(
                   `%c ${isNosecure} - Vérifier le lien  ${isLinkedin}: 
-            ${new URL(url).href} manuellement >>>`,
+            ${url} manuellement >>>`,
                   `color:${isNosecure ? "red" : "orange"}`
                 ),
                 (target.style.border = isNosecure ? "solid 3px red" : ""),
@@ -616,7 +617,7 @@ function initcheckerLinksAndImages() {
           resolve(response);
           if (res.ok || isLinkedin) {
             console.log(
-              `url: ${txtLinkedin} ${_url} %c${_txt} -> %cstatus: %c${response.status} %c-- is CTA : ${isButton}`,
+              `url: ${txtLinkedin} ${_url} %c${_txt} -> %cstatus: %c${response.status} %c--  CTA détecté : ${isButton ? 'oui' : 'non'}`,
               "color:cornflowerblue;",
               "color:white;",
               "color:green",
@@ -625,7 +626,7 @@ function initcheckerLinksAndImages() {
             scoreCheckLink.push(5);
           } else if (!isLinkedin && !res.ok) {
             console.log(
-              `url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c-- is CTA : ${isButton}`,
+              `url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c--  CTA détecté :  ${isButton ? 'oui' : 'non'}`,
               "color:cornflowerblue;",
               "color:white;",
               "color:red",
@@ -637,7 +638,7 @@ function initcheckerLinksAndImages() {
             scoreCheckLink.push(0);
           } else if (res.status === 301 || res.type === "opaqueredirect") {
             console.log(
-              `!!!! ATENTION REDIRECTION 301 -> url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c-- is CTA : ${isButton}`,
+              `!!!! ATENTION REDIRECTION 301 -> url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c--  CTA détecté :  ${isButton ? 'oui' : 'non'}`,
               "color:cornflowerblue;",
               "color:white;",
               "color:orange",
@@ -666,8 +667,8 @@ function initcheckerLinksAndImages() {
 
           dataChecker.link_check.link_check_state = true;
           iterationsLinks++;
-          console.log("Link checked : ", iterationsLinks + "/" + nbLinks);
-          iterationsLinks === nbLinks &&
+          console.log("Link checked : ", iterationsLinks + "/" + (nbLinks));
+          iterationsLinks === (nbLinks)   &&
             (console.log(
               "--------------------- END check validity links -----------------------------"
             ),
@@ -676,9 +677,10 @@ function initcheckerLinksAndImages() {
         .catch((error) => {
           iterationsLinks++;
           _node.style.border = "solid 3px red";
-          const msgStatus =
-            response.status === null ? "insecure resource" : response.status;
-          _node.setAttribute("title", "Erreur : " + msgStatus);
+          // const msgStatus =
+          //   response.status === null ? "insecure resource" : response.status;
+          console.log('error : ', error, '    url : ',_url);
+          _node.setAttribute("title", "Erreur : " + error);
 
           resolve(response);
           console.log(
@@ -694,6 +696,7 @@ function initcheckerLinksAndImages() {
             checkerImageWP(),
             checkLinksDuplicate());
         });
+      
 
       fetchTimeout = setTimeout(() => {
         response.status = 408;
@@ -734,8 +737,8 @@ function initcheckerLinksAndImages() {
       $this.find("svg") && $this.find("svg").attr("alt")
           ? ",  text : " + $this.find("svg").attr("alt")
           : txtContent;
-      (new URL(url).href && verifExcludesUrls(url)) &&
-        check(new URL(url).href, txtContent, t.target, externalLink);
+      (url && verifExcludesUrls(url)) &&
+        check(url, txtContent, t.target, externalLink);
 
       if (
         verifExcludesUrls(url) &&
@@ -759,7 +762,7 @@ function initcheckerLinksAndImages() {
       ) {
         console.log(
           `%c Vérifier le lien ${txtContent} manuellement et SECURISEZ LE via "https" si ceci est possible >>>`,
-          "color:orange"
+          "color:red"
         ),
           console.log(new URL(url).href, t.target);
         check(new URL(url).href, txtContent, t.target, externalLink);

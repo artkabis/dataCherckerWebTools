@@ -120,7 +120,11 @@
       $(this).before(`<span class="alt_tooltip" style="position:relative;top:0;left:0;background:darkred;color:white;padding:5px;height: auto!important;margin:5px;box-shadow: 0 0 5px 0 rgb( 0 0 0 / 80%);width: max-content;display: inline-block !important;font-family: monospace;font-size: 13px !important;line-height: 15px !important;z-index:999999;">${$(this).attr("alt")}</span>`)
     }
     let validUrl;
-    try{validUrl = new URL(src).href && true}catch(e){validUrl = false};
+    try{
+      validUrl = new URL(src).href && true
+    }catch(e){
+      validUrl = false
+    };
     const checkBaseSrc = (validUrl && src.includes('data:image')) ? 'data:image'+src.split('data:image')[1] : src;
     this.tagName !== "svg" && filterDomain && excludes && validUrl && !src.includes('goo.gl')
       ? getImageAsBase64(checkBaseSrc,validUrl).then((base64Data) => {
