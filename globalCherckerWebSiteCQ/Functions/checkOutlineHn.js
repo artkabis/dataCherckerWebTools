@@ -84,6 +84,31 @@
       console.log("Structure des Hn invalide.");
     }
 
+
+
+    /****** Vérification qu'au moins deux h2 sont suivi du h1 ****************** */
+    console.log('Vérification des doubles h2 après h1 >>>>')
+      let h1Found = false;
+      let h2Count = 0;
+      const elements = document.querySelectorAll('h1, h2, h3');
+      for (var i = 0; i < elements.length; i++) {
+        let currentElement = elements[i];
+        (currentElement.tagName.toLowerCase() === 'h1') ? (h1Found = true, h2Count = 0) // Réinitialiser le compteur h2Count lorsqu'un nouveau h1 est trouvé
+        : (currentElement.tagName.toLowerCase() === 'h2' && h1Found) ? h2Count++ :
+        (currentElement.tagName.toLowerCase() === 'h3' && h1Found) ? h2Count = 0 : '';// Si on trouve un h3 après un h1, réinitialiser le compteur h2Count  
+      }
+
+      (h1Found && h2Count >= 2) ?
+        console.log('%cLa structure est valide : votre h1 est bien suivi d\'au moins deux h2.', 'color:green')
+      :
+        console.log('%cErreur : La structure n\'est pas valide, vous devez avoir au moins deux h2 après votre h1.', 'color:orange');
+      
+
+
+
+
+
+
   /*************************************** Gestion des precos liée à la longueur de Hn */
   const allTagHn = document.querySelectorAll("h1,h2,h3,h4,h5,h6");
   let globalScoreHnReco = [],
