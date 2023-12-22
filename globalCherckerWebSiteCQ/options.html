@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Option CheckerWebsite</title>
+    <title>Options Health Checker Website</title>
 </head>
 <body>
-    <h1>Option CheckerWebsite</h1>
+    <h1>Options Health Checker Website</h1>
     <form id="form-settings">
         <label for="profil-user-controller-input">Identifiant du contrôleur</label>
         <input id="profil-user-controller-input" type="text" placeholder="Entrez votre username exemple (pour le prenom : greg, et nom : nicolle) ->gnicolle" />
@@ -38,7 +38,13 @@
         <label for="max-bold-expression-input">max bold expression</label>
         <input id="max-bold-expression-input" type="text" placeholder="Entrez le nombre maximum d'expressions en gras" />
         <br>
-        <button id="save-btn">Enregistrer les options</button><button id="reset-btn">Récupérer les paramètre par défaut</button>
+        <label for="max-size-bytes-image-input">max size bytes images</label>
+        <input id="max-size-bytes-image-input" type="text" placeholder="Entrez la taille maximal (en bytes) des images" />
+        <br>
+        <label for="max-ratio-image-input">max ratio images</label>
+        <input id="max-ratio-image-input" type="text" placeholder="Entrez le ratio maximal des images" />
+        <br>
+        <button id="default-btn">Récupérer les paramètres par défaut</button>
     </form>
 
     <script type="module" src="options.js"></script>

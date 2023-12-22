@@ -1,7 +1,5 @@
 const getById = (id) => document.getElementById(id);
-const saveBtn = getById("save-btn");
-const restBtn = getById("reset-btn");
-
+const deafultBtn = getById("default-btn");
 
 
 //Inputs option
@@ -15,6 +13,8 @@ const hnCaractereMinInput = getById("min-hn-caractere-input");
 const hnCaractereMaxInput = getById("max-hn-caractere-input");
 const boldMinInput = getById("min-bold-expression-input");
 const boldMaxInput = getById("max-bold-expression-input");
+const maxBytesImage = getById("max-size-bytes-image-input");
+const maxRatioImage = getById("max-ratio-image-input");
 
 const updateField = (key, value) => {
   const inputElement = getById(`${key.toLowerCase().replaceAll('_', '-')}-input`);
@@ -102,7 +102,13 @@ hnCaractereMinInput.addEventListener('change', () => updateCheckerToolsSettings(
 hnCaractereMaxInput.addEventListener('change', () => updateCheckerToolsSettings('MAX_HN_CARACTERE', Number(hnCaractereMaxInput.value)));
 boldMinInput.addEventListener('change', () => updateCheckerToolsSettings('MIN_BOLD_EXPRESSION', Number(boldMinInput.value)));
 boldMaxInput.addEventListener('change', () => updateCheckerToolsSettings('MAX_BOLD_EXPRESSION', Number(boldMaxInput.value)));
-restBtn.addEventListener('click', () => {
+maxBytesImage.addEventListener('change', () => updateCheckerToolsSettings('MAX_SIZE_BYTES_IMAGE', Number(maxBytesImage.value)));
+maxRatioImage.addEventListener('change', () => updateCheckerToolsSettings('MAX_RATIO_IMAGE', Number(maxRatioImage.value)));
+
+
+
+
+deafultBtn.addEventListener('click', () => {
   chrome.storage.sync.remove('checkerToolsSettings', function () {
     console.log('checkerToolsSettings supprimé du stockage sync');
   });
@@ -112,8 +118,3 @@ restBtn.addEventListener('click', () => {
   });
 });
 
-saveBtn.addEventListener('click', () => {
-  chrome.storage.sync.get({ checkerToolsSettings: {} }, (result) => {
-    console.log(result.checkerToolsSettings);
-  });
-});
