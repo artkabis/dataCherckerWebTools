@@ -334,6 +334,7 @@ function initcheckerLinksAndImages() {
           !srcV.includes("static.cdn-website") &&
           !$(this).hasClass("leaflet-marker-icon") &&
           !srcV.includes("5+star.svg") &&
+          !srcV.includes('https://sominfraprdstb001.blob.core.windows.net/') &&
           imagesForAnalyseImg.push({
             key: "src-img-" + i,
             value: [
@@ -431,6 +432,41 @@ function initcheckerLinksAndImages() {
       }
     });
 
+
+    //Vérification des doublons liés au attribut "alt
+
+
+    // Utilisez un ensemble pour suivre les valeurs uniques
+  let uniqueAltValues = new Set();
+
+  // Variable pour indiquer s'il y a des duplicatas
+  let hasDuplicates = false;
+
+  // Parcourez chaque élément dans imagesForAnalyseImg
+  imagesForAnalyseImg.forEach(function (image) {
+    const altValue = image.value[2]; // Récupérez la valeur de alt
+    const targetAltImage = image.value[0];//récupération du scope de l'image analysé
+
+    // Vérifiez si la valeur de alt est valide et non dupliquée
+    if (altValue !== false && uniqueAltValues.has(altValue)) {
+      console.log(`%cDuplication détectée pour les alt : ${altValue}`,'color:orange');
+      console.log('Image ayant un alt en doublon : ',targetAltImage);
+      hasDuplicates = true;
+    } else {
+      // Ajoutez la valeur de alt à l'ensemble pour le suivi
+      uniqueAltValues.add(altValue);
+    }
+  });
+
+  // Affichez le résultat
+  if (hasDuplicates) {
+    console.log('%cIl y a des duplicatas dans les valeurs des alt de cette page.','color:orange');
+  } else {
+    console.log('%cAucun duplicata trouvé dans les valeurs de alt.','color:green');
+  }
+
+
+    //Lancement du check global des images
     const allImg = [...imagesForAnalyseBG, ...imagesForAnalyseImg];
     console.log({ allImg });
     let cmpImages = 0;
@@ -474,6 +510,7 @@ function initcheckerLinksAndImages() {
       !url.includes("mappy") &&
       !url.includes("bloctel.gouv.fr") &&
       !url.includes("client.adhslx.com") &&
+      !url.includes("sominfraprdstb001.blob.core.windows.net") &&
       url.at(0) !== "?" &&
       !(url.length === 1 && url.includes("#"))
     );
