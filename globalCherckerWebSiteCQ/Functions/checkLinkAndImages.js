@@ -661,7 +661,7 @@ function initcheckerLinksAndImages() {
               "color:cornflowerblue;"
             );
             scoreCheckLink.push(5);
-          } else if (!isLinkedin && !res.ok) {
+          } else if (!isLinkedin && !res.ok && res.status !== 403) {
             console.log(
               `url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c--  CTA détecté :  ${isButton ? 'oui' : 'non'}`,
               "color:cornflowerblue;",
@@ -682,6 +682,14 @@ function initcheckerLinksAndImages() {
               "color:cornflowerblue;"
             );
             scoreCheckLink.push(5);
+          }else if(res.status === 403){
+            console.log(
+              `!!!! ATENTION LIEN EN STATUS 403, VUEILLEZ LES VERIFIER MANUELLEMENT-> url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c--  CTA détecté :  ${isButton ? 'oui' : 'non'}`,
+              "color:orange;",
+              "color:white;",
+              "color:orange",
+              "color:cornflowerblue;"
+            );
           }
           _node.closest("#dm") &&
             _url.includes("site-privilege.pagesjaunes") &&
