@@ -334,7 +334,7 @@ function initcheckerLinksAndImages() {
           !srcV.includes("static.cdn-website") &&
           !$(this).hasClass("leaflet-marker-icon") &&
           !srcV.includes("5+star.svg") &&
-          !srcV.includes('https://sominfraprdstb001.blob.core.windows.net/') &&
+          !srcV.includes('sominfraprdstb001.blob.core.windows.net') &&
           imagesForAnalyseImg.push({
             key: "src-img-" + i,
             value: [
