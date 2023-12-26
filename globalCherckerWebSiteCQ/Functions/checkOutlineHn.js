@@ -94,8 +94,7 @@
       for (var i = 0; i < elements.length; i++) {
         let currentElement = elements[i];
         (currentElement.tagName.toLowerCase() === 'h1') ? (h1Found = true, h2Count = 0) // Réinitialiser le compteur h2Count lorsqu'un nouveau h1 est trouvé
-        : (currentElement.tagName.toLowerCase() === 'h2' && h1Found) ? h2Count++ :
-        (currentElement.tagName.toLowerCase() === 'h3' && h1Found) ? h2Count = 0 : '';// Si on trouve un h3 après un h1, réinitialiser le compteur h2Count  
+        : (currentElement.tagName.toLowerCase() === 'h2' && h1Found) ? h2Count++ : '';// Si on trouve un h3 après un h1, réinitialiser le compteur h2Count  
       }
 
       (h1Found && h2Count >= 2) ?
