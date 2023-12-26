@@ -99,7 +99,7 @@
 
       (h1Found && h2Count >= 2) ?
         console.log('%cLa structure est valide : votre h1 est bien suivi d\'au moins deux h2.', 'color:green')
-      :
+      : (!h1Found) ? console.log('%cErreur : Aucun H1 n\a été trouvé..', 'color:orange') :
         console.log('%cErreur : La structure n\'est pas valide, vous devez avoir au moins deux h2 après votre h1.', 'color:orange');
       
 

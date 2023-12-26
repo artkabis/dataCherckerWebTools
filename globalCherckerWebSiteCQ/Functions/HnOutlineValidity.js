@@ -109,7 +109,7 @@ export const HnOutlineValidity = (tab) => {
       });
       console.log({ structure });
       const newWindow = window.open("", "_blank");
-      newWindow.document.write("<html><head><title>Structure corrigée</title>");
+      newWindow.document.write("<html><head><title>Structure des headings</title>");
       newWindow.document.write(
         "<style>.missing {background-color: white!important;color: orange!important;}.noMissingHeading { background-color:green }.duplicate { background-color: orange }</style>"
       );
