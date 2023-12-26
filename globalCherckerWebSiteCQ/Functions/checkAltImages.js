@@ -57,7 +57,8 @@
       src &&
       !src.includes("mappy") &&
       !src.includes("cdn.manager.solocal.com") &&
-      !src.includes("static.cdn-website");
+      !src.includes("static.cdn-website") &&
+      !src.includes("sominfraprdstb001.blob.core.windows.net");
 
 
     if (filterDomain && excludes && t.tagName !=="svg") {
