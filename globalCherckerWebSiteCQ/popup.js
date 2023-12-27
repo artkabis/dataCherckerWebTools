@@ -4,6 +4,7 @@ import { toggleDesignMode } from "./Functions/toggleDesignMode.js";
 import { copyExpressionsSoprod } from "./Functions/copyExpressionsSoprod.js";
 import { dudaSitemap } from "./Functions/DudaSitemap.js";
 import { HnOutlineValidity } from "./Functions/HnOutlineValidity.js";
+import {downloaderWPMedia} from "./Functions/downloaderWPMedias.js";
 
 // chrome.tabs.query({ active: true, currentWindow: true }, function (tab) {
 //   chrome.scripting.executeScript({
@@ -54,6 +55,15 @@ document
       copyExpressionsSoprod(tabs[0]);
     });
   });
+
+  document
+  .querySelector("#downloadMediaWP")
+  .addEventListener("click", function () {
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      downloaderWPMedia(tabs[0]);
+    });
+  });
+  
 
 document
   .querySelector("#openGoogleSchemaValidator")
