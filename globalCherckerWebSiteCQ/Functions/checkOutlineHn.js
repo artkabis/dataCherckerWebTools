@@ -129,7 +129,7 @@ for (var i = 0; i < headings.length; i++) {
 }
 
 // Si on ne trouve pas de structure valide, afficher une erreur
- (consecutiveH2Count < minimumConsecutiveH2Count) ? console.log('%cAttention : Vous avez un h2 orphelin (ou absent) situé après votre h1 (ils doivent être (au minimum) au nombre de deux).', 'color:orange') : 
+ (consecutiveH2Count < minimumConsecutiveH2Count) ? console.log('%cAttention : Vous avez un h2 orphelin (ou absent) situé après votre h1. Ils doivent être (au minimum) au nombre de deux.', 'color:orange') : 
  !h1Found ? console.log('%cErreur : Aucun H1 n\a été trouvé..', 'color:orange') : '';
 
 
