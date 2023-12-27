@@ -778,11 +778,8 @@ function initcheckerLinksAndImages() {
         !url.at(-4).includes(".") &&
         t.target.textContent.length > 1
           ? ",  text : " + t.target.textContent.replace(/(\r\n|\n|\r)/gm, "")
-          : "";
-      txtContent =
-      $this.find("svg") && $this.find("svg").attr("alt")
-          ? ",  text : " + $this.find("svg").attr("alt")
-          : txtContent;
+          : $this.find("svg") && $this.find("svg").attr("alt") 
+          ? ",  text : " + $this.find("svg").attr("alt") : '';
       (url && verifExcludesUrls(url)) &&
         check(url, txtContent, t.target, externalLink);
 
