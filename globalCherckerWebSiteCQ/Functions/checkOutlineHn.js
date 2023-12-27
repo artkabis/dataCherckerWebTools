@@ -88,20 +88,50 @@
 
     /****** Vérification qu'au moins deux h2 sont suivi du h1 ****************** */
     console.log('Vérification des doubles h2 après h1 >>>>')
-      let h1Found = false;
-      let h2Count = 0;
-      const elements = document.querySelectorAll('h1, h2, h3');
-      for (var i = 0; i < elements.length; i++) {
-        let currentElement = elements[i];
-        (currentElement.tagName.toLowerCase() === 'h1') ? (h1Found = true, h2Count = 0) // Réinitialiser le compteur h2Count lorsqu'un nouveau h1 est trouvé
-        : (currentElement.tagName.toLowerCase() === 'h2' && h1Found) ? h2Count++ : '';// Si on trouve un h3 après un h1, réinitialiser le compteur h2Count  
-      }
+      // let h1Found = false;
+      // let h2Count = 0;
+      // const elements = document.querySelectorAll('h1, h2, h3');
+      // for (var i = 0; i < elements.length; i++) {
+      //   let currentElement = elements[i];
+      //   (currentElement.tagName.toLowerCase() === 'h1') ? (h1Found = true, h2Count = 0) // Réinitialiser le compteur h2Count lorsqu'un nouveau h1 est trouvé
+      //   : (currentElement.tagName.toLowerCase() === 'h2' && h1Found) ? h2Count++ : '';// Si on trouve un h3 après un h1, réinitialiser le compteur h2Count  
+      // }
 
-      (h1Found && h2Count >= 2) ?
-        console.log('%cLa structure est valide : votre h1 est bien suivi d\'au moins deux h2.', 'color:green')
-      : (!h1Found) ? console.log('%cErreur : Aucun H1 n\a été trouvé..', 'color:orange') :
-        console.log('%Attention : Vous avez un h2 orphelin situé après votre h1 (il doit normalement être au minimum de deux).', 'color:orange');
+      // (h1Found && h2Count >= 2) ?
+      //   console.log('%cLa structure est valide : votre h1 est bien suivi d\'au moins deux h2.', 'color:green')
+      // : (!h1Found) ? console.log('%cErreur : Aucun H1 n\a été trouvé..', 'color:orange') :
+      //   console.log('%cAttention : Vous avez un h2 orphelin situé après votre h1 (ils doivent être (au minimum) au nombre de deux).', 'color:orange');
       
+// Supposons que vous avez déjà votre structure DOM
+const headings = document.querySelectorAll('h1, h2, h3');
+
+let h1Found = false;
+let consecutiveH2Count = 0;
+let h3Detected = false;
+const minimumConsecutiveH2Count = 2; // Modifier selon vos besoins
+
+for (var i = 0; i < headings.length; i++) {
+  var currentHeading = headings[i];
+
+  if (i === 0 && currentHeading.tagName.toLowerCase() === 'h1') {
+    h1Found = true;
+    consecutiveH2Count = 0;
+  } else if (!h3Detected && currentHeading.tagName.toLowerCase() === 'h2' && h1Found) {
+    consecutiveH2Count++;
+  } else {
+    // Si on trouve un élément différent de h2, réinitialiser le compteur
+    consecutiveH2Count = 0;
+    h3Detected = true;
+  }
+
+  // Vérifier si la condition est satisfaite
+   (h1Found && consecutiveH2Count >= minimumConsecutiveH2Count) && console.log('%cLa structure est valide : votre h1 est bien suivi d\'au moins deux h2.', 'color:green');
+}
+
+// Si on ne trouve pas de structure valide, afficher une erreur
+ (consecutiveH2Count < minimumConsecutiveH2Count) ? console.log('%cAttention : Vous avez un h2 orphelin (ou absent) situé après votre h1 (ils doivent être (au minimum) au nombre de deux).', 'color:orange') : 
+ !h1Found ? console.log('%cErreur : Aucun H1 n\a été trouvé..', 'color:orange') : '';
+
 
 
 

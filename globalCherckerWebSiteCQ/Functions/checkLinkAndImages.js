@@ -684,8 +684,9 @@ function initcheckerLinksAndImages() {
             scoreCheckLink.push(5);
           }else if(res.status === 403){
             console.log(
-              `!!!! ATENTION LIEN EN STATUS 403, VUEILLEZ LES VERIFIER MANUELLEMENT-> url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c--  CTA détecté :  ${isButton ? 'oui' : 'non'}`,
-              "color:orange;",
+              `%c!!!! ATENTION LIEN EN STATUS 403, VUEILLEZ LES VERIFIER MANUELLEMENT-> url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c--  CTA détecté :  ${isButton ? 'oui' : 'non'}`,
+              "color:orange",
+              "color:cornflowerblue;",
               "color:white;",
               "color:orange",
               "color:cornflowerblue;"
