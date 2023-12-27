@@ -651,10 +651,11 @@ function initcheckerLinksAndImages() {
               ? _node.getAttribute("class").includes("dmButtonLink") ||
                 _node.getAttribute("class").includes("vc_btn3")
               : false);
+              const isMenuLink = (_node && (_node.closest('.main-navigation') || _node.closest('.menu'))) ?true : false;
           resolve(response);
           if (res.ok || isLinkedin) {
             console.log(
-              `url: ${txtLinkedin} ${_url} %c${_txt} -> %cstatus: %c${response.status} %c--  CTA détecté : ${isButton ? 'oui' : 'non'}`,
+              `url: ${txtLinkedin} ${_url} %c${_txt} -> %cstatus: %c${response.status} %c--  CTA détecté : ${isButton ? 'oui' : 'non'} - lié au menu ${isMenuLink ? 'oui' : 'non'}`,
               "color:cornflowerblue;",
               "color:white;",
               "color:green",
@@ -663,7 +664,7 @@ function initcheckerLinksAndImages() {
             scoreCheckLink.push(5);
           } else if (!isLinkedin && !res.ok && res.status !== 403) {
             console.log(
-              `url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c--  CTA détecté :  ${isButton ? 'oui' : 'non'}`,
+              `url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c--  CTA détecté :  ${isButton ? 'oui' : 'non'} - lié au menu ${isMenuLink ? 'oui' : 'non'}`,
               "color:cornflowerblue;",
               "color:white;",
               "color:red",
@@ -675,7 +676,7 @@ function initcheckerLinksAndImages() {
             scoreCheckLink.push(0);
           } else if (res.status === 301 || res.type === "opaqueredirect") {
             console.log(
-              `!!!! ATENTION REDIRECTION 301 -> url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c--  CTA détecté :  ${isButton ? 'oui' : 'non'}`,
+              `!!!! ATENTION REDIRECTION 301 -> url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c--  CTA détecté :  ${isButton ? 'oui' : 'non'} - lié au menu ${isMenuLink ? 'oui' : 'non'}`,
               "color:cornflowerblue;",
               "color:white;",
               "color:orange",
