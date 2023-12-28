@@ -658,7 +658,7 @@ function initcheckerLinksAndImages() {
            
             const isMenuLinkLog = isMenuLink ? " >> 🎫 Interne au menu << " : "";              
             const isCTALog = isCTA ? '__ 👆 CTA detecté __' : '';
-            const permalienLog = permalien ? " ---> 🌐 Maillage interne" : "";
+            const permalienLog = permalien ? " ---> 🔗 Maillage interne" : "";
           resolve(response);
           if (res.ok || isLinkedin) {
             console.log(
