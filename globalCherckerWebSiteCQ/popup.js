@@ -127,6 +127,7 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
                 "./Functions/initLighthouse.js",
                 "./Functions/counterWords.js",
                 "./Functions/checkMetas.js",
+                "./Functions/checkOldRGPD.js",
                 "./Functions/checkBold.js",
                 "./Functions/checkOutlineHn.js",
                 "./Functions/checkColorContrast.js",
