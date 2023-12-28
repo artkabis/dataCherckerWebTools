@@ -652,23 +652,26 @@ function initcheckerLinksAndImages() {
                 _node.getAttribute("class").includes("vc_btn3")
               : false);
               const isMenuLink = (_node && (_node.closest('.main-navigation') || _node.closest('.menu'))) ?true : false;
+              const permalien = (!isMenuLink && !isButton && !(_node.closest('#Footer') || _node.closest('.dmFooterContainer'))) ? "Maillage interne" : ""
           resolve(response);
           if (res.ok || isLinkedin) {
             console.log(
-              `url: ${txtLinkedin} ${_url} %c${_txt} -> %cstatus: %c${response.status} %c--  CTA détecté : ${isButton ? 'oui' : 'non'} - lié au menu ${isMenuLink ? 'oui' : 'non'}`,
+              `url: ${txtLinkedin} ${_url} %c${_txt} -> %cstatus: %c${response.status} %c--  CTA détecté : ${isButton ? 'oui' : 'non'} - lié au menu ${isMenuLink ? 'oui' : 'non'} -> %c${permalien}`,
               "color:cornflowerblue;",
               "color:white;",
               "color:green",
-              "color:cornflowerblue;"
+              "color:cornflowerblue;",
+              "color:greenyellow;"
             );
             scoreCheckLink.push(5);
           } else if (!isLinkedin && !res.ok && res.status !== 403) {
             console.log(
-              `url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c--  CTA détecté :  ${isButton ? 'oui' : 'non'} - lié au menu ${isMenuLink ? 'oui' : 'non'}`,
+              `url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c--  CTA détecté :  ${isButton ? 'oui' : 'non'} - lié au menu ${isMenuLink ? 'oui' : 'non'} -> %c${permalien}`,
               "color:cornflowerblue;",
               "color:white;",
               "color:red",
-              "color:cornflowerblue;"
+              "color:cornflowerblue;",
+              "color:greenyellow;"
             );
             console.log(_node);
             _node.setAttribute("title", "Erreur : " + response.status);
@@ -676,21 +679,23 @@ function initcheckerLinksAndImages() {
             scoreCheckLink.push(0);
           } else if (res.status === 301 || res.type === "opaqueredirect") {
             console.log(
-              `!!!! ATENTION REDIRECTION 301 -> url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c--  CTA détecté :  ${isButton ? 'oui' : 'non'} - lié au menu ${isMenuLink ? 'oui' : 'non'}`,
+              `!!!! ATENTION REDIRECTION 301 -> url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c--  CTA détecté :  ${isButton ? 'oui' : 'non'} - lié au menu ${isMenuLink ? 'oui' : 'non'} -> %c${permalien}`,
               "color:cornflowerblue;",
               "color:white;",
               "color:orange",
-              "color:cornflowerblue;"
+              "color:cornflowerblue;",
+              "color:greenyellow;"
             );
             scoreCheckLink.push(5);
           }else if(res.status === 403){
             console.log(
-              `%c!!!! ATENTION LIEN EN STATUS 403, VUEILLEZ LES VERIFIER MANUELLEMENT-> url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c--  CTA détecté :  ${isButton ? 'oui' : 'non'}`,
+              `%c!!!! ATENTION LIEN EN STATUS 403, VUEILLEZ LES VERIFIER MANUELLEMENT-> url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c--  CTA détecté :  ${isButton ? 'oui' : 'non'} -> %c${permalien}`,
               "color:orange",
               "color:cornflowerblue;",
               "color:white;",
               "color:orange",
-              "color:cornflowerblue;"
+              "color:cornflowerblue;",
+              "color:greenyellow;"
             );
           }
           _node.closest("#dm") &&

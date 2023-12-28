@@ -417,40 +417,43 @@ const containerContentCard = document.createElement("div");
     containerContentCard.appendChild(containerResumeImageAltCheck);
 
     object.alt_img.forEach(element => {
+      console.log('alt élément forEach verificator : ',element);
+      if(element.alt_img_score){
 
-      const containerAltImage = document.createElement("div");
-      containerAltImage.className = "container_alt_image";
+        const containerAltImage = document.createElement("div");
+        containerAltImage.className = "container_alt_image";
 
-      const spanAltImageText = document.createElement("span");
-      
-      spanAltImageText.className = "span_alt_image_txt";
-      
-      spanAltImageText.className = "span_alt_image_txt";
-      spanAltImageText.innerHTML = "Texte Alt: "+element.alt_img_text;
+        const spanAltImageText = document.createElement("span");
+        
+        spanAltImageText.className = "span_alt_image_txt";
+        
+        spanAltImageText.className = "span_alt_image_txt";
+        spanAltImageText.innerHTML = "Texte Alt: "+element.alt_img_text;
 
-      const spanAltImageSrc = document.createElement("span");
-      spanAltImageSrc.className = "span_alt_image_src";
-      
-      const linkAltImageSrc = document.createElement("a");
-      linkAltImageSrc.href = element.alt_img_src;
-      linkAltImageSrc.className ="a_link_alt_img_src target";
-      linkAltImageSrc.innerHTML = "Ouvrir l'image";
+        const spanAltImageSrc = document.createElement("span");
+        spanAltImageSrc.className = "span_alt_image_src";
+        
+        const linkAltImageSrc = document.createElement("a");
+        linkAltImageSrc.href = element.alt_img_src;
+        linkAltImageSrc.className ="a_link_alt_img_src target";
+        linkAltImageSrc.innerHTML = "Ouvrir l'image";
 
-      const spanAltImageScore = document.createElement("span");
-      if(element.alt_img_score>0){
-        spanAltImageScore.className = "span_alt_image_score_positif";
-      }else{
-        spanAltImageScore.className = "span_alt_image_score_negatif";
+        const spanAltImageScore = document.createElement("span");
+        if(element.alt_img_score>0){
+          spanAltImageScore.className = "span_alt_image_score_positif";
+        }else{
+          spanAltImageScore.className = "span_alt_image_score_negatif";
+        }
+        
+        spanAltImageScore.innerHTML = element.alt_img_score+"/5";
+
+        spanAltImageSrc.appendChild(linkAltImageSrc);
+        containerAltImage.appendChild(spanAltImageText);
+        containerAltImage.appendChild(spanAltImageSrc);
+        containerAltImage.appendChild(spanAltImageScore);
+
+        containerContentCard.appendChild(containerAltImage);
       }
-      
-      spanAltImageScore.innerHTML = element.alt_img_score+"/5";
-
-      spanAltImageSrc.appendChild(linkAltImageSrc);
-      containerAltImage.appendChild(spanAltImageText);
-      containerAltImage.appendChild(spanAltImageSrc);
-      containerAltImage.appendChild(spanAltImageScore);
-
-      containerContentCard.appendChild(containerAltImage);
     });
 
     return containerContentCard;
