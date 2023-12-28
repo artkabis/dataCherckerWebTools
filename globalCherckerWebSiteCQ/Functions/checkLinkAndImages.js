@@ -379,6 +379,7 @@ function initcheckerLinksAndImages() {
           (detectAnotherOrigin &&
             bgimg.includes("/wp-content/") &&
             bgimg.includes("/dd-cdn.multiscreensite"))) &&
+            !bgimg.includes("data:") &&
           console.log(
             "%cImage url not current domain origin :" + bgimg,
             "color:yellow;"
@@ -418,6 +419,7 @@ function initcheckerLinksAndImages() {
                   ],
                 })
               : console.log(
+                /*
                   "base64 img detected : ",
                   bgimg.includes("data:image/"),
                   " width : ",
@@ -426,6 +428,7 @@ function initcheckerLinksAndImages() {
                   customImg.height,
                   " url : ",
                   bgimg
+                  */
                 );
           }
         }
@@ -641,7 +644,7 @@ function initcheckerLinksAndImages() {
           isLinkedin = res.status === 999;
           txtLinkedin = isLinkedin ? "Lien Linkedin : " : "";
 
-
+          const isImageLink = (_node && (_node.closest('.image-container') || _node.querySelector('img'))) ? true : false;
           const isMenuLink = (_node && (_node.closest('.main-navigation') || _node.closest('.menu'))) ? true : false
           const isCTA =
           (_node &&
@@ -655,31 +658,33 @@ function initcheckerLinksAndImages() {
             : false);
             const permalien = (!isMenuLink && !isCTA && !(_node.closest('#Footer') || _node.closest('.dmFooterContainer'))) ? true : false;
              
-           
+            const isImageLinkLog = isImageLink ? " --_ 🖼️ CTA avec image _--" : ""
             const isMenuLinkLog = isMenuLink ? " >> 🎫 Interne au menu << " : "";              
-            const isCTALog = isCTA ? '__ 👆 CTA detecté __' : '';
+            const isCTALog = isCTA ? '__ 🆙 CTA detecté __' : '';
             const permalienLog = permalien ? " ---> 🔗 Maillage interne" : "";
           resolve(response);
           if (res.ok || isLinkedin) {
             console.log(
-              `url: ${txtLinkedin} ${_url} %c${_txt} -> %cstatus: %c${response.status} %c ${!isMenuLink ? isCTALog : ''} %c${isMenuLinkLog} %c${permalienLog}`,
+              `url: ${txtLinkedin} ${_url} %c${_txt} -> %cstatus: %c${response.status} %c ${!isMenuLink ? isCTALog : ''} %c${isMenuLinkLog} %c${permalienLog} %c${isImageLinkLog}`,
               "color:cornflowerblue;",
               "color:white;",
               "color:green",
               "color:mediumpurple;",
               "color:powderblue;",
-              "color:greenyellow;"
+              "color:greenyellow;",
+              "color:mediumpurple;"
             );
             scoreCheckLink.push(5);
           } else if (!isLinkedin && !res.ok && res.status !== 403) {
             console.log(
-              `url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c ${!isMenuLink ? isCTALog : ''} %c${isMenuLinkLog} %c${permalienLog}`,
+              `url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c ${!isMenuLink ? isCTALog : ''} %c${isMenuLinkLog} %c${permalienLog} %c${isImageLinkLog}`,
               "color:cornflowerblue;",
               "color:white;",
               "color:red",
               "color:mediumpurple;",
               "color:powderblue;",
-              "color:greenyellow;"
+              "color:greenyellow;",
+              "color:mediumpurple;"
             );
             console.log(_node);
             _node.setAttribute("title", "Erreur : " + response.status);
@@ -687,25 +692,27 @@ function initcheckerLinksAndImages() {
             scoreCheckLink.push(0);
           } else if (res.status === 301 || res.type === "opaqueredirect") {
             console.log(
-              `!!!! ATENTION REDIRECTION 301 -> url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c${!isMenuLink ? isCTALog : ''} %c${isMenuLinkLog} %c${permalienLog}`,
+              `!!!! ATENTION REDIRECTION 301 -> url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c${!isMenuLink ? isCTALog : ''} %c${isMenuLinkLog} %c${permalienLog} %c${isImageLinkLog}`,
               "color:cornflowerblue;",
               "color:white;",
               "color:orange",
               "color:mediumpurple;",
               "color:powderblue;",
-              "color:greenyellow;"
+              "color:greenyellow;",
+              "color:mediumpurple;"
             );
             scoreCheckLink.push(5);
           }else if(res.status === 403){
             console.log(
-              `%c!!!! ATENTION LIEN EN STATUS 403, VUEILLEZ LES VERIFIER MANUELLEMENT-> url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c ${!isMenuLink ? isCTALog : ''} %c${isMenuLinkLog} %c${permalienLog}`,
+              `%c!!!! ATENTION LIEN EN STATUS 403, VUEILLEZ LES VERIFIER MANUELLEMENT-> url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c ${!isMenuLink ? isCTALog : ''} %c${isMenuLinkLog} %c${permalienLog} %c${isImageLinkLog}`,
               "color:orange",
               "color:cornflowerblue;",
               "color:white;",
               "color:orange",
               "color:mediumpurple;",
               "color:powderblue;",
-              "color:greenyellow;"
+              "color:greenyellow;",
+              "color:mediumpurple;"
             );
           }
           _node.closest("#dm") &&
