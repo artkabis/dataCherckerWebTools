@@ -662,22 +662,22 @@ function initcheckerLinksAndImages() {
           resolve(response);
           if (res.ok || isLinkedin) {
             console.log(
-              `url: ${txtLinkedin} ${_url} %c${_txt} -> %cstatus: %c${response.status} %c ${!isMenuLink && isCTALog} %c${isMenuLinkLog} %c${permalienLog}`,
+              `url: ${txtLinkedin} ${_url} %c${_txt} -> %cstatus: %c${response.status} %c ${!isMenuLink ? isCTALog : ''} %c${isMenuLinkLog} %c${permalienLog}`,
               "color:cornflowerblue;",
               "color:white;",
               "color:green",
-              "color:cornflowerblue;",
+              "color:mediumpurple;",
               "color:powderblue;",
               "color:greenyellow;"
             );
             scoreCheckLink.push(5);
           } else if (!isLinkedin && !res.ok && res.status !== 403) {
             console.log(
-              `url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c ${!isMenuLink && isCTALog} %c${isMenuLinkLog} %c${permalienLog}`,
+              `url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c ${!isMenuLink ? isCTALog : ''} %c${isMenuLinkLog} %c${permalienLog}`,
               "color:cornflowerblue;",
               "color:white;",
               "color:red",
-              "color:cornflowerblue;",
+              "color:mediumpurple;",
               "color:powderblue;",
               "color:greenyellow;"
             );
@@ -687,23 +687,23 @@ function initcheckerLinksAndImages() {
             scoreCheckLink.push(0);
           } else if (res.status === 301 || res.type === "opaqueredirect") {
             console.log(
-              `!!!! ATENTION REDIRECTION 301 -> url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c${!isMenuLink && isCTALog} %c${isMenuLinkLog} %c${permalienLog}`,
+              `!!!! ATENTION REDIRECTION 301 -> url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c${!isMenuLink ? isCTALog : ''} %c${isMenuLinkLog} %c${permalienLog}`,
               "color:cornflowerblue;",
               "color:white;",
               "color:orange",
-              "color:cornflowerblue;",
+              "color:mediumpurple;",
               "color:powderblue;",
               "color:greenyellow;"
             );
             scoreCheckLink.push(5);
           }else if(res.status === 403){
             console.log(
-              `%c!!!! ATENTION LIEN EN STATUS 403, VUEILLEZ LES VERIFIER MANUELLEMENT-> url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c ${!isMenuLink && isCTALog} %c${isMenuLinkLog} %c${permalienLog}`,
+              `%c!!!! ATENTION LIEN EN STATUS 403, VUEILLEZ LES VERIFIER MANUELLEMENT-> url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c ${!isMenuLink ? isCTALog : ''} %c${isMenuLinkLog} %c${permalienLog}`,
               "color:orange",
               "color:cornflowerblue;",
               "color:white;",
               "color:orange",
-              "color:cornflowerblue;",
+              "color:mediumpurple;",
               "color:powderblue;",
               "color:greenyellow;"
             );
