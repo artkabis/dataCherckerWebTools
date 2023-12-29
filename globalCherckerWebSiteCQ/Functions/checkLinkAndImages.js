@@ -596,6 +596,7 @@ function initcheckerLinksAndImages() {
   nbLinks === 0 && checkerImageWP();
   let iterationsLinks = 0;
   let maillageInterne = 0;
+  const styleLinkError = 'border: 3px double red!important;outline: 5px solid #bb0000!important;outline-offset: 5px;!important';
   const check = (_url, _txt, _node) => {
     cmp_url++;
     _txt = _txt.trim();
@@ -633,7 +634,7 @@ function initcheckerLinksAndImages() {
             ${url} manuellement >>>`,
                   `color:${isNosecure ? "red" : "orange"}`
                 ),
-                (target.style.border = isNosecure ? "solid 3px red" : ""),
+                (target.style.cssText = isNosecure ? styleLinkError : ""),
                 target.setAttribute(
                   "title",
                   isNosecure ? "HTTP - No secure" : ""
@@ -691,7 +692,7 @@ function initcheckerLinksAndImages() {
             );
             console.log(_node);
             _node.setAttribute("title", "Erreur : " + response.status);
-            _node.style.border = "solid 3px red";
+            _node.style.cssText = styleLinkError;
             scoreCheckLink.push(0);
           } else if (res.status === 301 || res.type === "opaqueredirect") {
             console.log(
@@ -749,7 +750,7 @@ function initcheckerLinksAndImages() {
         })
         .catch((error) => {
           iterationsLinks++;
-          _node.style.border = "solid 3px red";
+          _node.style.cssText = styleLinkError;
           // const msgStatus =
           //   response.status === null ? "insecure resource" : response.status;
           console.log('error : ', error, '    url : ',_url);
