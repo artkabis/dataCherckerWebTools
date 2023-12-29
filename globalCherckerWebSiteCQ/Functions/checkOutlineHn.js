@@ -118,15 +118,15 @@ for (var i = 0; i < headings.length; i++) {
     consecutiveH2Count = 0;
   } else if (!h3Detected && currentHeading.tagName.toLowerCase() === 'h2' && h1Found) {
     consecutiveH2Count++;
-  } else {
-    // Si on trouve un élément différent de h2, réinitialiser le compteur
-    consecutiveH2Count = 0;
-    h3Detected = true;
-  }
+  } //else {
+  //   // Si on trouve un élément différent de h2, réinitialiser le compteur
+  //   consecutiveH2Count = 0;
+  //   h3Detected = true;
+  // }
 
-  // Vérifier si la condition est satisfaite
-   (h1Found && consecutiveH2Count >= minimumConsecutiveH2Count) && console.log('%cLa structure est valide : votre h1 est bien suivi d\'au moins deux h2.', 'color:green');
 }
+// Vérifier si la condition est satisfaite
+(h1Found && consecutiveH2Count >= minimumConsecutiveH2Count) && console.log('%cLa structure est valide : votre h1 est bien suivi d\'au moins deux h2.', 'color:green');
 
 // Si on ne trouve pas de structure valide, afficher une erreur
  (consecutiveH2Count < minimumConsecutiveH2Count) ? console.log('%cAttention : Vous avez un h2 orphelin (ou absent) situé après votre h1. Ils doivent être (au minimum) au nombre de deux.', 'color:orange') : 
