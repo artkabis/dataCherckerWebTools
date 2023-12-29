@@ -595,6 +595,7 @@ function initcheckerLinksAndImages() {
 
   nbLinks === 0 && checkerImageWP();
   let iterationsLinks = 0;
+  let maillageInterne = 0;
   const check = (_url, _txt, _node) => {
     cmp_url++;
     _txt = _txt.trim();
@@ -662,6 +663,8 @@ function initcheckerLinksAndImages() {
             const isMenuLinkLog = isMenuLink ? " >> 🎫 Interne au menu << " : "";              
             const isCTALog = isCTA ? '__ 🆙 CTA detecté __' : '';
             const permalienLog = permalien ? " ---> 🔗 Maillage interne" : "";
+
+            (permalien) && maillageInterne++;
           resolve(response);
           if (res.ok || isLinkedin) {
             console.log(
@@ -738,7 +741,8 @@ function initcheckerLinksAndImages() {
           iterationsLinks++;
           console.log("Link checked : ", iterationsLinks + "/" + (nbLinks));
           iterationsLinks === (nbLinks)   &&
-            (console.log(
+            (console.log('Vous avez ',maillageInterne,'lien(s) interne(s) sur cette page.'),
+            console.log(
               "--------------------- END check validity links -----------------------------"
             ),
             checkerImageWP());
@@ -759,7 +763,8 @@ function initcheckerLinksAndImages() {
             error
           );
           iterationsLinks === nbLinks &&
-            (console.log(
+            (console.log('Vous avez ',maillageInterne,'lien(s) interne(s) sur cette page.')
+            ,console.log(
               "--------------------- END check validity links -----------------------------"
             ),
             checkerImageWP(),
@@ -773,7 +778,6 @@ function initcheckerLinksAndImages() {
       }, (timeout += 1000));
     });
   };
-
   dataChecker.link_check.nb_link = linksStack.length;
   // console.log(
   //   "--------------------- Start check validity links -----------------------------"
