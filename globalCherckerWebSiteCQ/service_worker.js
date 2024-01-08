@@ -283,12 +283,26 @@ const once = () => {
 let user_soprod;
 /****** check all tab and remove interface*/
 let allTabs = [];
-(async () => await chrome.tabs
-  .query({ url: "*://*.solocalms.fr/*" })
-  .then((data) => data.length > 0 ? (console.log('test avant erreur'), data.filter((tab) => allTabs.push(tab))) : allTabs.push(browser.tabs
-    .query({ currentWindow: true, active: true })
-    .then(data => allTabs.push(data.tab[0])))).catch((err) => console.log('tab error : ', err)))();
-console.log('test après erreur');
+(async () => {
+  try {
+    const solocalmsTabs = await chrome.tabs.query({ url: "*://*.solocalms.fr/*" });
+
+    if (solocalmsTabs.length > 0) {
+      // Des onglets avec solocalms.fr ont été détectés
+      allTabs.push(...solocalmsTabs);
+    } else {
+      // Aucun onglet avec solocalms.fr détecté, ajouter uniquement l'onglet actif
+      const activeTab = await chrome.tabs.query({ currentWindow: true, active: false });
+      console.log("active tab car pas  d'onglet soprod : ",activeTab);
+      allTabs.push(activeTab[1]);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+  } finally {
+    // Votre code à exécuter après la récupération des onglets
+    console.log('allTabs:', allTabs);
+  }
+})();
 
 
 
