@@ -1,35 +1,37 @@
-// console.log({wordsCounterContent});
-// (wordsCounterContent!== undefined) ? (delete wordsCounterContent , wordsCounterContent = {}) : wordsCounterContent = {};
 counterWords = () =>{
   // Fonction pour récupérer le texte lisible à partir d'un élément DOM en excluant les classes spécifiées
-  function getTextFromElement(element, excludedClasses) {
+  function getTextFromElement(element, excludedClasses, excludesNodes) {
     return [...element.childNodes]
       .map((node) => {
-       
+        const tagName = node?.tagName?.toLowerCase();
+        const classes = node.classList;
+  
         if (node.nodeType === Node.TEXT_NODE) {
           return node.textContent;
-        } else if (node.nodeType === Node.ELEMENT_NODE && !node.closest('form') ) {
-
-          const tagName = node.tagName.toLowerCase();
-          const classes = node.classList;
-          //(classes.includes('vc_btn3')) &&  console.log('node : ', node, 'padding : ',node.style.padding);
-
-
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
           // Vérifier si l'élément a une classe à exclure
           if (
             excludedClasses.some((className) => classes.contains(className))
           ) {
             return "";
           }
-          if (!tagName.includes("script") && !tagName.includes("style") && !tagName.includes("img") && !tagName.includes("source") && !tagName.includes("video") && !tagName.includes("picture")) {
-            // Exclure les balises SCRIPT et STYLE (ou ajouter d'autres balises à exclure si nécessaire)
-            return getTextFromElement(node, excludedClasses);
+          // Exclure les NODES SCRIPT, STYLE, etc.
+          const isExcluded = excludesNodes.some((ExcludeNode) => {
+            const trimmedLowercaseTag = tagName.toLowerCase().trim();
+            return trimmedLowercaseTag === ExcludeNode.toLowerCase().trim();
+          });
+  
+          if (!isExcluded) {
+            return node.textContent;
+          } else {
+            console.log('Node DOM exclude : ', tagName);
           }
         }
         return "";
       })
       .join(" ");
   }
+  
 
   // Fonction pour exclure les mots spécifiés du texte en utilisant replaceAll
   function excludeWordsFromText(text, excludedWords) {
@@ -68,14 +70,15 @@ counterWords = () =>{
   const getReadableTextFromSelectors= (
     selectors,
     excludedClasses,
-    excludedWords
+    excludedWords,
+    excludesNodes
   ) => {
     let allText = "";
 
     for (const selector of selectors) {
       const elements = document.querySelectorAll(selector);
       for (const element of elements) {
-        const textFromElement = getTextFromElement(element, excludedClasses);
+        const textFromElement = getTextFromElement(element, excludedClasses, excludesNodes);
         allText += textFromElement + " ";
       }
     }
@@ -94,7 +97,8 @@ counterWords = () =>{
 
   // Liste des mots à exclure
   const replaceWords = settingWords.replaceWords;
-  console.log({excludedClasses},{replaceWords});
+  const exludesNodes = settingWords.excludedNodes;
+  console.log({excludedClasses},{replaceWords},{exludesNodes});
 
   // Liste des sélecteurs pour récupérer le texte
   const selectors = [
@@ -108,7 +112,8 @@ counterWords = () =>{
   const textFromSelectors = getReadableTextFromSelectors(
     selectors ? selectors : ['body'],
     excludedClasses,
-    replaceWords
+    replaceWords,
+    exludesNodes
   );
   console.log("Texte récupéré :", textFromSelectors);
 

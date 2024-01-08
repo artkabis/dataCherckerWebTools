@@ -1,16 +1,6 @@
 settingWords={};
 
-settingWords.replaceWords = [
-    "Button",
-    "Afficher davantage",
-    "John Doe",
-    "City skyline",
-    "Photo By:",
-    "Birthday Sparks",
-    "Fashion Magazine",
-    "Blurred Lines",
-    "Photo by:"
-  ];
+  // Exlusion de ces termes dans l'affichage des Hn de la page web (headings)
   settingWords.exclusesWords = [
     ":",
     "(",
@@ -214,6 +204,8 @@ settingWords.replaceWords = [
     "vous",
     "y"
 ];
+
+//Classes exclues dans la récupération des mot de la page web
   settingWords.excludedClasses = [
     "vc_btn3-container",
     "vc_btn3",
@@ -221,6 +213,33 @@ settingWords.replaceWords = [
     "dmButtonLink",
     "proliveContainer",
     'vc_mappy-map'
+  ];
+  //Noeuds exclus dans la récupération des mot de la page web
+  settingWords.excludedNodes = [
+    "iframe",
+    "button",
+    "textarea",
+    "script",
+    "style",
+    "source",
+    "video",
+    "picture",
+    "form",
+    "code",
+    "frameset",
+    "noframes",
+    "map",
+    "area",
+    "figcaption",
+    "figure",
+    "svg",
+    "nav",
+    "menu",
+    "menuitem",
+    "footer",
+    "noscript",
+    "embed",
+    "param"
   ];
 
   // Liste des mots à exclure
