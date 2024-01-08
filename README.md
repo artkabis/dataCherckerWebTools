@@ -12,7 +12,7 @@
 - View words length in webpage.
 - View alt check in webpage.
 - View 404 error request status links in webpage.
-- Check valid links (status 200, 404, 300, and output external manual check external links or parameter paths).
+- Check valid links (status 200, 404, 300, 403 and output external manual check external links or parameter paths).
 - Check content text links.
 - Check image size (KB, MB, GB), ratio (image vs container), alt, title, and image format: background-image, img tag, base64, svg.
 - Check duplicate images (do not count logo images and cloned owl images).
@@ -30,6 +30,7 @@
 - Verify the accuracy of the webpage's content spelling.
 - Cloud of most used words in the web page.
 - Soprod: Copy all expressions and localities.
+- Uploader Wordpress medias library
 
 ## Installation (fr) :
 - Télécharger le fichier globalCherckerWebSite.zip
