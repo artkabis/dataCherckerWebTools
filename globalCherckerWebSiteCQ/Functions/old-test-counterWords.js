@@ -1,6 +1,3 @@
-
-(()=>{
-
 settingWords={};
 
   // Exlusion de ces termes dans l'affichage des Hn de la page web (headings)
@@ -260,6 +257,80 @@ settingWords={};
     "Fashion Magazine",
     "Blurred Lines",
     "Photo by:",
-    "Learn More"
   ];
-})()
+  counterWords = () => {
+  const littleText = [];
+    function isPhoneNumber(text) {
+        const phonePattern = /\d{2} \d{2} \d{2} \d{2} \d{2}/g;
+        return text.match(phonePattern) !== null;
+      }
+
+  function isNodeExcluded(node, excludedNodes) {
+    const tagName = node.tagName?.toLowerCase();
+    return excludedNodes.includes(tagName);
+  }
+
+  function getTextFromElement(element, excludedNodes) {
+               
+
+    if (element.nodeType === Node.TEXT_NODE) {
+      return element.textContent;
+    } else if (element.nodeType === Node.ELEMENT_NODE) {
+      if (isNodeExcluded(element, excludedNodes)) {
+        return "";
+      }
+
+      const childNodesText = Array.from(element.childNodes)
+        .map((node) => getTextFromElement(node, excludedNodes))
+        .join(" ");
+
+      return childNodesText.trim();
+    }
+    return "";
+  }
+
+  function countWords(text) {
+      return text.split(" ").length
+  }
+
+function getReadableTextFromSelectors(selectors, excludedNodes) {
+  let allText = "";
+
+  for (const selector of selectors) {
+    const elements = document.querySelectorAll(selector);
+    elements.forEach((element) => {
+      const textFromElement = getTextFromElement(element, excludedNodes);
+      const parentWordsCounter = (element.closest('.dmRespCol')) ? element.closest('.dmRespCol').textContent.split(' ').length : (element.closest('.vc_column-inner')) ? element.closest('.vc_column-inner').textContent.split(' ').length : element?.parentNode?.parentNode?.parentNode?.textContent?.split(' ')?.length;
+
+      console.log({ parentWordsCounter });
+
+      if (textFromElement && parentWordsCounter > 15) {
+        allText += textFromElement + " ";
+      }
+    });
+  }
+
+  const cleanedText = allText.replace(/\s+/g, " ").replace(/\d{2} \d{2} \d{2} \d{2} \d{2}/g, '').trim();
+  return cleanedText;
+}
+
+
+  const excludedClasses = settingWords.excludedClasses;
+  const replaceWords = settingWords.replaceWords;
+  const excludedNodes = settingWords.excludedNodes;
+
+  const selectors = ["#Content, #site_content"];
+
+  const textFromSelectors = getReadableTextFromSelectors(
+    selectors,
+    excludedNodes
+  );
+  console.log("Texte récupéré :", textFromSelectors);
+
+  const wordCount = countWords(textFromSelectors);
+  console.log("Nombre de mots :", wordCount);
+
+  return { words: textFromSelectors, count_words: wordCount };
+};
+
+counterWords();

@@ -78,8 +78,11 @@ counterWords = () =>{
     for (const selector of selectors) {
       const elements = document.querySelectorAll(selector);
       for (const element of elements) {
-        const textFromElement = getTextFromElement(element, excludedClasses, excludesNodes);
+        const parentWordsCounter = (element.closest('.dmRespCol')) ? element.closest('.dmRespCol').textContent.split(' ').length : (element.closest('.vc_column-inner')) ? element.closest('.vc_column-inner').textContent.split(' ').length : element?.parentNode?.parentNode?.parentNode?.textContent?.split(' ')?.length;
+        
+        const textFromElement = (parentWordsCounter>15)&&getTextFromElement(element, excludedClasses, excludesNodes);
         allText += textFromElement + " ";
+        //console.log(parentWordsCounter, textFromElement);
       }
     }
 
@@ -88,7 +91,6 @@ counterWords = () =>{
       cleanedText,
       excludedWords
     );
-
     return textWithoutExcludedWords;
   }
 
@@ -102,9 +104,10 @@ counterWords = () =>{
 
   // Liste des sélecteurs pour récupérer le texte
   const selectors = [
-    "#Content",
+    "#Content *",
     "#dm_content .dmNewParagraph:not(.proliveContainer)",
-    "main"
+    "main",
+    '.figureCap .textcont'
     //'div[class^="page"]',//, 'body:not(#dmRoot):not(.page) div[class^="content"]', 'div[class*="main"]', '#bodyContent',
   ];
 
@@ -127,5 +130,4 @@ counterWords = () =>{
 }
 counterWords();
 //wordsCounterContent = counterWords();
-
 

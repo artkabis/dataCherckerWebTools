@@ -510,7 +510,7 @@ function initcheckerLinksAndImages() {
       !url.includes("chrome-extension") &&
       !url.includes("mappy") &&
       !url.includes("bloctel.gouv.fr") &&
-      !url.includes("client.adhslx.com") &&
+      //!url.includes("client.adhslx.com") &&
       !url.includes("sominfraprdstb001.blob.core.windows.net") &&
       url.at(0) !== "?" &&
       !(url.length === 1 && url.includes("#"))
@@ -770,12 +770,20 @@ function initcheckerLinksAndImages() {
           _node.style.cssText = styleLinkError;
           // const msgStatus =
           //   response.status === null ? "insecure resource" : response.status;
-          console.log('error : ', error, '    url : ',_url);
+          dataChecker.link_check.link_check_state = true;
           _node.setAttribute("title", "Erreur : " + error);
+          dataChecker.link_check.link.push({
+            link_state: true,
+            link_status: response.status,
+            link_url: _url,
+            link_text: _txt.replace(",  text : ", "").trim(),
+            link_score: 0,
+            link_msg: "Imposssible de traiter le lien, veillez vérifier celui-c manuellement.",
+          });
 
           resolve(response);
           console.log(
-            "Lien analysés : ",
+            "Lien analysés : ",_url, ' - iteration : ',
             iterationsLinks + "/" + nbLinks,
             "   en erreur : ",
             error

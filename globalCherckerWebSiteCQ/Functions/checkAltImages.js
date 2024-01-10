@@ -64,8 +64,8 @@
     if (filterDomain && excludes && t.tagName !=="svg") {
       alt = $(this).attr("alt");
       !alt && alt === "" || alt === undefined
-        ? (console.log(`%cNO ALT >>> ${src}`, "color:red"),
-          (nb_alt_imgs_wrong += 1),
+        ? //(console.log(`%cNO ALT >>> ${src}`, "color:red"),
+          ((nb_alt_imgs_wrong += 1),
           dataChecker.alt_img_check.alt_img.push({
             alt_img_state: true,
             alt_img_src: src ? src : $(this).attr("src"),
@@ -96,7 +96,7 @@
         `%cNO ALT SVG >>>`,
         "color:red"
       );
-      console.log('Node : ',t);
+      //console.log('Node : ',t);
       $(this).before(`<span class="alt_tooltip" style="position:relative;top:0;left:0;background:darkred;color:white;padding:5px;margin:5px;height: auto!important;box-shadow: 0 0 5px 0 rgb( 0 0 0 / 80%);width: max-content;display: inline-block !important;font-family: monospace;font-size: 13px !important;line-height: 15px !important;z-index:999999;">!!! ALT MANQUANT !!!</span>`)
       nb_alt_imgs_wrong += 1;
       dataChecker.alt_img_check.alt_img.push({

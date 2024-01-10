@@ -1442,7 +1442,6 @@ function init() {
           !url.includes("chrome-extension") &&
           !url.includes("mappy") &&
           !url.includes("bloctel.gouv.fr") &&
-          !url.includes("client.adhslx.com") &&
           prepubRefonteWPCheck &&
           url.at(0) !== "#";
         const externalLink = !url.includes(window.location.origin);

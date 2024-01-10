@@ -125,6 +125,7 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
                 "./Functions/settingsWords.js",
                 "./Functions/dataCheckerSchema.js",
                 "./Functions/initLighthouse.js",
+                "./Functions/checkAltImages.js",
                 "./Functions/counterWords.js",
                 "./Functions/checkMetas.js",
                 "./Functions/checkOldRGPD.js",
@@ -136,7 +137,7 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
                 "./Functions/initDataChecker.js",
                 "./Functions/checkDataBindingDuda.js",
                 "./Functions/checkLinkAndImages.js",
-                "./Functions/checkAltImages.js",
+                
               ],
             }, () => {
               // Fermez la fenêtre contextuelle

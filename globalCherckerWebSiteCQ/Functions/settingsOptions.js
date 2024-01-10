@@ -1,3 +1,9 @@
+if (typeof defaultSettings === 'undefined') {
+  var defaultSettings = {};
+  var currentSettings = {};
+  var getSettings;
+}
+  
   defaultSettings = {
     PROFIL_USER_CONTROLLER:'Customer',
     PROFIL_TYPE: 'CDP/WEB',
@@ -13,9 +19,9 @@
     MAX_RATIO_IMAGE: 3,
   };
 
-  let currentSettings = { ...defaultSettings };  // Initialisez avec les paramètres par défaut
+  currentSettings = { ...defaultSettings };  // Initialisez avec les paramètres par défaut
   // Fonction pour récupérer les paramètres du stockage local
-  let getSettings = (callback) => {
+  getSettings = (callback) => {
     chrome.storage.sync.get({ checkerToolsSettings: {} }, (result) => {
       const settings = result.checkerToolsSettings;
       callback(settings);
