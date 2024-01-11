@@ -499,10 +499,8 @@ function initcheckerLinksAndImages() {
   const verifExcludesUrls = (url) => {
     return (
       url !== undefined &&
-      url.length > 1 &&
-      //!url.includes("tel:") &&
+      url.length > 0 &&
       !url.includes("mailto:") &&
-      //!url.includes('tel:') &&
       !url.includes("javascript:") &&
       !url.includes("logflare") &&
       !url.includes("solocal.com") &&
@@ -512,8 +510,7 @@ function initcheckerLinksAndImages() {
       !url.includes("bloctel.gouv.fr") &&
       //!url.includes("client.adhslx.com") &&
       !url.includes("sominfraprdstb001.blob.core.windows.net") &&
-      url.at(0) !== "?" &&
-      !(url.length === 1 && url.includes("#"))
+      url.at(0) !== "?"
     );
   };
 
@@ -540,7 +537,7 @@ function initcheckerLinksAndImages() {
     const href = $(this).attr("href");
     verifExcludesUrls(href) &&
       !href.includes("linkedin.") &&
-      (href.includes("https:") || (href.at(0) === '/' && href.length>2)) &&
+      (href.includes("https:") || (href.at(0) === '/' && href.length>0)) &&
       !href.includes("tel:") &&
       linksStackFilter.push({ target: t, href: href });
     (href.includes("http:") ||
@@ -632,7 +629,7 @@ function initcheckerLinksAndImages() {
             (console.log(
               "--------------------- Start check validity links -----------------------------"
             ),
-            console.log({ nbLinks }), //Message d'alerte pour les liens http: et linkedin et tel: qui ne peuvent être envoyé dans la requête
+            //Message d'alerte pour les liens http: et linkedin et tel: qui ne peuvent être envoyé dans la requête
             warningLinks.forEach((t, i) => {
               const url = t.url;
               const target = t.target;
@@ -671,7 +668,7 @@ function initcheckerLinksAndImages() {
             ? (_node.getAttribute("class").includes("dmButtonLink") || _node.getAttribute("class").includes("vc_btn3"))
             : false);
 
-          const permalien = ((_url.startsWith('/') || _url.includes(window.location.origin)) && !isMenuLink && !isCTA && !isImageLink && !(_node.closest('#Footer') || _node.closest('.dmFooterContainer'))) ? true : false;
+          const permalien = (/*(_url.startsWith('/') || _url.includes(window.location.origin)) &&*/ !isMenuLink && !isCTA && !isImageLink && !(_node.closest('#Footer') || _node.closest('.dmFooterContainer'))) ? true : false;
              
           const isImageLinkLog = isImageLink ? " --_ 🖼️ CTA avec image _--" : ""
           const isMenuLinkLog = isMenuLink ? " >> 🎫 Interne au menu << " : "";              
@@ -809,6 +806,8 @@ function initcheckerLinksAndImages() {
   //   "--------------------- Start check validity links -----------------------------"
   // );
 
+
+  console.log({linksStackFilter});
   $.each(linksStackFilter, function (i, t) {
     let url = t.href;
     const _this = t.target;
