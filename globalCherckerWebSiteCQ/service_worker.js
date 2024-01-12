@@ -294,9 +294,9 @@ let allTabs = [];
       allTabs.push(...solocalmsTabs);
     } else {
       // Aucun onglet avec solocalms.fr détecté, ajouter uniquement l'onglet actif
-      const activeTab = await chrome.tabs.query({ currentWindow: true, active: false });
+      const activeTab = await chrome.tabs.query({ currentWindow: true, active: true });
       console.log("active tab car pas d'onglet soprod : ", activeTab);
-      allTabs.push(activeTab[1]);
+      allTabs.push(activeTab[0]);
     }
   } catch (error) {
     console.error('Error:', error);
@@ -346,7 +346,7 @@ const detecteSoprod = async () => {
   let userSoprod = undefined;
   let soprodTabsDetected = 0;
 
-  allTabs.map(async (tab, i) => {
+    allTabs.map(async (tab, i) => {
     if ( tab && tab.url.includes("soprod")) {
       soprodTabsDetected++; // Incrémente le compteur de tabs "soprod" détectés
       console.log("soprod detecteSoprod");
@@ -454,6 +454,7 @@ const detecteSoprod = async () => {
     }
   });
 };
+
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   let user,
