@@ -5,7 +5,7 @@
 //       .map((node) => {
 //         const tagName = node?.tagName?.toLowerCase();
 //         const classes = node.classList;
-  
+
 //         if (node.nodeType === Node.TEXT_NODE && node.parentNode.tagName.toLowerCase() === 'script') {
 //           return node.textContent;
 //         } else if (node.nodeType === Node.ELEMENT_NODE) {
@@ -22,7 +22,7 @@
 //             (trimmedLowercaseTag === ExcludeNode.toLowerCase().trim()) && console.log(node.innerText);
 //             return trimmedLowercaseTag === ExcludeNode.toLowerCase().trim();
 //           });
-  
+
 //           if (!isExcluded) {
 //             return node.textContent;
 //           } else {
@@ -33,7 +33,7 @@
 //       })
 //       .join(" ");
 //   }
-  
+
 
 //   // Fonction pour exclure les mots spécifiés du texte en utilisant replaceAll
 //   function excludeWordsFromText(text, excludedWords) {
@@ -81,7 +81,7 @@
 //       const elements = document.querySelectorAll(selector);
 //       for (const element of elements) {
 //         const parentWordsCounter = (element.closest('.dmRespCol')) ? element.closest('.dmRespCol').textContent.split(' ').length : (element.closest('.vc_column-inner')) ? element.closest('.vc_column-inner').textContent.split(' ').length : element?.parentNode?.parentNode?.parentNode?.textContent?.split(' ')?.length;
-        
+
 //         const textFromElement = (parentWordsCounter>15) && getTextFromElement(element, excludedClasses, excludesNodes);
 //         allText += textFromElement + " ";
 //         //console.log(parentWordsCounter, textFromElement);
@@ -132,46 +132,47 @@
 // }
 // counterWords();
 // //wordsCounterContent = counterWords();
+(() => {
+  $ = jQuery;
 
-$ = jQuery;
+  const excludedNodes = ["iframe", "button", "textarea", "script", "style", "source", "video", "picture", "form", "code", "frameset", "noframes", "map", "area", "figcaption", "figure", "svg", "nav", "menu", "menuitem", "footer", "noscript", "embed", "param", "rs-module-wrap", "rs-layer-wrap", "head", "header"];
+  const excludedClasses = ["vc_btn3-container", "vc_btn3", "pj-prolive-hc", "dmButtonLink", "proliveContainer", 'vc_mappy-map'];
 
-const excludedNodes = ["iframe", "button", "textarea", "script", "style", "source", "video", "picture", "form", "code", "frameset", "noframes", "map", "area", "figcaption", "figure", "svg", "nav", "menu", "menuitem", "footer", "noscript", "embed", "param", "rs-module-wrap", "rs-layer-wrap", "head", "header"];
-const excludedClasses = ["vc_btn3-container", "vc_btn3", "pj-prolive-hc", "dmButtonLink", "proliveContainer", 'vc_mappy-map'];
+  function getTextFromElement(element) {
+    if (element.nodeType === Node.TEXT_NODE) {
+      return element.textContent.trim();
+    } else if (element.nodeType === Node.ELEMENT_NODE) {
+      const tagName = element.tagName.toLowerCase();
+      const classes = element.className;
 
-function getTextFromElement(element) {
-  if (element.nodeType === Node.TEXT_NODE) {
-    return element.textContent.trim();
-  } else if (element.nodeType === Node.ELEMENT_NODE) {
-    const tagName = element.tagName.toLowerCase();
-    const classes = element.className;
+      if (excludedNodes.includes(tagName) || (classes && classes.split(" ").some(className => excludedClasses.includes(className)))) {
+        return "";
+      }
 
-    if (excludedNodes.includes(tagName) || (classes && classes.split(" ").some(className => excludedClasses.includes(className)))) {
-      return "";
+      const parentWordsCounter = (element.closest('.dmRespCol') || element.closest('.vc_column-inner'));
+      const childText = Array.from(element.childNodes)
+        .map(child => getTextFromElement(child))
+        .join(" ")
+        .trim();
+
+      if (parentWordsCounter && parentWordsCounter.textContent.split(' ').length <= 15) {
+        return "";
+      }
+
+      return childText;
     }
-
-    const parentWordsCounter = (element.closest('.dmRespCol') || element.closest('.vc_column-inner'));
-    const childText = Array.from(element.childNodes)
-      .map(child => getTextFromElement(child))
-      .join(" ")
-      .trim();
-
-    if (parentWordsCounter && parentWordsCounter.textContent.split(' ').length <= 15) {
-      return "";
-    }
-
-    return childText;
+    return "";
   }
-  return "";
-}
 
-const filteredText = $('body #Content, body #dm_content .dmNewParagraph:not(.proliveContainer)')
-  .map(function() {
-    return getTextFromElement(this);
-  })
-  .get()
-  .join(" ")
-  .replace(/\s+/g, " ")
-  .trim();
+  const filteredText = $('body #Content, body #dm_content .dmNewParagraph:not(.proliveContainer)')
+    .map(function () {
+      return getTextFromElement(this);
+    })
+    .get()
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
 
-console.log("Texte récupéré :", filteredText);
-console.log("Nombre de mots liés au texte récupéré :", filteredText.split(' ').length);
+  console.log("Texte récupéré :", filteredText);
+  console.log("Nombre de mots liés au texte récupéré :", filteredText.split(' ').length);
+})()

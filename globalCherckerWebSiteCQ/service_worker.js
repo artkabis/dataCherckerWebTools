@@ -283,17 +283,19 @@ const once = () => {
 let user_soprod;
 /****** check all tab and remove interface*/
 let allTabs = [];
+
 (async () => {
   try {
     const solocalmsTabs = await chrome.tabs.query({ url: "*://*.solocalms.fr/*" });
 
     if (solocalmsTabs.length > 0) {
+      console.log("soprod tab detected...");
       // Des onglets avec solocalms.fr ont été détectés
       allTabs.push(...solocalmsTabs);
     } else {
       // Aucun onglet avec solocalms.fr détecté, ajouter uniquement l'onglet actif
       const activeTab = await chrome.tabs.query({ currentWindow: true, active: false });
-      console.log("active tab car pas  d'onglet soprod : ",activeTab);
+      console.log("active tab car pas d'onglet soprod : ", activeTab);
       allTabs.push(activeTab[1]);
     }
   } catch (error) {
@@ -303,6 +305,7 @@ let allTabs = [];
     console.log('allTabs:', allTabs);
   }
 })();
+
 
 
 
@@ -385,11 +388,6 @@ const detecteSoprod = async () => {
         return;
       }
     } else {
-
-      if (
-        allTabs.length - 1 === i
-      ) {
-
         console.log(
           "tab length and i",
           allTabs.length - 1,
@@ -452,7 +450,7 @@ const detecteSoprod = async () => {
             }
           });
         }
-      }
+      
     }
   });
 };
