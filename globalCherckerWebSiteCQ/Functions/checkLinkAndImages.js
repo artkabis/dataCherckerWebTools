@@ -436,35 +436,46 @@ function initcheckerLinksAndImages() {
     });
 
 
-    //Vérification des doublons liés au attribut "alt
-    // Utilisez un ensemble pour suivre les valeurs uniques
-  let uniqueAltValues = new Set();
+   //Vérification des doublons liés au attribut "alt"
+// Utilisez un ensemble pour suivre les valeurs uniques
+let uniqueAltValues = new Set();
 
-  // Variable pour indiquer s'il y a des duplicatas
-  let hasDuplicates = false;
+// Utilisez un objet pour suivre le nombre d'occurrences de chaque alt
+let altOccurrences = {};
 
-  // Parcourez chaque élément dans imagesForAnalyseImg
-  imagesForAnalyseImg.forEach(function (image) {
-    const altValue = image.value[2]; // Récupérez la valeur de alt
-    const targetAltImage = image.value[0];//récupération du scope de l'image analysé
+// Variable pour indiquer s'il y a des duplicatas
+let hasDuplicates = false;
 
-    // Vérifiez si la valeur de alt est valide et non dupliquée
-    if (altValue !== false && uniqueAltValues.has(altValue)) {
-      console.log(`%cDuplication détectée pour les alt : ${altValue}`,'color:orange');
-      console.log('Image ayant un alt en doublon : ',targetAltImage);
+// Parcourez chaque élément dans imagesForAnalyseImg
+imagesForAnalyseImg.forEach(function (image) {
+  const altValue = image.value[2]; // Récupérez la valeur de alt
+  const targetAltImage = image.value[0]; // récupération du scope de l'image analysé
+
+  // Vérifiez si la valeur de alt est valide et non dupliquée
+  if (altValue !== false) {
+    if (uniqueAltValues.has(altValue)) {
+      // Incrémentez le nombre d'occurrences
+      altOccurrences[altValue] = (altOccurrences[altValue] || 1) + 1;
+
+      console.log(
+        `%cDuplication détectée pour les alt : ${altValue}. Nombre d'itérations : ${altOccurrences[altValue]}`,
+        'color:orange'
+      );
+      console.log('Image ayant un alt en doublon : ', targetAltImage);
       hasDuplicates = true;
     } else {
       // Ajoutez la valeur de alt à l'ensemble pour le suivi
       uniqueAltValues.add(altValue);
     }
-  });
-
-  // Affichez le résultat
-  if (hasDuplicates) {
-    console.log('%cIl y a des duplicatas dans les valeurs des alt de cette page.','color:orange');
-  } else {
-    console.log('%cAucun duplicata trouvé dans les valeurs de alt.','color:green');
   }
+});
+
+// Affichez le résultat
+if (hasDuplicates) {
+  console.log('%cIl y a des duplicatas dans les valeurs des alt de cette page.', 'color:orange');
+} else {
+  console.log('%cAucun duplicata trouvé dans les valeurs de alt.', 'color:green');
+}
 
 
     //Lancement du check global des images

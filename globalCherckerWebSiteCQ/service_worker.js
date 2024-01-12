@@ -335,6 +335,7 @@ let global_data = {};
 const db_name = "db_datas_checker";
 const detecteSoprod = async () => {
   console.log("detecting soprod tab");
+  const storageUser = await chrome.storage.sync.get("user");
 
   console.log('All tabs : ', { allTabs });
   let isSoprodTab = {};
@@ -343,11 +344,12 @@ const detecteSoprod = async () => {
   let soprodTabsDetected = 0;
 
   allTabs.map(async (tab, i) => {
-    if (tab.url.includes("soprod")) {
+    if ( tab && tab.url.includes("soprod")) {
       soprodTabsDetected++; // Incrémente le compteur de tabs "soprod" détectés
       console.log("soprod detecteSoprod");
       // Exécute le script dans le tab actuel s'il existe
       console.log("tab id soprod : ", tab.id);
+      
       if (tab.id) {
         console.log("_________________tab id  soprod : ", tab);
         chrome.scripting.executeScript({
@@ -377,6 +379,7 @@ const detecteSoprod = async () => {
           },
         });
       }
+      
       if (userSoprod !== "Customer" || userSoprod !== undefined) {
         // Si le nom d'utilisateur est mis à jour, sort de la boucle
         return;
@@ -394,7 +397,7 @@ const detecteSoprod = async () => {
           " userSoprod is undefined : ",
           userSoprod
         );
-        const storageUser = await chrome.storage.sync.get("user");
+        
         console.log("get user storage :; ", storageUser);
         console.log(
           "is valide user soprod : ",
@@ -423,19 +426,30 @@ const detecteSoprod = async () => {
             storageUser.user
           );
 
-          await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            async function(tab) {
-              console.log('_____________');
-              const storageUser = await chrome.storage.sync.get("user");
-              console.log(
-                "++",
-                storageUser.user
-              );
-              chrome.storage.sync.set({ user: storageUser.user }, function () {
-                chrome.runtime.sendMessage({ user: storageUser.user });
-              });
-            },
+          chrome.windows.getCurrent({ populate: true }, async function (currentWindow) {
+            // Vérifier si la fenêtre est valide et si elle contient des onglets
+            if (currentWindow && currentWindow.tabs) {
+              for (const tab of currentWindow.tabs) {
+                // Vérifier si l'URL commence par "http" et n'est pas de type "chrome://"
+                if (tab.url && tab.url.startsWith("http") && !tab.url.startsWith("chrome://")) {
+                  // Faites quelque chose avec l'onglet, par exemple, affichez l'URL dans la console
+                  await chrome.scripting.executeScript({
+                    target: { tabId: tab.id },
+                    async function(tab) {
+                      console.log('_____________');
+                      const storageUser = await chrome.storage.sync.get("user");
+                      console.log(
+                        "++",
+                        storageUser.user
+                      );
+                      chrome.storage.sync.set({ user: storageUser.user }, function () {
+                        chrome.runtime.sendMessage({ user: storageUser.user });
+                      });
+                    },
+                  });
+                }
+              }
+            }
           });
         }
       }
@@ -500,7 +514,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
           "User pour envoi vers indexDB : ",
           global_data.user
         );
-        global_data.user = global_data.user ? global_data.user : "Customer";
+        global_data.user = global_data.user ? global_data.user : "Customer";//JSON.parse(global_data.user)
         console.log(
           "Les deux datas sont bien arrivées : ",
           { global_data }
