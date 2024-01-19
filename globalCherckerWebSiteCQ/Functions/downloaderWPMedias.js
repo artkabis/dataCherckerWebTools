@@ -31,24 +31,24 @@ export const downloaderWPMedia = (tab) => {
           xhr.open('GET', href, true);
           //xhr.responseType = 'blob';
           xhr.responseType = 'arraybuffer';
+          console.log('_____________________________________extension param : ',ext);
           xhr.onload = async function (e) {
-            // Récupérer le blob
-           // var blob = xhr.response;
-           // Par cette partie
           const arrayBuffer = xhr.response;
-          const mimeType = 'image/jpeg'; // Définissez le type MIME en fonction de l'extension
-          if (ext === '.png') {
+          const extension = +ext?.includes('.') ? ext?.split('.')[1] : ext;
+          console.log({extension});
+          let mimeType = `image/${extension}`; 
+          if (extension === 'jpg' || extension === 'JPG') {
+            mimeType = 'image/jpeg';
+          }else if (extension === 'png') {
             mimeType = 'image/png';
-          } else if (ext === '.gif') {
+          } else if (extension === 'gif') {
             mimeType = 'image/gif';
-          } // Ajoutez d'autres conditions au besoin
-
-          // Créer un nouveau blob avec le bon type MIME
+          }  else if (extension === 'gif') {
+            mimeType = 'image/gif';
+          } 
           const blob = new Blob([arrayBuffer], { type: mimeType });
 
-            // Vérifier si le blob est valide
             if (blob.size > 0 && xhr.status === 200) {
-              // Créer un lien pour télécharger le fichier
               var link = document.createElement('a');
               link.href = window.URL.createObjectURL(blob);
               link.download = name;
@@ -59,7 +59,6 @@ export const downloaderWPMedia = (tab) => {
 
             }
             else {
-              // Afficher une erreur en console
               console.error('Erreur lors du téléchargement du fichier : ' + href);
             }
           };
@@ -89,12 +88,12 @@ export const downloaderWPMedia = (tab) => {
           finalImg = img;
         }
         console.log('src : ', img, '   name : ', name, '  link final image : ', finalImg, '  extension : ', ext);
-        jsonImg.push({ img: finalImg, name: name, cmp: i });
+        jsonImg.push({ img: finalImg, name: name, cmp: i, extention: ext });
       });
       console.log('_______________ jsonImg : ', jsonImg);
       const downloadAll = (elements) => {
         for (var e in elements) {
-          donwloaderMedias(elements[e].img, elements[e].name, elements[e].cmp); // Lancement de la construction des img et du download.
+          donwloaderMedias(elements[e].img, elements[e].name, elements[e].cmp, elements[e].extention); // Lancement de la construction des img et du download.
         }
       }
       downloadAll(jsonImg);
