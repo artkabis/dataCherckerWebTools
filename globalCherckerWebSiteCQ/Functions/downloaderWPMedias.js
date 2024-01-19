@@ -21,7 +21,7 @@ export const downloaderWPMedia = (tab) => {
         });
 
       }
-      async function donwloaderMedias(href, name, iteration) {
+      async function donwloaderMedias(href, name, iteration, ext) {
         // Faire une requête AJAX pour récupérer le contenu du fichier
         const isReady = (iteration <= max_img && String(href).includes('site-privilege'));
         //console.log('loop<=max_img : ',iteration<=max_img,'    loop >= start_img : ',iteration >= start_img,'     href.includes("site-privilege") :',String(href).includes('site-privilege'));
@@ -29,10 +29,22 @@ export const downloaderWPMedia = (tab) => {
         if (isReady) {
           var xhr = new XMLHttpRequest();
           xhr.open('GET', href, true);
-          xhr.responseType = 'blob';
+          //xhr.responseType = 'blob';
+          xhr.responseType = 'arraybuffer';
           xhr.onload = async function (e) {
             // Récupérer le blob
-            var blob = xhr.response;
+           // var blob = xhr.response;
+           // Par cette partie
+          const arrayBuffer = xhr.response;
+          const mimeType = 'image/jpeg'; // Définissez le type MIME en fonction de l'extension
+          if (ext === '.png') {
+            mimeType = 'image/png';
+          } else if (ext === '.gif') {
+            mimeType = 'image/gif';
+          } // Ajoutez d'autres conditions au besoin
+
+          // Créer un nouveau blob avec le bon type MIME
+          const blob = new Blob([arrayBuffer], { type: mimeType });
 
             // Vérifier si le blob est valide
             if (blob.size > 0 && xhr.status === 200) {
