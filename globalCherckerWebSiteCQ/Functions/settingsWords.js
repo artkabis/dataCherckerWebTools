@@ -215,9 +215,14 @@ settingWords={};
     "pj-prolive-hc",
     "dmButtonLink",
     "proliveContainer",
-    'vc_mappy-map'
+    'vc_mappy-map', 
+    "dmFooterContainer", 
+    "widgets_wrapper",
+    "footer_action",
+    "footer_copy"
   ];
   //Noeuds exclus dans la récupération des mot de la page web
+  
   settingWords.excludedNodes = [
     "iframe",
     "button",

@@ -50,7 +50,8 @@ export const HnOutlineValidity = (tab) => {
         .querySelectorAll("h1, h2, h3, h4, h5, h6")
         .forEach(function (t, i) {
           hnTagArray.push(t.tagName.toLowerCase());
-          hnTagContentArray.push(t.textContent);
+          console.log('________________',t.innerText,t.innerText.replace(/<br\s*\/?>/gi,' ').replace(/<BR\s*\/?>/gi,' '));
+          hnTagContentArray.push(t.innerText.replace(/<br\s*\/?>/gi,' ').replace(/<BR\s*\/?>/gi,' '));
         });
 
       let structure = "",

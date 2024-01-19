@@ -616,6 +616,7 @@ if (hasDuplicates) {
   nbLinks === 0 && checkerImageWP();
   let iterationsLinks = 0;
   let maillageInterne = 0;
+  const liensInternes =[];
   const styleLinkError = 'border: 3px double red!important;outline: 5px solid #bb0000!important;outline-offset: 5px;!important';
   const check = (_url, _txt, _node) => {
     cmp_url++;
@@ -666,8 +667,7 @@ if (hasDuplicates) {
           isLinkedin = res.status === 999;
           txtLinkedin = isLinkedin ? "Lien Linkedin : " : "";
 
-          const isImageLink = (_node && (_node.closest('.image-container') ||  _node?.getAttribute("class")?.includes("caption-button") || _node.querySelector('img') || _node?.style?.backgroundImage)) ? true : false;
-          const isMenuLink = (_node && (_node.closest('.main-navigation') || _node?.closest('.menu'))) ? true : false
+
           const isCTA =
           (_node &&
             ((_node.style.padding && parseInt(_node?.style?.padding) >= 5) ||
@@ -678,9 +678,26 @@ if (hasDuplicates) {
           (_node.getAttribute("class")
             ? (_node.getAttribute("class").includes("dmButtonLink") || _node.getAttribute("class").includes("vc_btn3"))
             : false);
+          const inContent = (_node.closest('#Content') || _node.closest('.dmContent')) ? true : false;
+          const imageWidget = (inContent) => {
+            if (inContent && !isCTA) {
+              for (let i = 0; i < _node.closest('.dmRespCol')?.children?.length; i++) {
+                const childElement = _node.closest('.dmRespCol')?.children[i]; 
+                return (childElement?.classList?.contains('imageWidget')) ? true : false;
+              }
+            }
+          }
+          const isImageWidget = imageWidget(inContent);
+          const isImageLink = (_node && (_node.closest('.image-container') ||  isImageWidget===true ||  _node?.getAttribute("class")?.includes("caption-button") || _node.querySelector('img') || _node?.style?.backgroundImage)) ? true : false;
+          const isMenuLink = (_node && (_node.closest('.main-navigation') || _node?.closest('.menu'))) ? true : false
+          
+         
 
-          const permalien = (/*(_url.startsWith('/') || _url.includes(window.location.origin)) &&*/ !isMenuLink && !isCTA && !isImageLink && !(_node.closest('#Footer') || _node.closest('.dmFooterContainer'))) ? true : false;
-             
+          
+          const permalien = /*(_url.startsWith('/') || _url.includes(window.location.origin)) &&*/ (!isMenuLink && !isCTA && !isImageLink && inContent) ? true : false;//(!_node?.closest('#Footer') || !_node?.closest('.dmFooterContainer') || _node?.closest('footer'))
+          
+          const cleanUrl = _url.includes('solocaldudaadmin') || _url.includes('pagesjaune.fr') ? new URL(_url).pathname : _url;
+          permalien && liensInternes.push(cleanUrl);
           const isImageLinkLog = isImageLink ? " --_ 🖼️ CTA avec image _--" : ""
           const isMenuLinkLog = isMenuLink ? " >> 🎫 Interne au menu << " : "";              
           const isCTALog = isCTA ? '__ 🆙 CTA detecté __' : '';
@@ -753,7 +770,6 @@ if (hasDuplicates) {
                 _node,
               "color:red;"
             );
-
           dataChecker.link_check.link.push({
             link_state: true,
             link_status: response.status,
@@ -767,8 +783,8 @@ if (hasDuplicates) {
           iterationsLinks++;
           console.log("Link checked : ", iterationsLinks + "/" + (nbLinks));
           iterationsLinks === (nbLinks)   &&
-            (console.log('Vous avez ',maillageInterne,'lien(s) interne(s) sur cette page.'),
-            console.log(
+          (console.log('Vous avez ',maillageInterne,'lien(s) interne(s) sur cette page >>>  ',liensInternes)
+          ,console.log(
               "--------------------- END check validity links -----------------------------"
             ),
             checkerImageWP());
@@ -797,7 +813,7 @@ if (hasDuplicates) {
             error
           );
           iterationsLinks === nbLinks &&
-            (console.log('Vous avez ',maillageInterne,'lien(s) interne(s) sur cette page.')
+            (console.log('Vous avez ',maillageInterne,'lien(s) interne(s) sur cette page >>>  '),console.log({liensInternes})
             ,console.log(
               "--------------------- END check validity links -----------------------------"
             ),

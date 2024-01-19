@@ -40,7 +40,7 @@
     previousHn = null;
   
   hnTagArray.forEach(function (currentHn, index) {
-    const currentHnContent = hnTagContentArray[index].replaceAll('\n','').replaceAll('<br>','').replaceAll('<BR>','');
+    const currentHnContent = hnTagContentArray[index].replaceAll('\n',' ').replace(/<br\s*\/?>/gi,' ').replace(/<BR\s*\/?>/gi,' ');
     const currentHnIndex = parseInt(currentHn.charAt(1));
  
   
@@ -145,12 +145,13 @@ for (var i = 0; i < headings.length; i++) {
   dataChecker.hn.hn_reco.hn.length = 0;
   allTagHn.forEach((t, i) => {
     nbHn++;
-    const cleanTagContent = t.textContent.trim()
+    const cleanTagContent = t.innerText.trim()
     .replaceAll("\n", " ")
     .replaceAll("\t", "")
-    .replaceAll("<br>", "")
+    .replace(/<br\s*\/?>/gi,' ')
+    .replace(/<BR\s*\/?>/gi,' ')
     .replace(/\s\s+/g, ' ');
-    const tagContent = t.textContent.trim()
+    const tagContent = t.innerText.trim()
       .replaceAll("\n", " ")
       .replaceAll(",", " ")
       .replaceAll("\t", "")
