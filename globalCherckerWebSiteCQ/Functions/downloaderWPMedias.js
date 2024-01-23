@@ -31,22 +31,22 @@ export const downloaderWPMedia = (tab) => {
           xhr.open('GET', href, true);
           //xhr.responseType = 'blob';
           xhr.responseType = 'arraybuffer';
-          console.log('_____________________________________extension param : ',ext);
+          console.log('_____________________________________extension param : ', ext);
           xhr.onload = async function (e) {
-          const arrayBuffer = xhr.response;
-          const extension = +ext?.includes('.') ? ext?.split('.')[1] : ext;
-          console.log({extension});
-          let mimeType = `image/${extension}`; 
-          if (extension === 'jpg' || extension === 'JPG') {
-            mimeType = 'image/jpeg';
-          }else if (extension === 'png') {
-            mimeType = 'image/png';
-          } else if (extension === 'gif') {
-            mimeType = 'image/gif';
-          }  else if (extension === 'gif') {
-            mimeType = 'image/gif';
-          } 
-          const blob = new Blob([arrayBuffer], { type: mimeType });
+            const arrayBuffer = xhr.response;
+            const extension = +ext?.includes('.') ? ext?.split('.')[1] : ext;
+            console.log({ extension });
+            let mimeType = `image/${extension}`;
+            if (extension === 'jpg' || extension === 'JPG') {
+              mimeType = 'image/jpeg';
+            } else if (extension === 'png') {
+              mimeType = 'image/png';
+            } else if (extension === 'gif') {
+              mimeType = 'image/gif';
+            } else if (extension === 'svg') {
+              mimeType = 'image/svg+xml';
+            }
+            const blob = new Blob([arrayBuffer], { type: mimeType });
 
             if (blob.size > 0 && xhr.status === 200) {
               var link = document.createElement('a');

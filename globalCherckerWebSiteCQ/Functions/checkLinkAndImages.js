@@ -690,20 +690,21 @@ if (hasDuplicates) {
           const isImageWidget = imageWidget(inContent);
           const isImageLink = (_node && (_node.closest('.image-container') ||  isImageWidget===true ||  _node?.getAttribute("class")?.includes("caption-button") || _node.querySelector('img') || _node?.style?.backgroundImage)) ? true : false;
           const isMenuLink = (_node && (_node.closest('.main-navigation') || _node?.closest('.menu'))) ? true : false
-          
+          const isMedia = _url.split('.').at(-1).toLowerCase().match(/png|jpe?g|jpg|mp3|mp4|gif|pdf|mov|webp/);
+
          
 
           
           const permalien = /*(_url.startsWith('/') || _url.includes(window.location.origin)) &&*/ (!isMenuLink && !isCTA && !isImageLink && inContent) ? true : false;//(!_node?.closest('#Footer') || !_node?.closest('.dmFooterContainer') || _node?.closest('footer'))
-          
           const cleanUrl = _url.includes('solocaldudaadmin') || _url.includes('pagesjaune.fr') ? new URL(_url).pathname : _url;
-          permalien && liensInternes.push(cleanUrl);
-          const isImageLinkLog = isImageLink ? " --_ 🖼️ CTA avec image _--" : ""
+          (!isMedia && permalien) && liensInternes.push(cleanUrl);
+          const txtMediaLog = " --_ 🖼️ CTA avec image _--";
+          const isImageLinkLog = (!isMedia && isImageLink) ? txtMediaLog : (isMedia) ? txtMediaLog+' Au format >> '+isMedia[0] : "";
           const isMenuLinkLog = isMenuLink ? " >> 🎫 Interne au menu << " : "";              
           const isCTALog = isCTA ? '__ 🆙 CTA detecté __' : '';
-          const permalienLog = permalien ? " ---> 🔗 Maillage interne" : "";
+          const permalienLog = (!isMedia && permalien) ? " ---> 🔗 Maillage interne" : "";
 
-          (permalien) && maillageInterne++;
+          (!isMedia && permalien) && maillageInterne++;
           resolve(response);
           if (res.ok || isLinkedin) {
             console.log(
