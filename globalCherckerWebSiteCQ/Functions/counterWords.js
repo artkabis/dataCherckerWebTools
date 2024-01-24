@@ -122,7 +122,7 @@
 //   );
 //   console.log("Texte récupéré :", textFromSelectors);
 
-//   // Compte les mots en excluant les espaces dans les numéros de téléphone francophones et les mots spécifiés
+//   // Compte les mots en excluant les espaces dans les numéros de téléphone francophones et les mots spécifiés.
 //   const wordCount = countWords(textFromSelectors);
 //   console.log(
 //     "Nombre de mots (en excluant les espaces des numéros de téléphone et les mots spécifiés) :",

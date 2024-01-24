@@ -163,7 +163,6 @@
 
   let scoreTabAltImg2 = [];
   dataChecker.alt_img_check.alt_img.forEach((t, i) => {
-    console.log('------------------------ t ', t);
     scoreTabAltImg2.push((t?.alt_img_score && String(t?.alt_img_text) !== 'undefined') ? 5 : 0);
     t.alt_img_score = (t?.alt_img_score && String(t?.alt_img_text) !== 'undefined') ? 5 : 0;
   });
@@ -173,7 +172,7 @@
   ).toFixed(2) : 5;
 
   console.log(
-    scoreTabAltImg,
+    'notes sur 5 des alt : ',scoreTabAltImg,
     "   score moyen des alt :",
     dataChecker.alt_img_check.global_score
   );
