@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>DataChecker WebTools</title>
+
+    <style>
+        body,
+        html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            
+            font-family: Roboto, sans-serif;
+        }
+
+        #layout {
+            display: flex;
+            height: 100%;
+        }
+
+        #sidebar {
+            width: 15%;
+            border-right: 1px solid #ccc;
+            box-shadow: 2px 0 4px rgba(0, 0, 0, 0.2);
+            background-color: #0a68f1;
+        }
+
+        #main_container {
+            width: 100%;
+            height: 100%;
+        }
+
+        header {
+            display: flex;
+            background-color: #0a68f1;
+            width: 100%;
+            height: 80px;
+            align-items: center;
+        }
+
+        #logo img {
+            height: 32px;
+            width: 32px;
+            margin-left: 15px;
+        }
+
+        #title {
+            font-size: 35px;
+            color: white;
+            margin-left: 15px;
+        }
+
+        #main_card_container {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+        }
+
+        .main_card {
+            margin-top: 20px;
+            width: 96%;
+            height: 70px;
+            box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .2), 0 1px 5px 0 rgba(0, 0, 0, .12);
+            align-items: center;
+            justify-content: center;
+            display: flex;
+            font-size: 18px;
+        }
+
+        .url_span {
+            margin-left: 5px;
+            margin-right: 15px;
+            font-size: 20px;
+        }
+
+        .score_span {
+            margin-left: 25px;
+        }
+
+        .title_main_span, .score_span{
+            font-size: 20px;;
+        }
+
+        .main_card .icon_score {
+            margin-left: 2%;
+        }
+
+        #resume_card_container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #resume_card {
+            margin-top: 20px;
+            padding-left: 10px;
+            width: 95%;
+            height: auto;
+            box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .2), 0 1px 5px 0 rgba(0, 0, 0, .12);
+            padding-bottom: 20px;
+            font-size: 18px;
+        }
+
+        #resume_title {
+            padding-top: 10px;
+            font-weight: 500;
+            font-size: 20px;
+            display: block;
+        }
+
+
+        #card_container {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-top: 2%;
+            justify-content: center;
+        }
+
+        .card_Check {
+            width: 95%;
+            height: auto;
+            box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .2), 0 1px 5px 0 rgba(0, 0, 0, .12);
+            font-size: 18px;
+            margin-bottom: 2%;
+            padding-left: 10px;
+        }
+
+        .header_card_check {
+            display: block;
+            width: 100%;
+            align-items: center;
+            padding-bottom: 10px;
+            padding-top: 10px;
+            font-size: 20px;
+        }
+
+
+        .title_card_check {
+            display: inline-block;
+        }
+
+        .header_note_container{
+            padding-left: 5px;
+            display: inline-block;
+
+        }
+
+        .header_card_check .icon_score{
+            padding-left: 20px;
+            display: inline-block;
+        }
+
+        .header_card_check .icon_score img{
+            position: relative;
+            top:5px
+        }
+
+        .content_card_check{
+            height: 300px;
+            
+        }
+
+        /* CSS pour la classe de la flèche */
+
+        .toggle_button{
+            float: right;
+            right: 15px;
+            position: relative;
+            top:10px;
+           
+        }
+.toggle_button::before {
+  content: "\25B2"; /* Code Unicode pour la flèche pointant vers le haut */
+  color: #838383;
+  cursor: pointer;
+}
+
+/* Classe pour inverser la flèche lorsque le contenu est replié */
+.toggle_button.reversed::before {
+  content: "\25BC"; /* Code Unicode pour la flèche pointant vers le bas */
+  cursor: pointer;
+  color: #838383;
+}
+
+        .icon_state {
+            margin-left: auto;
+            padding-right: 1%;
+        }
+
+      
+
+        .icon_state_ok,
+        icon_state_ko {
+            width: 20px;
+            height: 20px;
+            border-radius: 25px;
+            display: block;
+        }
+
+        .icon_state_ok {
+            background-color: yellow;
+        }
+
+        .icon_state_ko {
+            background-color: red;
+        }
+
+        
+
+        /************ toogle button **************/
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 24px;
+  margin-bottom: 4px;
+  margin-top: 15px;
+  margin-left:20%;
+}
+
+.toggle-switch input[type="checkbox"] {
+  display: none;
+}
+
+.toggle-slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 2px;
+  bottom: 2px;
+  background-color: #fff;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+}
+
+input[type="checkbox"]:checked + .toggle-slider {
+  background-color: #3f51b5;
+}
+input[type="checkbox"]:checked + .toggle-slider:before {
+    transform: translateX(24px);
+}
+
+input[type="checkbox"] + .toggle-slider:before {
+  transform: translateX(0);
+}
+
+/**** bar ****/
+
+#container_bar_check{
+margin-top: 20px;
+
+}
+
+.bar-container {
+      width: 170px;
+      height: 10px;
+      border: 1px solid #ccc;
+      overflow: hidden;
+      border-radius: 15px;
+      display: inline-block;
+    }
+
+    .bar-fill {
+      height: 100%;
+    background-color: #0a68f1;
+      
+    }
+
+    .bar_note{display: inline-block;padding-left:10px;}
+
+#container_bar_check .icon_score img{
+    width: 25px;
+}
+
+.bar_check{
+    padding-bottom: 15px;
+    padding-right: 10px;
+    display: inline-block;
+}
+.score_canvas{
+    position: absolute;
+    top: 0;
+    width: 100%;
+    height: 100%;
+}
+    
+
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="element_header" id="logo"></div>
+        <div class="element_header" id="title">DataChecker WebTools</div>
+         <label class="toggle-switch">
+            <input type="checkbox" id="toggleButton">
+            <span class="toggle-slider"></span>
+          </label> 
+    </header>
+    <div id="layout">
+        <!-- <div id="sidebar"></div> -->
+
+        <div id="main_container">
+
+            <div id="main_card_container"></div>
+                <div id="resume_card_container">
+                    <div id="resume_card">
+                        <span id="resume_title">Apperçu général:</span>
+                        <div id="container_bar_check"></div>
+                    </div>
+
+                </div>
+            <div id="card_container"></div>
+        </div>
+
+    </div>
+    <script src="./assets/jquery-3.6.4.min.js"></script> <!-- Inclure le fichier JavaScript pour le popup -->
+    <script type="module" src="/interface.js"></script>
+
+</body>
+
+</html>

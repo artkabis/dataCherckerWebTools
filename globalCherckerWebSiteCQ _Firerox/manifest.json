@@ -1,0 +1,50 @@
+{
+  "manifest_version": 3,
+  "name": "Full check Solocal Website",
+  "version": "2.2.3",
+  "background": {
+    "service_worker": "service_worker.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/SofixedMenu-16.png",
+      "48": "icons/SofixedMenu-48.png",
+      "128": "icons/SofixedMenu-128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/SofixedMenu-16.png",
+    "48": "icons/SofixedMenu-48.png",
+    "128": "icons/SofixedMenu-128.png"
+  },
+  "permissions": [
+    "storage",
+    "notifications",
+    "scripting",
+    "tabs",
+    "activeTab",
+    "declarativeNetRequest",
+    "declarativeNetRequestFeedback",
+    "webRequest"
+  ],
+
+  "host_permissions": [
+    "<all_urls>",
+    "*://*/*",
+    "*://le-de.cdn-website.com/*",
+    "*://site-privilege.pagesjaunes.fr/*",
+    "*://soprod.solocalms.fr/*"
+  ],
+  "web_accessible_resources": [{
+    "resources": ["./Functions/HnOutlineValidity.js"],
+    "matches": ["<all_urls>"]
+  }],
+  "declarative_net_request" : {
+    "rule_resources" : [{
+      "id": "overwrite-origin",
+      "enabled": false,
+      "path": "rulesets/overwrite-origin.json"
+    }]
+  }
+}

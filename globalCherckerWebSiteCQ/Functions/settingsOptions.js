@@ -1,8 +1,10 @@
-
-  //const sendSettingsChecker = () =>{
+if (typeof defaultSettings === 'undefined') {
+  var defaultSettings = {};
+  var currentSettings = {};
+  var getSettings;
+}
   
-  // Paramètres par défaut
-  const defaultSettings = {
+  defaultSettings = {
     PROFIL_USER_CONTROLLER:'Customer',
     PROFIL_TYPE: 'CDP/WEB',
     MIN_META_TITLE_CARACTERE: 50,
@@ -16,28 +18,25 @@
     MAX_SIZE_BYTES_IMAGE: 317435,
     MAX_RATIO_IMAGE: 3,
   };
-  let currentSettings = { ...defaultSettings };  // Initialisez avec les paramètres par défaut
-  console.log('current settings : ',{currentSettings});
-// Fonction pour récupérer les paramètres du stockage local
-const getSettings = (callback) => {
+
+  currentSettings = { ...defaultSettings };  // Initialisez avec les paramètres par défaut
+  // Fonction pour récupérer les paramètres du stockage local
+  getSettings = (callback) => {
     chrome.storage.sync.get({ checkerToolsSettings: {} }, (result) => {
       const settings = result.checkerToolsSettings;
       callback(settings);
     });
   };
-  
-  // Exemple de récupération des paramètres
+
   getSettings((settings) => {
-    console.log('Settings retrieved:', settings);
-    console.log('defaultSettings : ',defaultSettings);
+    // console.log('Settings retrieved:', settings);
+    // console.log('defaultSettings : ',defaultSettings);
     currentSettings = { ...defaultSettings, ...settings };
 
-    console.log('currentSettings : ',currentSettings);
+    console.log('settings option DTU : ',currentSettings);
     return currentSettings;
-  
-    // Maintenant, vous pouvez utiliser les paramètres dans votre script
   });
-  
+
   // Ajoutez un écouteur d'événements pour écouter les mises à jour des paramètres
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'updateCheckerToolsSettings') {
@@ -45,10 +44,5 @@ const getSettings = (callback) => {
       // Les paramètres ont été mis à jour, vous pouvez les récupérer ici
       currentSettings = { ...currentSettings, ...request.newValues };
       console.log('Settings updated in content script:', currentSettings);
-  
-      // Maintenant, vous pouvez utiliser les paramètres mis à jour dans votre script
     }
   });
-/*}
-export default sendSettingsChecker;
-*/

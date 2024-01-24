@@ -242,11 +242,11 @@ const toggle = (name, rule, value) => {
   chrome.declarativeNetRequest.updateEnabledRulesets(
     corsEnabled
       ? {
-          enableRulesetIds: [rule],
-        }
+        enableRulesetIds: [rule],
+      }
       : {
-          disableRulesetIds: [rule],
-        }
+        disableRulesetIds: [rule],
+      }
   );
   //});
 };
@@ -283,15 +283,54 @@ const once = () => {
 let user_soprod;
 /****** check all tab and remove interface*/
 let allTabs = [];
- (async()=>await chrome.tabs
-    .query({})
-    .then((data) => data.filter((tab) => allTabs.push(tab))))();
-const detectOnotherInterface = (allTabs) => {
-  chrome.tabs.query({}, tabs => {tabs.forEach((tab, i) => {
-    tab.url.includes("interface.html") && chrome.tabs.remove(tab.id);
-  });
-});
-};
+
+(async () => {
+  try {
+    const solocalmsTabs = await chrome.tabs.query({ url: "*://*.solocalms.fr/*" });
+
+    if (solocalmsTabs.length > 0) {
+      console.log("soprod tab detected...");
+      // Des onglets avec solocalms.fr ont été détectés
+      allTabs.push(...solocalmsTabs);
+    } else {
+      // Aucun onglet avec solocalms.fr détecté, ajouter uniquement l'onglet actif
+      const activeTab = await chrome.tabs.query({ currentWindow: true, active: true });
+      console.log("active tab car pas d'onglet soprod : ", activeTab);
+      allTabs.push(activeTab[0]);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+  } finally {
+    // Votre code à exécuter après la récupération des onglets
+    console.log('allTabs:', allTabs);
+  }
+})();
+
+
+
+
+// const detectOnotherInterface = (allTabs) => {
+//   chrome.tabs.query({}, tabs => {tabs.forEach((tab, i) => {
+//     tab.url.includes("interface.html") && chrome.tabs.remove(tab.id);
+//   });
+// });
+// };
+// Fonction pour parcourir les onglets de la fenêtre active
+// chrome.windows.getCurrent({ populate: true }, function (currentWindow) {
+//   // Vérifier si la fenêtre est valide et si elle contient des onglets
+//   if (currentWindow && currentWindow.tabs) {
+//     for (const tab of currentWindow.tabs) {
+//       // Vérifier si l'URL commence par "http" et n'est pas de type "chrome://"
+//       if (tab.url && tab.url.startsWith("http") && !tab.url.startsWith("chrome://")) {
+//         // Faites quelque chose avec l'onglet, par exemple, affichez l'URL dans la console
+//         allTabs.push(tab)
+//       } else {
+//         console.log("URL non valide :", tab.url);
+//       }
+//     }
+//   }
+// });
+
 
 let cmp = 0;
 let cmpInterval = 0;
@@ -299,19 +338,21 @@ let global_data = {};
 const db_name = "db_datas_checker";
 const detecteSoprod = async () => {
   console.log("detecting soprod tab");
-  
-  console.log('in detecteSoprod : ',{ allTabs });
+  const storageUser = await chrome.storage.sync.get("user");
+
+  console.log('All tabs : ', { allTabs });
   let isSoprodTab = {};
   isSoprodTab.detected = false;
   let userSoprod = undefined;
   let soprodTabsDetected = 0;
 
-  allTabs.map(async (tab, i) => {
-    if (tab.url.includes("soprod")) {
+    allTabs.map(async (tab, i) => {
+    if ( tab && tab.url.includes("soprod")) {
       soprodTabsDetected++; // Incrémente le compteur de tabs "soprod" détectés
       console.log("soprod detecteSoprod");
       // Exécute le script dans le tab actuel s'il existe
       console.log("tab id soprod : ", tab.id);
+      
       if (tab.id) {
         console.log("_________________tab id  soprod : ", tab);
         chrome.scripting.executeScript({
@@ -341,16 +382,12 @@ const detecteSoprod = async () => {
           },
         });
       }
+      
       if (userSoprod !== "Customer" || userSoprod !== undefined) {
         // Si le nom d'utilisateur est mis à jour, sort de la boucle
         return;
       }
     } else {
-      
-      if (
-        allTabs.length - 1 === i 
-      ) {
-
         console.log(
           "tab length and i",
           allTabs.length - 1,
@@ -358,7 +395,7 @@ const detecteSoprod = async () => {
           " userSoprod is undefined : ",
           userSoprod
         );
-        const storageUser = await chrome.storage.sync.get("user");
+        
         console.log("get user storage :; ", storageUser);
         console.log(
           "is valide user soprod : ",
@@ -366,46 +403,58 @@ const detecteSoprod = async () => {
           "includes SO : ",
           storageUser.user.includes("SO")
         );
-        if(
+        if (
           storageUser.user === undefined &&
-          !storageUser.user.includes("SO")){
-        console.log("mise en place du name par défaut !!!");
-        // Si l'onglet n'est pas lié à "soprod", le stocker comme dernier onglet non "soprod"
-        await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          function(tab) {
-            chrome.storage.sync.set({ user: "Customer" }, function () {
-              chrome.runtime.sendMessage({ user: "Customer" });
-            });
-          },
-        });
-      }else if (storageUser.user.includes("SO")) {
-        console.log(
-          "user detected and username includes SO : " +
+          !storageUser.user.includes("SO")) {
+          console.log("mise en place du name par défaut !!!");
+          // Si l'onglet n'est pas lié à "soprod", le stocker comme dernier onglet non "soprod"
+          await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            function(tab) {
+              chrome.storage.sync.set({ user: "Customer" }, function () {
+                chrome.runtime.sendMessage({ user: "Customer" });
+              });
+            },
+          });
+        } else if (storageUser.user.includes("SO")) {
+          console.log(
+            "user detected and username includes SO : " +
             storageUser.user.includes("SO"),
-          "     user : ",
-          storageUser.user
-        );
+            "     user : ",
+            storageUser.user
+          );
 
-        await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          async function(tab) {
-            console.log('_____________');
-            const storageUser = await chrome.storage.sync.get("user");
-            console.log(
-              "++",
-              storageUser.user
-            );
-            chrome.storage.sync.set({ user: storageUser.user }, function () {
-              chrome.runtime.sendMessage({ user: storageUser.user });
-            });
-          },
-        });
-      }
-      } 
+          chrome.windows.getCurrent({ populate: true }, async function (currentWindow) {
+            // Vérifier si la fenêtre est valide et si elle contient des onglets
+            if (currentWindow && currentWindow.tabs) {
+              for (const tab of currentWindow.tabs) {
+                // Vérifier si l'URL commence par "http" et n'est pas de type "chrome://"
+                if (tab.url && tab.url.startsWith("http") && !tab.url.startsWith("chrome://")) {
+                  // Faites quelque chose avec l'onglet, par exemple, affichez l'URL dans la console
+                  await chrome.scripting.executeScript({
+                    target: { tabId: tab.id },
+                    async function(tab) {
+                      console.log('_____________');
+                      const storageUser = await chrome.storage.sync.get("user");
+                      console.log(
+                        "++",
+                        storageUser.user
+                      );
+                      chrome.storage.sync.set({ user: storageUser.user }, function () {
+                        chrome.runtime.sendMessage({ user: storageUser.user });
+                      });
+                    },
+                  });
+                }
+              }
+            }
+          });
+        }
+      
     }
   });
 };
+
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   let user,
@@ -416,12 +465,12 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   if (request.action === "open_interface") {
     cmpInterface++;
     if (cmpInterface === 1) {
-      console.log("launch detected antoned interface",allTabs);
-      detectOnotherInterface(allTabs);
+      console.log("launch detected antoned interface", allTabs);
+      //detectOnotherInterface(allTabs);
       console.log("launch detected soprod tab and snip username ");
       detecteSoprod();
       console.log(
-        " ???????????????????????????????????????????? data de datachecker : ",
+        "Data de datachecker : ",
         request.data
       );
       cmp++;
@@ -437,7 +486,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     if (cmpUserSoprod === 0) {
       cmpUserSoprod++;
       console.log(
-        " ???????????????????????????????????????????? data de user Soprod : ",
+        " Data de user Soprod : ",
         request.user
       );
       cmp === 1 && cmp++;
@@ -446,33 +495,27 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
       global_data.user = user;
     }
   }
-
-  //const cleanInterval = () => clearInterval(interCheck);
   const checkDatas = () => {
     cmpInterval++;
-    console.log("******* cmp in service-worker : ", { cmp });
-    // console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<< CMP : ',{cmp}, 'globale user : ', global_data.user);
-    // console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> interval count : ',{cmpInterval});
-    //console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> open interface data : ',{data_checker});
     if (cmp === 2) {
       console.log(
-        "IIIIIIIIIIIIIIIIIIIISSSSSSSSSSSSSSSSSSSSSSSss interval function ready : ",
+        "Interval function ready : ",
         { interCheck }
       );
       //cleanInterval();
       console.log(
-        "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu : data_checker -> ",
+        "Data_checker -> ",
         global_data.dataChecker
       );
       if (global_data.dataChecker) {
         const user = global_data.user;
         console.log(
-          "________________+++++++++++++ user pour envoi vers indexDB : ",
+          "User pour envoi vers indexDB : ",
           global_data.user
         );
-        global_data.user = global_data.user ? global_data.user : "Customer";
+        global_data.user = global_data.user ? global_data.user : "Customer";//JSON.parse(global_data.user)
         console.log(
-          "OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO les deux datas sont bien arrivées : ",
+          "Les deux datas sont bien arrivées : ",
           { global_data }
         );
         const dataCheckerParse = JSON.parse(global_data.dataChecker);
@@ -485,17 +528,78 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         );
 
         cmp = 0;
-        const interfacePopupUrl = chrome.runtime.getURL("interface.html");
-        chrome.windows.create({
-          url: `${interfacePopupUrl}`, //?data=${encodeURIComponent(JSON.stringify(dataCheckerJSON))}
-          type: "popup",
-          width: 1000,
-          height: 1000,
-        });
+        // Fonction pour récupérer l'ID de l'onglet depuis le stockage local
+        const getPopupWindowId = (callback) => {
+          chrome.storage.local.get(['popupWindowId'], (result) => {
+            const storedPopupWindowId = result.popupWindowId;
+            callback(storedPopupWindowId);
+          });
+        }
+
+        // Fonction pour stocker l'ID de l'onglet dans le stockage local
+        const setPopupWindowId = (id) => {
+          chrome.storage.local.set({ 'popupWindowId': id });
+        }
+
+        // Fonction pour fermer la fenêtre si elle existe
+        const closeWindowIfExists = (windowId, callback) => {
+          if (windowId) {
+            chrome.windows.get(windowId, {}, (windowInfo) => {
+              if (chrome.runtime.lastError || !windowInfo) {
+                // Fenêtre introuvable ou erreur, ne pas fermer
+                console.log('Window not found or error:', chrome.runtime.lastError);
+                callback();
+              } else {
+                // Fenêtre trouvée, la fermer
+                chrome.windows.remove(windowId, () => {
+                  console.log('Closed existing window with ID:', windowId);
+                  callback();
+                });
+              }
+            });
+          } else {
+            // Aucun ID de fenêtre, ne rien faire
+            callback();
+          }
+        }
+
+        // Fonction pour ouvrir ou remplacer la fenêtre
+        const openOrReplaceWindow = () => {
+          console.log('start open interface');
+          const interfacePopupUrl = chrome.runtime.getURL("interface.html");
+
+          // Récupérer l'ID de l'onglet depuis le stockage local
+          getPopupWindowId((popupWindowId) => {
+            console.log('Stored popup interface ID:', popupWindowId);
+
+            // Fermer la fenêtre existante (si elle existe encore)
+            closeWindowIfExists(popupWindowId, () => {
+              // Ouvrir une nouvelle fenêtre
+              chrome.windows.create({
+                type: 'popup',
+                url: interfacePopupUrl,
+                width: 1000,
+                height: 1000,
+              }, (window) => {
+                // Stocker le nouvel ID de fenêtre dans le stockage local
+                setPopupWindowId(window.id);
+                console.log('New popup interface ID:', window.id);
+              });
+            });
+          });
+        }
+
+        // Appel de la fonction pour ouvrir ou remplacer la fenêtre
+        openOrReplaceWindow();
+
+        // chrome.windows.create({
+        //   url: `${interfacePopupUrl}`, //?data=${encodeURIComponent(JSON.stringify(dataCheckerJSON))}
+        //   type: "popup",
+        //   width: 1000,
+        //   height: 1000,
+        // });
       }
     }
   };
-
-  //interCheck =  setInterval(checkDatas,500);
   checkDatas();
 });

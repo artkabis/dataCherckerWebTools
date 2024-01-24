@@ -1,21 +1,15 @@
+
+(()=>{
+
 settingWords={};
 
-settingWords.replaceWords = [
-    "Button",
-    "Afficher davantage",
-    "John Doe",
-    "City skyline",
-    "Photo By:",
-    "Birthday Sparks",
-    "Fashion Magazine",
-    "Blurred Lines",
-    "Photo by:"
-  ];
+  // Exlusion de ces termes dans l'affichage des Hn de la page web (headings)
   settingWords.exclusesWords = [
     ":",
     "(",
     ")", 
     "?",
+    "!",
     "&",
     "a",
     "à",
@@ -39,6 +33,8 @@ settingWords.replaceWords = [
     "avec",
     'besoins',
     'besoin',
+    "c'est",
+    "c’est",
     "ça",
     "ce",
     "ceci",
@@ -75,6 +71,7 @@ settingWords.replaceWords = [
     "de laquelle",
     "depuis",
     "des",
+    "désormais",
     "desquelles",
     "desquels",
     "dont",
@@ -210,13 +207,51 @@ settingWords.replaceWords = [
     "vous",
     "y"
 ];
+
+//Classes exclues dans la récupération des mot de la page web
   settingWords.excludedClasses = [
     "vc_btn3-container",
     "vc_btn3",
     "pj-prolive-hc",
     "dmButtonLink",
     "proliveContainer",
-    'vc_mappy-map'
+    'vc_mappy-map', 
+    "dmFooterContainer", 
+    "widgets_wrapper",
+    "footer_action",
+    "footer_copy"
+  ];
+  //Noeuds exclus dans la récupération des mot de la page web
+  
+  settingWords.excludedNodes = [
+    "iframe",
+    "button",
+    "textarea",
+    "script",
+    "style",
+    "source",
+    "video",
+    "picture",
+    "form",
+    "code",
+    "frameset",
+    "noframes",
+    "map",
+    "area",
+    "figcaption",
+    "figure",
+    "svg",
+    "nav",
+    "menu",
+    "menuitem",
+    "footer",
+    "noscript",
+    "embed",
+    "param",
+    "rs-module-wrap",
+    "rs-layer-wrap",
+    "head",
+    "header"
   ];
 
   // Liste des mots à exclure
@@ -230,5 +265,6 @@ settingWords.replaceWords = [
     "Fashion Magazine",
     "Blurred Lines",
     "Photo by:",
+    "Learn More"
   ];
-  
+})()

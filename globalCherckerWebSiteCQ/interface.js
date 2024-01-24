@@ -28,26 +28,26 @@ DBOpenRequest.onsuccess = (event) => {
     
     console.log('11111111111111111111& interface username : ',{userName});
     console.log('datasCheckerDB datas : ',{datasCheckerDB});
-    fetch('http://127.0.0.1:8000/datasCheck/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify([{ user: userName, datas: datasCheckerDB }]),
-    }).then(response => {
-      if (!response.ok) {
-        throw new Error('Réponse non valide');
-      }
-      const contentType = response.headers.get('Content-Type');
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('La réponse n\'est pas au format JSON');
-      }
-      return response.json(); // Lisez la réponse JSON ici
-    }).then(data => {
-      console.log('Réponse du serveur :', data);
-    }).catch(error => {
-      console.log('Erreur lors de la fin du traitement :', error);
-    });
+    // fetch('http://127.0.0.1:8000/datasCheck/', {
+    //   method: 'POST',
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //   },
+    //   body: JSON.stringify([{ user: userName, datas: datasCheckerDB }]),
+    // }).then(response => {
+    //   if (!response.ok) {
+    //     throw new Error('Réponse non valide');
+    //   }
+    //   const contentType = response.headers.get('Content-Type');
+    //   if (!contentType || !contentType.includes('application/json')) {
+    //     throw new Error('La réponse n\'est pas au format JSON');
+    //   }
+    //   return response.json(); // Lisez la réponse JSON ici
+    // }).then(data => {
+    //   console.log('Réponse du serveur :', data);
+    // }).catch(error => {
+    //   console.log('Erreur lors de la fin du traitement :', error);
+    // });
     initInterface(userName,datasCheckerDB);
   };
 };
@@ -417,40 +417,43 @@ const containerContentCard = document.createElement("div");
     containerContentCard.appendChild(containerResumeImageAltCheck);
 
     object.alt_img.forEach(element => {
+      console.log('alt élément forEach verificator : ',element);
+      if(element.alt_img_score){
 
-      const containerAltImage = document.createElement("div");
-      containerAltImage.className = "container_alt_image";
+        const containerAltImage = document.createElement("div");
+        containerAltImage.className = "container_alt_image";
 
-      const spanAltImageText = document.createElement("span");
-      
-      spanAltImageText.className = "span_alt_image_txt";
-      
-      spanAltImageText.className = "span_alt_image_txt";
-      spanAltImageText.innerHTML = "Texte Alt: "+element.alt_img_text;
+        const spanAltImageText = document.createElement("span");
+        
+        spanAltImageText.className = "span_alt_image_txt";
+        
+        spanAltImageText.className = "span_alt_image_txt";
+        spanAltImageText.innerHTML = "Texte Alt: "+element.alt_img_text;
 
-      const spanAltImageSrc = document.createElement("span");
-      spanAltImageSrc.className = "span_alt_image_src";
-      
-      const linkAltImageSrc = document.createElement("a");
-      linkAltImageSrc.href = element.alt_img_src;
-      linkAltImageSrc.className ="a_link_alt_img_src target";
-      linkAltImageSrc.innerHTML = "Ouvrir l'image";
+        const spanAltImageSrc = document.createElement("span");
+        spanAltImageSrc.className = "span_alt_image_src";
+        
+        const linkAltImageSrc = document.createElement("a");
+        linkAltImageSrc.href = element.alt_img_src;
+        linkAltImageSrc.className ="a_link_alt_img_src target";
+        linkAltImageSrc.innerHTML = "Ouvrir l'image";
 
-      const spanAltImageScore = document.createElement("span");
-      if(element.alt_img_score>0){
-        spanAltImageScore.className = "span_alt_image_score_positif";
-      }else{
-        spanAltImageScore.className = "span_alt_image_score_negatif";
+        const spanAltImageScore = document.createElement("span");
+        if(element.alt_img_score>0){
+          spanAltImageScore.className = "span_alt_image_score_positif";
+        }else{
+          spanAltImageScore.className = "span_alt_image_score_negatif";
+        }
+        
+        spanAltImageScore.innerHTML = element.alt_img_score+"/5";
+
+        spanAltImageSrc.appendChild(linkAltImageSrc);
+        containerAltImage.appendChild(spanAltImageText);
+        containerAltImage.appendChild(spanAltImageSrc);
+        containerAltImage.appendChild(spanAltImageScore);
+
+        containerContentCard.appendChild(containerAltImage);
       }
-      
-      spanAltImageScore.innerHTML = element.alt_img_score+"/5";
-
-      spanAltImageSrc.appendChild(linkAltImageSrc);
-      containerAltImage.appendChild(spanAltImageText);
-      containerAltImage.appendChild(spanAltImageSrc);
-      containerAltImage.appendChild(spanAltImageScore);
-
-      containerContentCard.appendChild(containerAltImage);
     });
 
     return containerContentCard;

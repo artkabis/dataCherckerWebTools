@@ -1,25 +1,27 @@
-    
-function initcheckerLinksAndImages(){
+MAX_SIZE_BYTES_IMAGE = currentSettings.MAX_SIZE_BYTES_IMAGE || 317435;
+MAX_RATIO_IMAGE = currentSettings.MAX_RATIO_IMAGE || 3;
+
+function initcheckerLinksAndImages() {
   let urlsDuplicate = [],
-  requestInitiatedCount = 0,
-  requestCompletedCount = 0,
-  imagesForAnalyseImg = [],
-  imagesForAnalyseBG = [],
-  cmpFinal = 0;
+    requestInitiatedCount = 0,
+    requestCompletedCount = 0,
+    imagesForAnalyseImg = [],
+    imagesForAnalyseBG = [],
+    cmpFinal = 0;
 
-   //reset datachecker nodes
- dataChecker.img_check.alt_img = [];
- dataChecker.img_check.size_img = [];
- dataChecker.img_check.ratio_img = [];
- let ratio_scores = [],
-   alt_scores = [],
-   size_scores = [],
-   ratioScoreImg;
+  //reset datachecker nodes
+  dataChecker.img_check.alt_img = [];
+  dataChecker.img_check.size_img = [];
+  dataChecker.img_check.ratio_img = [];
+  let ratio_scores = [],
+    alt_scores = [],
+    size_scores = [],
+    ratioScoreImg;
 
-   let scoreCheckLink = [],
-   isLinkedin,
-   txtLinkedin;
- dataChecker.link_check.link = [];
+  let scoreCheckLink = [],
+    isLinkedin,
+    txtLinkedin;
+  dataChecker.link_check.link = [];
 
   formatBytes = (bytes) => {
     return bytes < 1024
@@ -57,26 +59,25 @@ function initcheckerLinksAndImages(){
   let cmpBgImg = 0;
   let allUrlsImages = [];
   const checkUrlImg = async (args) => {
-
-
-    let redirectCount=0;
+    let redirectCount = 0;
     let result = false;
     requestInitiatedCount++;
     let response;
-    const isBas64Img = (args[1].includes('data:image'))
+    const isBas64Img = args[1].includes("data:image");
     const isBgImage = args[4].includes("bg");
     let bgImg = new Image();
     let fsize = "0";
     if (args[1] !== !!0 && !isBas64Img) {
-      
       args[1] = args[1].includes("?") ? args[1].split("?")[0] : args[1];
       try {
-        response = (!args[1].includes('data:image')) && await fetch(args[1], {
-          method: "GET",
-          //redirect: "manual", // Permet de suivre les redirections explicitement
-          mode: "cors",
-        });//.then(response=>requestCompletedCount++);
-        
+        response =
+          !args[1].includes("data:image") &&
+          (await fetch(args[1], {
+            method: "GET",
+            //redirect: "manual", // Permet de suivre les redirections explicitement
+            mode: "cors",
+          })); //.then(response=>requestCompletedCount++);
+
         if (response.redirected) {
           if (redirectCount >= 2) {
             throw new Error("Trop de redirections");
@@ -101,7 +102,7 @@ function initcheckerLinksAndImages(){
         }
 
         fsize = response.headers.get("content-length");
-        
+
         if (fsize) {
           const ratio = Number(
             ((args[5] / args[7] + args[6] / args[8]) / 2).toFixed(2)
@@ -121,7 +122,7 @@ function initcheckerLinksAndImages(){
             ratioWidth: args[5] / args[7],
             ratioHeight: args[6] / args[8],
             ratio: String(ratio) === ("Infinity" || 0) ? "image cachée" : ratio,
-            status:response.status
+            status: response.status,
           };
           console.log(result, "");
 
@@ -134,12 +135,12 @@ function initcheckerLinksAndImages(){
               "color: red"
             );
           } else if (
-            ratio > 3 &&
+            ratio > MAX_RATIO_IMAGE &&
             String(ratio) !== "Infinity" &&
             sizeInKb > 70
           ) {
             console.log(
-              "%c Warning : ratio supérieur à 3 : " + ratio,
+              `%c Warning : ratio supérieur à ${MAX_RATIO_IMAGE} : " ${ratio}`,
               "color: orange"
             );
           } else if (
@@ -148,21 +149,19 @@ function initcheckerLinksAndImages(){
             (args[5] >= 900 || (args[6] >= 900 && sizeInKb > 70))
           ) {
             console.log(
-              "%c Warning : ratio supérieur à 2 : " +
-                ratio +
-                "  pour une image dépassant les 900px",
+              `%c Warning : ratio supérieur à 2 : ${ratio}  pour une image dépassant les 900px`,
               "color: orange"
             );
           }
           /*256000 Bytes = 250 KB*/
-          if (fsize > 256000 && fsize < 317435) {
+          if (fsize > 256000 && fsize < MAX_SIZE_BYTES_IMAGE) {
             console.log(
               `%c Warning - la taille de l'image dépasse 250 KB : ${formatBytes(
                 fsize
               )}  url : ${result.url}`,
               "color: orange"
             );
-          } /*317435 Bytes = 310 KB*/ else if (fsize > 317435) {
+          } /*317435 Bytes = 310 KB*/ else if (fsize > MAX_SIZE_BYTES_IMAGE) {
             console.log(
               `%c Warning - la taille de l'image dépasse 310 KB : ${formatBytes(
                 fsize
@@ -175,32 +174,36 @@ function initcheckerLinksAndImages(){
             !result.target.hasClass("vc_parallax-inner") &&
             urlsDuplicate.push({ url: result.url, target: result.target });
 
-          
           size_scores.push(
-            fsize > 317435 ? 0 : fsize > 256000 && fsize < 317435 ? 2.5 : 5
+            fsize > MAX_SIZE_BYTES_IMAGE ? 0 : fsize > 256000 && fsize < MAX_SIZE_BYTES_IMAGE ? 2.5 : 5
           );
           alt_scores.push(result.alt[2] !== false ? 5 : 0);
           dataChecker.img_check.alt_img.push({
             alt_img_state: true,
             alt_img_src: result.url ? result.url : args[1],
             alt_img_value: result.alt,
-            alt_img_score: (result.alt !== false) ? 5 : 0,
+            alt_img_score: result.alt !== false ? 5 : 0,
           }),
             dataChecker.img_check.size_img.push({
               size_img_state: "true",
               size_img_src: result.url,
               size_img: result.size,
               size_img_score:
-                (fsize > 317435 ? 0 : fsize > 256000 && fsize < 317435 ? 2.5 : 5 ? response.status === '404' : 0) ,
+                fsize > 317435
+                  ? 0
+                  : fsize > 256000 && fsize < MAX_SIZE_BYTES_IMAGE
+                  ? 2.5
+                  : 5
+                  ? response.status === "404"
+                  : 0,
               check_title: "Images size",
-              image_status: response.status
+              image_status: response.status,
             });
           const imgcheckRatio =
             (result.ratio < 2 &&
               result.Imgheight < 150 &&
               result.Imgwidth < 150) ||
-              result.ratio == "image cachée";
-
+            result.ratio == "image cachée";
 
           if (imgcheckRatio || result.ratio === 1) {
             ratioScoreImg = 5;
@@ -216,7 +219,6 @@ function initcheckerLinksAndImages(){
             ratioScoreImg = 5;
           }
           //let statusScoreImg = (response.status =='404') ? 0 : 5;
-          
 
           dataChecker.img_check.ratio_img.push({
             ratio_img_state: true,
@@ -230,15 +232,14 @@ function initcheckerLinksAndImages(){
             ratio_parent_img_width: result.ratioWidth,
             ratio_img: result.ratio,
             ratio_img_score: ratioScoreImg,
-
           });
         }
       } catch (error) {
-        console.log('link : ',args[1], error);
+        console.log("link : ", args[1], error);
         dataChecker.img_check.ratio_img.push({
           ratio_img_state: true,
           ratio_img_src: result.url,
-          type_img: 'image non disponible : 404',
+          type_img: "image non disponible : 404",
           img_height: result.Imgheight,
           img_width: result.Imgwidth,
           parent_img_height: result.parentwidth,
@@ -248,27 +249,24 @@ function initcheckerLinksAndImages(){
           ratio_img: result.ratio,
           ratio_img_score: ratioScoreImg,
         });
-        
+
         console.log("%cNot available", "color:yellow");
-        console.log(error, error.message, '  url : ' + args[1]);
+        console.log(error, error.message, "  url : " + args[1]);
         result && console.log({ result }, result.target);
-        
       }
     } else {
       console.log("url not valid : ", result.url, args[1]);
-   
     }
     requestCompletedCount++;
     dataChecker.img_check.nb_img = requestCompletedCount;
-    
+
     if (requestCompletedCount === allUrlsImages.length) {
       ratio_scores.push(ratioScoreImg);
-      console.log(" Fin du traitement du check des images size and alt")
+      console.log(" Fin du traitement du check des images size and alt");
       checkUrlImgDuplicate();
     }
   };
 
-  
   const checkUrlImgDuplicate = () => {
     console.log(
       "url duplicate length : ",
@@ -292,8 +290,7 @@ function initcheckerLinksAndImages(){
         ? trierUrlsRepetees(urlsDuplicate)
         : "OK"
     );
-    initDataChecker(size_scores,ratio_scores, alt_scores, scoreCheckLink);
-
+    initDataChecker(size_scores, ratio_scores, alt_scores, scoreCheckLink);
   };
 
   const checkerImageWP = () => {
@@ -310,7 +307,7 @@ function initcheckerLinksAndImages(){
         $(this).attr("alt").length > 0 &&
         $(this).attr("alt") !== "";
       const isDudaImage = srcV && srcV.includes("cdn-website");
-      const isBas64Img = srcV && srcV.includes("data:image")
+      const isBas64Img = srcV && srcV.includes("data:image");
       //const checkStackMedias = (srcV.includes('/uploads/') || srcV.includes('/images/'));
 
       srcV =
@@ -322,16 +319,22 @@ function initcheckerLinksAndImages(){
           ? window.location.origin +
             "/wp-content/" +
             srcV.split("/wp-content/")[1]
-          : (src && !srcV.includes("http") && !srcV.at(0).includes('/')) ? window.location.origin +'/'+srcV : srcV;
-      srcV = (srcV && srcV.includes('data:image') && srcV.includes('http'))  ? 'data:image'+srcV.split('data:image')[1] : srcV;
+          : src && !srcV.includes("http") && !srcV.at(0).includes("/")
+          ? window.location.origin + "/" + srcV
+          : srcV;
+      srcV =
+        srcV && srcV.includes("data:image") && srcV.includes("http")
+          ? "data:image" + srcV.split("data:image")[1]
+          : srcV;
       if (srcV) {
         $(this) && srcV;
         !srcV.includes("mappy") &&
           !srcV.includes("cdn.manager.solocal.com") &&
           !srcV.includes("gravityforms") &&
           !srcV.includes("static.cdn-website") &&
-          !$(this).hasClass('leaflet-marker-icon') &&
+          !$(this).hasClass("leaflet-marker-icon") &&
           !srcV.includes("5+star.svg") &&
+          !srcV.includes('sominfraprdstb001.blob.core.windows.net') &&
           imagesForAnalyseImg.push({
             key: "src-img-" + i,
             value: [
@@ -349,7 +352,6 @@ function initcheckerLinksAndImages(){
       }
     });
 
-   
     $("html *").each(function (i, t) {
       if (
         $(this).css("background-image") &&
@@ -362,7 +364,7 @@ function initcheckerLinksAndImages(){
         let _this = $(this);
         let customImg = new Image();
         bgimg =
-          bgimg.includes("http") || bgimg.includes('data:image')
+          bgimg.includes("http") || bgimg.includes("data:image")
             ? bgimg
             : window.location.origin + bgimg;
         const isDudaImage =
@@ -377,6 +379,7 @@ function initcheckerLinksAndImages(){
           (detectAnotherOrigin &&
             bgimg.includes("/wp-content/") &&
             bgimg.includes("/dd-cdn.multiscreensite"))) &&
+            !bgimg.includes("data:") &&
           console.log(
             "%cImage url not current domain origin :" + bgimg,
             "color:yellow;"
@@ -416,6 +419,7 @@ function initcheckerLinksAndImages(){
                   ],
                 })
               : console.log(
+                /*
                   "base64 img detected : ",
                   bgimg.includes("data:image/"),
                   " width : ",
@@ -424,12 +428,57 @@ function initcheckerLinksAndImages(){
                   customImg.height,
                   " url : ",
                   bgimg
+                  */
                 );
           }
         }
       }
     });
 
+
+   //Vérification des doublons liés au attribut "alt"
+// Utilisez un ensemble pour suivre les valeurs uniques
+let uniqueAltValues = new Set();
+
+// Utilisez un objet pour suivre le nombre d'occurrences de chaque alt
+let altOccurrences = {};
+
+// Variable pour indiquer s'il y a des duplicatas
+let hasDuplicates = false;
+
+// Parcourez chaque élément dans imagesForAnalyseImg
+imagesForAnalyseImg.forEach(function (image) {
+  const altValue = image.value[2]; // Récupérez la valeur de alt
+  const targetAltImage = image.value[0]; // récupération du scope de l'image analysé
+
+  // Vérifiez si la valeur de alt est valide et non dupliquée
+  if (altValue !== false) {
+    if (uniqueAltValues.has(altValue)) {
+      // Incrémentez le nombre d'occurrences
+      altOccurrences[altValue] = (altOccurrences[altValue] || 1) + 1;
+
+      console.log(
+        `%cDuplication détectée pour les alt : ${altValue}. Nombre d'itérations : ${altOccurrences[altValue]}`,
+        'color:orange'
+      );
+      console.log('Image ayant un alt en doublon : ', targetAltImage);
+      hasDuplicates = true;
+    } else {
+      // Ajoutez la valeur de alt à l'ensemble pour le suivi
+      uniqueAltValues.add(altValue);
+    }
+  }
+});
+
+// Affichez le résultat
+if (hasDuplicates) {
+  console.log('%cIl y a des duplicatas dans les valeurs des alt de cette page.', 'color:orange');
+} else {
+  console.log('%cAucun duplicata trouvé dans les valeurs de alt.', 'color:green');
+}
+
+
+    //Lancement du check global des images
     const allImg = [...imagesForAnalyseBG, ...imagesForAnalyseImg];
     console.log({ allImg });
     let cmpImages = 0;
@@ -440,7 +489,6 @@ function initcheckerLinksAndImages(){
       allUrlsImages.push(item.value[1]);
     }
   };
-
 
   let sliderButtonValidity = false;
   if ($(".dmImageSlider .slide-button-visible").length) {
@@ -459,211 +507,84 @@ function initcheckerLinksAndImages(){
   let timeout = 30000;
   let cmp_url = 0;
   let urlsScanned = [];
-  const verifExcludesUrls = (url) =>{
-    return url!==undefined &&
-    url.length>1&&
-    !url.includes("tel:") &&
-    !url.includes("mailto:") &&
-    !url.includes("javascript:") &&
-    !url.includes("logflare") &&
-    !url.includes("solocal.com") &&
-    !url.includes("sp.report-uri") &&
-    !url.includes("chrome-extension") &&
-    !url.includes("mappy") &&
-    !url.includes("bloctel.gouv.fr") &&
-    !url.includes("client.adhslx.com") &&
-    url.at(0) !=='?' &&
-    !(url.length === 1 && url.includes('#'));
+  const verifExcludesUrls = (url) => {
+    return (
+      url !== undefined &&
+      url.length > 0 &&
+      !url.includes("mailto:") &&
+      !url.includes("javascript:") &&
+      !url.includes("logflare") &&
+      !url.includes("solocal.com") &&
+      !url.includes("sp.report-uri") &&
+      !url.includes("chrome-extension") &&
+      !url.includes("mappy") &&
+      !url.includes("bloctel.gouv.fr") &&
+      //!url.includes("client.adhslx.com") &&
+      !url.includes("sominfraprdstb001.blob.core.windows.net") &&
+      url.at(0) !== "?"
+    );
+  };
+
+  const isElementVisible = (el) => {
+    var rect = el.getBoundingClientRect();
+    return (
+      rect &&
+      rect?.top >= 0 &&
+      rect?.left >= 0 &&
+      rect?.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+      rect?.right <= (window.innerWidth || document.documentElement.clientWidth) ||
+      el.clientHeight === 0 ||
+      el.clientWidth === 0
+    );
   }
-  let urlsNotSecure = [];
+
+  let warningLinks = [];
   let linksStack = document.querySelector("#Wrapper")
-    ? $("#Wrapper a")
+    ? $("#Wrapper a[href]")
     : $("#dm a[href]");
-    linksStack = linksStack.length ? linksStack : $("body a");
-    let linksStackFilter = [];
-    linksStack.each(function(i,t){
-      const href = $(this).attr("href");
-      (verifExcludesUrls(href)) &&  linksStackFilter.push(t);
-      t.getAttribute("href").includes('http:') && urlsNotSecure.push(t.getAttribute("href"))
-    });
+  linksStack = linksStack.length ? linksStack : $("body a");
+  let linksStackFilter = [];
+  linksStack.each(function (i, t) {
+    const href = $(this).attr("href");
+    verifExcludesUrls(href) &&
+      !href.includes("linkedin.") &&
+      (href.includes("https:") || (href.at(0) === '/' && href.length>0)) &&
+      !href.includes("tel:") &&
+      linksStackFilter.push({ target: t, href: href });
+    (href.includes("http:") ||
+    href.includes("linkedin.") ||
+    href.includes("tel:") ||
+      !verifExcludesUrls(href))  &&
+      warningLinks.push({ target: t, url: href });
+  });
 
   //console.log('liens à analyser : ',urlsScanned);
   const nbLinks = linksStackFilter.length;
-  (nbLinks === 0) && checkerImageWP();
-  let iterationsLinks = 0;
-  const check = (_url, _txt, _node) =>{
-    cmp_url++;
-    _txt = _txt.trim();
-    const response = {
-      status: null,
-      document: null,
-    };
-    //_url = (_url.includes('solocaldudaadmin.eu-responsivesiteeditor.com'))? window.location.href.split('?')[0]+_url.split('solocaldudaadmin.eu-responsivesiteeditor.com')[1] : _url
-    //dataChecker.link_check.nb_link = nbLinks;
-    return new Promise(function (resolve, reject) {
-      let fetchTimeout = null;
-      const startDoubleSlash  = /^\/\//;
-      _url = _url.match(startDoubleSlash) !==null ? 'https:'+_url : _url;
-      !(_url.includes('http:')) && fetch(_url, {
-        method: "GET",
-        //redirect: "manual", // Permet de suivre les redirections explicitement
-        mode: "cors",
-      })
-        .then((res) => {
-          (iterationsLinks === 0)&&  (console.log(
-            "--------------------- Start check validity links -----------------------------"
-          ),  console.log({nbLinks}));
-          clearTimeout(fetchTimeout);
-          response.status = res.status;
-          response.document = res.responseText;
-          isLinkedin = res.status === 999;
-          txtLinkedin = isLinkedin ? "Lien Linkedin : " : "";
-          resolve(response);
-          if (res.ok || isLinkedin) {
-            console.log(
-              `url: ${txtLinkedin} ${_url} %c${_txt} -> %cstatus: %c${response.status}`,
-              "color:cornflowerblue;",
-              "color:white;",
-              "color:green"
-            );
-            scoreCheckLink.push(5);
-          } else if (!isLinkedin && !res.ok) {
-            console.log(
-              `url: ${_url} %c${_txt} -> %cstatus: %c${response.status}`,
-              "color:cornflowerblue;",
-              "color:white;",
-              "color:red"
-            );
-            console.log("Lien en erreur dans le DOM de cette page web : ", _node);
-            _node.style.border = 'solid 3px red';
-            _node.setAttribute('title','Erreur'+ response.status);
+  console.log({ linksStackFilter }, { warningLinks });
 
-            scoreCheckLink.push(0);
-          }else if(res.status === 301){
-            console.log(
-              `!!!! ATENTION REDIRECTION 301 -> url: ${_url} %c${_txt} -> %cstatus: %c${response.status}`,
-              "color:cornflowerblue;",
-              "color:white;",
-              "color:orange"
-            );
-            scoreCheckLink.push(5);
-          }
-          (_node.closest('#dm') && _url.includes('site-privilege.pagesjaunes')) && console.log("%cAttention lien prépup WP présent dans Duda : "+_url+ ' - élément : '+_node,'color:red;');
+  //Vérification des numéros de téléphone
+  const checkValidityPhoneNumber = (t, url) => {
+    checkPhoneNumber = new RegExp(
+      /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/
+    ).test(url.replaceAll(" ", "").split("tel:")[1]);
 
-          dataChecker.link_check.link.push({
-            link_state: true,
-            link_status: response.status,
-            link_url: _url,
-            link_text: _txt.replace(",  text : ", "").trim(),
-            link_score: res.ok ? 5 : 0,
-            link_msg: res.ok ? "Lien valide." : "Lien non valide.",
-          });
-
-          dataChecker.link_check.link_check_state = true;
-          iterationsLinks ++;
-          console.log('Link checked : ',iterationsLinks +'/'+ nbLinks);
-          (iterationsLinks === nbLinks-urlsNotSecure.length) && (console.log(
-            "--------------------- END check validity links -----------------------------"
-          ),checkerImageWP());
-        })
-        .catch((error) => {
-          iterationsLinks ++;
-          _node.style.border = 'solid 3px red';
-          _node.setAttribute('title','Erreur'+ response.status);
-
-          resolve(response);
-          console.log('Lien analysés : ',iterationsLinks +'/'+ nbLinks);
-          (iterationsLinks === nbLinks) && (console.log(
-            "--------------------- END check validity links -----------------------------"
-          ),checkerImageWP(),checkLinksDuplicate());
-        });
-
-      fetchTimeout = setTimeout(() => {
-        response.status = 408;
-        resolve(response);
-      }, (timeout += 1000));
-    });
-
-  }
-  
-  dataChecker.link_check.nb_link = linksStack.length;
-  // console.log(
-  //   "--------------------- Start check validity links -----------------------------"
-  // );
-  
-  $.each(linksStackFilter, function (i, t) {
-    let url = t.href;
-    if (url) {
-      url =
-        url.at(0) === "/" || url.at(0) === "?"
-          ? window.location.origin + url
-          : url;
-      let prepubRefonteWPCheck =
-        url.includes("site-privilege.pagesjaunes") ||
-        url.includes("solocaldudaadmin.eu-responsivesiteeditor")
-          ? true
-          : !url.includes("pagesjaunes");
-      
-      const externalLink = !url.includes(window.location.origin);
-      let txtContent =
-        url &&
-        url.at(-4) &&
-        !url.at(-4).includes(".") &&
-        t.textContent.length > 1
-          ? ",  text : " + t.textContent.replace(/(\r\n|\n|\r)/gm, "")
-          : "";
-          txtContent = ($(this).find('svg') && $(this).find('svg').attr('alt')) ? ",  text : "+$(this).find('svg').attr('alt')  : txtContent;
-          verifExcludesUrls(url) &&
-        check(new URL(url).href, txtContent, t, externalLink);
-
-      if (
-        verifExcludesUrls(url) &&
-        externalLink &&
-        !url.includes("de.cdn-website.com") &&
-        url.includes("https") &&
-        url.includes('linkedin')
-      ) {
-        console.log(
-          `%c Vérifier le lien "Linkedin" : 
-          ${txtContent} manuellement >>>`,
-          "color:orange"
-        ),
-          console.log(new URL(url).href, t);
-          check(new URL(url).href, txtContent, t, externalLink);
-      } else if (
-        verifExcludesUrls(url) &&
-        externalLink &&
-        !url.includes("de.cdn-website.com") &&
-        url.includes("http:")
-      ) {
-        console.log(
-          `%c Vérifier le lien ${txtContent} manuellement et SECURISEZ LE via "https" si ceci est possible >>>`,
-          "color:orange"
-        ),
-          console.log(new URL(url).href, t);
-          check(new URL(url).href, txtContent, t, externalLink);
-      }
-
-      checkPhoneNumber = new RegExp(
-        /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/
-      ).test(url.replaceAll(" ", "").split("tel:")[1]);
-
-      url.includes("tel:") &&
+    url.includes("tel:") &&
       (checkPhoneNumber
         ? console.log(
-              `%cNuméro de téléphone detécté :${url} - Validité : OK`,
-              "color:green"
+            `%cNuméro de téléphone detécté :${url} - Validité : OK`,
+            "color:green"
           )
         : console.log(
-              `%cNuméro de téléphone detécté :${url} - Validité : KO`,
-              "color:red"
-          )
-      );
-    }
+            `%cNuméro de téléphone detécté :${url} - Validité : KO`,
+            "color:red"
+          ));
+
     const dudaPhone =
-      $(this).attr("class") !== undefined &&
-      $(this).attr("class").includes("dmCall")
-        ? $(this).attr("phone")
+      t &&
+      t.getAttribute("class") &&
+      //(t.target.getAttribute("class") !== undefined || t.target.getAttribute("class") !== null) &&
+      t?.getAttribute("class")?.includes("dmCall")
+        ? t?.getAttribute("phone")
         : false;
     checkDudaPhoneNumber =
       dudaPhone &&
@@ -687,10 +608,293 @@ function initcheckerLinksAndImages(){
         "--------------------- End check validity phone -----------------------------"
       );
     }
+  };
+  warningLinks.forEach(function (t, i) {
+    checkValidityPhoneNumber(t.target, t.url);
   });
-  const checkLinksDuplicate = () =>{
+
+  nbLinks === 0 && checkerImageWP();
+  let iterationsLinks = 0;
+  let maillageInterne = 0;
+  const liensInternes =[];
+  const styleLinkError = 'border: 3px double red!important;outline: 5px solid #bb0000!important;outline-offset: 5px;!important';
+  const check = (_url, _txt, _node) => {
+    cmp_url++;
+    _txt = _txt.trim();
+    const response = {
+      status: null,
+      document: null,
+    };
+    return new Promise(function (resolve, reject) {
+      let fetchTimeout = null;
+      const startDoubleSlash = /^\/\//;
+      _url = _url.match(startDoubleSlash) !== null ? "https:" + _url : _url;
+      //(!_url.includes('http:') )&& !_url.includes('.linkedin.com') &&
+      
+      fetch(_url, {
+        method: "GET",
+        //redirect: "manual", // Permet de suivre les redirections explicitement
+        mode: "cors",
+      })
+        .then((res) => {
+          iterationsLinks === 0 &&
+            (console.log(
+              "--------------------- Start check validity links -----------------------------"
+            ),
+            //Message d'alerte pour les liens http: et linkedin et tel: qui ne peuvent être envoyé dans la requête
+            warningLinks.forEach((t, i) => {
+              const url = t.url;
+              const target = t.target;
+              let isLinkedin = url.includes("linkedin") ? "Linkedin" : "";
+              let isNosecure = url.includes("http:")
+                ? "ATTENTION VOTRE LE EST EN HTTP ET DONC NON SECURISE : AJOUTER HTTPS"
+                : "";
+                verifExcludesUrls(url) && !url.includes('tel:') && 
+                (console.log(
+                  `%c ${isNosecure} - Vérifier le lien  ${isLinkedin}: 
+            ${url} manuellement >>>`,
+                  `color:${isNosecure ? "red" : "orange"}`
+                ),
+                (target.style.cssText = isNosecure ? styleLinkError : ""),
+                target.setAttribute(
+                  "title",
+                  isNosecure ? "HTTP - No secure" : ""
+                ));
+            }));
+          clearTimeout(fetchTimeout);
+          response.status = res.status;
+          response.document = res.responseText;
+          isLinkedin = res.status === 999;
+          txtLinkedin = isLinkedin ? "Lien Linkedin : " : "";
+
+
+          const isCTA =
+          (_node &&
+            ((_node.style.padding && parseInt(_node?.style?.padding) >= 5) ||
+              (_node.style.width && parseInt(_node?.style?.width) >= 15) ||
+              (_node.style.height && parseInt(_node?.style?.height) >= 15))) ||
+          _node.clientHeight >= 10 ||
+          _node.clientWidth >= 10 ||
+          (_node.getAttribute("class")
+            ? (_node.getAttribute("class").includes("dmButtonLink") || _node.getAttribute("class").includes("vc_btn3"))
+            : false);
+          const inContent = (_node.closest('#Content') || _node.closest('.dmContent')) ? true : false;
+          const imageWidget = (inContent) => {
+            if (inContent && !isCTA) {
+              for (let i = 0; i < _node.closest('.dmRespCol')?.children?.length; i++) {
+                const childElement = _node.closest('.dmRespCol')?.children[i]; 
+                return (childElement?.classList?.contains('imageWidget')) ? true : false;
+              }
+            }
+          }
+          const isImageWidget = imageWidget(inContent);
+          const isImageLink = (_node && (_node.closest('.image-container') ||  isImageWidget===true ||  _node?.getAttribute("class")?.includes("caption-button") || _node.querySelector('img') || _node?.style?.backgroundImage)) ? true : false;
+          const isMenuLink = (_node && (_node.closest('.main-navigation') || _node?.closest('.menu'))) ? true : false
+          const isMedia = _url.split('.').at(-1).toLowerCase().match(/png|jpe?g|jpg|mp3|mp4|gif|pdf|mov|webp/);
+
+         
+
+          
+          const permalien = /*(_url.startsWith('/') || _url.includes(window.location.origin)) &&*/ (!isMenuLink && !isCTA && !isImageLink && inContent) ? true : false;//(!_node?.closest('#Footer') || !_node?.closest('.dmFooterContainer') || _node?.closest('footer'))
+          const cleanUrl = _url.includes('solocaldudaadmin') || _url.includes('pagesjaune.fr') ? new URL(_url).pathname : _url;
+          (!isMedia && permalien) && liensInternes.push(cleanUrl);
+          const txtMediaLog = " --_ 🖼️ CTA avec image _--";
+          const isImageLinkLog = (!isMedia && isImageLink) ? txtMediaLog : (isMedia) ? txtMediaLog+' Au format >> '+isMedia[0] : "";
+          const isMenuLinkLog = isMenuLink ? " >> 🎫 Interne au menu << " : "";              
+          const isCTALog = isCTA ? '__ 🆙 CTA detecté __' : '';
+          const permalienLog = (!isMedia && permalien) ? " ---> 🔗 Maillage interne" : "";
+
+          (!isMedia && permalien) && maillageInterne++;
+          resolve(response);
+          if (res.ok || isLinkedin) {
+            console.log(
+              `url: ${txtLinkedin} ${_url} %c${_txt} -> %cstatus: %c${response.status} %c ${!isMenuLink ? isCTALog : ''} %c${isMenuLinkLog} %c${!isImageLink ? permalienLog : ''} %c${isImageLinkLog} %c${isElementVisible(_node) ? "Visible" : "Non visible"}`,
+              "color:cornflowerblue;",
+              "color:white;",
+              "color:green",
+              "color:mediumpurple;",
+              "color:powderblue;",
+              "color:greenyellow;",
+              "color:mediumpurple;",
+              `color: ${isElementVisible(_node) ? 'green' : 'orange'}`
+            );
+            scoreCheckLink.push(5);
+          } else if (!isLinkedin && !res.ok && res.status !== 403) {
+            console.log(
+              `url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c ${!isMenuLink ? isCTALog : ''} %c${isMenuLinkLog} %c${!isImageLink ? permalienLog : ''} %c${isImageLinkLog}  %c${isImageLinkLog} %c${isElementVisible(_node) ? "Visible" : "Non visible"}`,
+              "color:cornflowerblue;",
+              "color:white;",
+              "color:red",
+              "color:mediumpurple;",
+              "color:powderblue;",
+              "color:greenyellow;",
+              "color:mediumpurple;",
+              `color: ${isElementVisible(_node) ? 'green' : 'orange'}`
+            );
+            console.log(_node);
+            _node.setAttribute("title", "Erreur : " + response.status);
+            _node.style.cssText = styleLinkError;
+            scoreCheckLink.push(0);
+          } else if (res.status === 301 || res.type === "opaqueredirect") {
+            console.log(
+              `!!!! ATENTION REDIRECTION 301 -> url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c${!isMenuLink ? isCTALog : ''} %c${isMenuLinkLog} %c${!isImageLink ? permalienLog : ''} %c${isImageLinkLog}  %c${isImageLinkLog} %c${isElementVisible(_node) ? "Visible" : "Non visible"}`,
+              "color:cornflowerblue;",
+              "color:white;",
+              "color:orange",
+              "color:mediumpurple;",
+              "color:powderblue;",
+              "color:greenyellow;",
+              "color:mediumpurple;",
+              `color: ${isElementVisible(_node) ? 'green' : 'orange'}`
+            );
+            scoreCheckLink.push(5);
+          }else if(res.status === 403){
+            console.log(
+              `%c!!!! ATENTION LIEN EN STATUS 403, VUEILLEZ LES VERIFIER MANUELLEMENT-> url: ${_url} %c${_txt} -> %cstatus: %c${response.status} %c ${!isMenuLink ? isCTALog : ''} %c${isMenuLinkLog} %c${!isImageLink ? permalienLog : ''} %c${isImageLinkLog} %c${isImageLinkLog} %c${isElementVisible(_node) ? "Visible" : "Non visible"}`,
+              "color:orange",
+              "color:cornflowerblue;",
+              "color:white;",
+              "color:orange",
+              "color:mediumpurple;",
+              "color:powderblue;",
+              "color:greenyellow;",
+              "color:mediumpurple;",
+              `color: ${isElementVisible(_node) ? 'green' : 'orange'}`
+            );
+          }
+          _node.closest("#dm") &&
+            _url.includes("site-privilege.pagesjaunes") &&
+            console.log(
+              "%cAttention lien prépup WP présent dans Duda : " +
+                _url +
+                " - élément : " +
+                _node,
+              "color:red;"
+            );
+          dataChecker.link_check.link.push({
+            link_state: true,
+            link_status: response.status,
+            link_url: _url,
+            link_text: _txt.replace(",  text : ", "").trim(),
+            link_score: res.ok ? 5 : 0,
+            link_msg: res.ok ? "Lien valide." : "Lien non valide.",
+          });
+
+          dataChecker.link_check.link_check_state = true;
+          iterationsLinks++;
+          console.log("Link checked : ", iterationsLinks + "/" + (nbLinks));
+          iterationsLinks === (nbLinks)   &&
+          (console.log('Vous avez ',maillageInterne,'lien(s) interne(s) sur cette page >>>  ',liensInternes)
+          ,console.log(
+              "--------------------- END check validity links -----------------------------"
+            ),
+            checkerImageWP());
+        })
+        .catch((error) => {
+          iterationsLinks++;
+          _node.style.cssText = styleLinkError;
+          // const msgStatus =
+          //   response.status === null ? "insecure resource" : response.status;
+          dataChecker.link_check.link_check_state = true;
+          _node.setAttribute("title", "Erreur : " + error);
+          dataChecker.link_check.link.push({
+            link_state: true,
+            link_status: response.status,
+            link_url: _url,
+            link_text: _txt.replace(",  text : ", "").trim(),
+            link_score: 0,
+            link_msg: "Imposssible de traiter le lien, veillez vérifier celui-c manuellement.",
+          });
+
+          resolve(response);
+          console.log(
+            "Lien analysés : ",_url, ' - iteration : ',
+            iterationsLinks + "/" + nbLinks,
+            "   en erreur : ",
+            error
+          );
+          iterationsLinks === nbLinks &&
+            (console.log('Vous avez ',maillageInterne,'lien(s) interne(s) sur cette page >>>  '),console.log({liensInternes})
+            ,console.log(
+              "--------------------- END check validity links -----------------------------"
+            ),
+            checkerImageWP(),
+            checkLinksDuplicate());
+        });
+      
+
+      fetchTimeout = setTimeout(() => {
+        response.status = 408;
+        resolve(response);
+      }, (timeout += 1000));
+    });
+  };
+  dataChecker.link_check.nb_link = linksStack.length;
+  // console.log(
+  //   "--------------------- Start check validity links -----------------------------"
+  // );
+
+
+  console.log({linksStackFilter});
+  $.each(linksStackFilter, function (i, t) {
+    let url = t.href;
+    const _this = t.target;
+    const $this = $(t.target);
+    if (url && !url.includes("tel:")) {
+      url =
+        url.at(0) === "/" || (url.at(0) === "?" && !url.includes("tel:"))
+          ? window.location.origin + url
+          : url;
+      let prepubRefonteWPCheck =
+        url.includes("site-privilege.pagesjaunes") ||
+        url.includes("solocaldudaadmin.eu-responsivesiteeditor")
+          ? true
+          : !url.includes("pagesjaunes");
+
+      const externalLink = !url.includes(window.location.origin);
+      let txtContent =
+        url &&
+        url.at(-4) &&
+        !url.at(-4).includes(".") &&
+        t.target.textContent.length > 1
+          ? ",  text : " + t.target.textContent.replace(/(\r\n|\n|\r)/gm, "")
+          : $this.find("svg") && $this.find("svg").attr("alt") 
+          ? ",  text : " + $this.find("svg").attr("alt") : '';
+      (url && verifExcludesUrls(url)) &&
+        check(url, txtContent, t.target, externalLink);
+
+      if (
+        verifExcludesUrls(url) &&
+        externalLink &&
+        !url.includes("de.cdn-website.com") &&
+        url.includes("https") &&
+        url.includes("linkedin")
+      ) {
+        console.log(
+          `%c Vérifier le lien "Linkedin" : 
+          ${txtContent} manuellement >>>`,
+          "color:orange"
+        ),
+          console.log(new URL(url).href, t.target);
+        check(new URL(url).href, txtContent, t.target, externalLink);
+      } else if (
+        verifExcludesUrls(url) &&
+        externalLink &&
+        !url.includes("de.cdn-website.com") &&
+        url.includes("http:")
+      ) {
+        console.log(
+          `%c Vérifier le lien ${txtContent} manuellement et SECURISEZ LE via "https" si ceci est possible >>>`,
+          "color:red"
+        ),
+          console.log(new URL(url).href, t.target);
+        check(new URL(url).href, txtContent, t.target, externalLink);
+      }
+    }
+  });
+  const checkLinksDuplicate = () => {
     let linksCounts = {};
-    linksStack.each(function (t,i) {
+    linksStack.each(function (t, i) {
       href = $(this).attr("href");
       href &&
         href.length > 1 &&
@@ -702,7 +906,7 @@ function initcheckerLinksAndImages(){
     linksAnalyse.forEach((element) => {
       linksCounts[element] = (linksCounts[element] || 0) + 1;
     });
-    console.log('All links : ',linksAnalyse);
+    console.log("All links : ", linksAnalyse);
 
     const entries = Object.entries(linksCounts);
     const sortedEntries = entries.sort((a, b) => a[1] - b[1]);
@@ -722,6 +926,6 @@ function initcheckerLinksAndImages(){
         );
       }
     });
-  }
+  };
 }
 initcheckerLinksAndImages();

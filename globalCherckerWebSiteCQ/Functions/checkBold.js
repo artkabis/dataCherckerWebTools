@@ -1,3 +1,7 @@
+  //Start meta check
+  MIN_BOLD_EXPRESSION = currentSettings.MIN_BOLD_EXPRESSION || 3;
+  MAX_BOLD_EXPRESSION = currentSettings.MAX_BOLD_EXPRESSION || 5;
+
 (($) => {
   const isBold = (el) =>
     el.attr("style") && 
@@ -47,7 +51,6 @@
     let strongParent;
     if (isDuda) {
       strongParent = $(this).closest(".dmRespCol") ? $(this).closest(".dmRespCol") : $(this).closest(".dmNewParagraph");
-      //console.log('-------------------strong & bold  :::::::::::::::',this,$(this).closest(".dmNewParagraph"),$(this).closest(".dmNewParagraph").text().length,' colonne : ',strongParent);
     }else if(isWP && $(this).closest('.wpb_text_column').length){
       strongParent = $(this).closest('.wpb_text_column');
     }else if(isWP && $(this).closest('.wpb_toggle_content').length){ 
@@ -130,7 +133,7 @@
       
   });console.log({boldArray});
 
-  // Créer un nouvel tableau pour stocker les éléments uniques
+  // Créer un nouveau tableau pour stocker les éléments uniques
   const objSansDoublons = [];
 
   // Parcourir l'array initial boldArray
@@ -150,7 +153,7 @@
       nbWordsParent >= 25
     ) {
       !$isMultiSpan && objSansDoublons.push({
-        target, // Modification : Ne pas accéder à [0] pour conserver l'élément DOM
+        target,
         texte_duplique: isDuplicate,
         text,
         nbWords,
@@ -166,16 +169,14 @@
       : true;
   // dataChecker.bold_check.bold_check_state;
   const isBoldValid =
-    objSansDoublons.length >= 3 && objSansDoublons.length <= 5;
+    objSansDoublons.length >= MIN_BOLD_EXPRESSION && objSansDoublons.length <= MAX_BOLD_EXPRESSION;
   !isBoldValid
     ? console.log(
-        "%c Attention le nombre déléments mis en gras ne respect pas le standard (3 à 5 expressions), ici >>> " +
-          objSansDoublons.length,
+        `%c Attention le nombre déléments mis en gras ne respect pas le standard (${MIN_BOLD_EXPRESSION} à ${MAX_BOLD_EXPRESSION} expressions), ici >>> ${objSansDoublons.length}`,
         "color:red"
       )
     : console.log(
-        "%c Le nombre déléments mis en gras respect le standard (3 à 5 expressions), ici >>> " +
-          objSansDoublons.length,
+      `%c Le nombre déléments mis en gras respect le standard (${MIN_BOLD_EXPRESSION} à ${MAX_BOLD_EXPRESSION} expressions), ici >>> ${objSansDoublons.length}`,
         "color:green"
       ),
     console.log(objSansDoublons);
@@ -218,8 +219,7 @@
     scroreBold = 1;
   } else if (nbBold < 1 && nbBold > 10) {
     scroreBold = 0;
-  } else if (nbBold >= 3 && nbBold <= 5) {
-    console.log("____________________________________________ bold ok ");
+  } else if (nbBold >= MIN_BOLD_EXPRESSION && nbBold <= MAX_BOLD_EXPRESSION) {
     scroreBold = 5;
   }
   dataChecker.bold_check.global_score = scroreBold ? scroreBold : 0;

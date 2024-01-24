@@ -6,53 +6,8 @@ const colorService = function() {
     const midThreshold = 4.5;
     const lowThreshold = 3;
     const defaultView = document.defaultView;
-    const element = document.querySelectorAll('body *');
 
-    const  isElementVisible=(element) => {
-        if (!element._wcc) {
-            element._wcc = {};
-        }
-        let isVisible = element._wcc._isVisible;
-        if (isVisible === false) {
-            return isVisible;
-        }
-        if (element.tagName.toLowerCase() === 'body') {
-            return true;
-        }
-        const parentNode = element.parentNode;
-        if (!parentNode._wcc) {
-            parentNode._wcc = {};
-        }
-        const isParentVisible = parentNode._wcc._isVisible;
-        if (isParentVisible === false) {
-            element._wcc._isVisible = false;
-            return isParentVisible;
-        }
-        //element._wcc._target = element;
-
-        const getComputedStyle = document.defaultView.getComputedStyle(element, null);
-        isVisible = getComputedStyle.getPropertyValue('display') !== 'none' &&
-            getComputedStyle.getPropertyValue('visibility') !== 'hidden' &&
-            isVisibleByPosition(getComputedStyle);
-        if (isVisible && isParentVisible) {
-            element._wcc._isVisible = isVisible;
-            return isVisible;
-        }
-        if (isVisible && parentNode.tagName.toLowerCase() !== 'body') {
-            isVisible = isElementVisible(parentNode);
-        }
-        element._wcc._isVisible = isVisible;
-        return isVisible;
-    }
-    return {
-        singleEvaluation,
-        getBodyBackgroundColor,
-        evaluateColorContrastFromElement,
-        isValidHex,
-        hexShorthandToExtended,
-        rgbToHex
-    };
-    function singleEvaluation(foregroundColor, backgroundColor) {
+    const singleEvaluation = (foregroundColor, backgroundColor) => {
         if (!isValidHex(foregroundColor) || !isValidHex(backgroundColor)) {
             return false;
         }
@@ -78,7 +33,7 @@ const colorService = function() {
         }
         return validation;
     }
-    function getContrastRatio(foreground, background) {
+    const getContrastRatio = (foreground, background) => {
         const foregroundLuminosity = getLuminosity(foreground);
         const backgroundLuminosity = getLuminosity(background);
         let higherValue;
@@ -93,7 +48,9 @@ const colorService = function() {
         let contrastDiff = (higherValue + 0.05) / (lowerValue + 0.05);
         return Math.round(contrastDiff * 100) / 100; // round to two decimals
     }
-    function getLuminosity(RGBAColor) {
+    
+    
+    const getLuminosity = (RGBAColor) => {
         const {
             r,
             g,
@@ -104,7 +61,7 @@ const colorService = function() {
         const fLinearisedBlue = linearisedColorComponent(b / 255);
         return (0.2126 * fLinearisedRed + 0.7152 * fLinearisedGreen + 0.0722 * fLinearisedBlue);
     }
-    function linearisedColorComponent(colorSegment) {
+    const linearisedColorComponent = (colorSegment) => {
         let linearised;
         if (colorSegment <= 0.03928) {
             linearised = colorSegment / 12.92;
@@ -113,7 +70,7 @@ const colorService = function() {
         }
         return linearised;
     }
-    function evaluateColorContrastFromElement(element, colorMatrix) {
+    const evaluateColorContrastFromElement = (element, colorMatrix) => {
         const getComputedStyle = defaultView.getComputedStyle(element, null);
         const ancestorsStack = getAncestorsStackInfo(element);
         let backgroundColor = getColorFromStack(ancestorsStack);
@@ -149,7 +106,7 @@ const colorService = function() {
         }
         return evaluation;
     }
-    function getForegroundColor(element, stack) {
+    const getForegroundColor = (element, stack) => {
         const bgColor = RGBStringToObject(getElementComputedStyle(element, 'color'));
         const opacity = parseFloat(getElementComputedStyle(element, 'opacity'));
         return getColorFromStack([{
@@ -157,7 +114,7 @@ const colorService = function() {
             opacity
         }].concat(stack))
     }
-    function applyMatrixToColor(color, matrix) {
+    const applyMatrixToColor = (color, matrix) => {
         const {
             r,
             g,
@@ -175,11 +132,11 @@ const colorService = function() {
             o: oUpdated
         };
     }
-    function getElementComputedStyle(element, propertyName) {
+    const getElementComputedStyle = (element, propertyName) => {
         const getComputedStyle = defaultView.getComputedStyle(element, null);
         return getComputedStyle.getPropertyValue(propertyName);
     }
-    function getBodyBackgroundColor() {
+    const getBodyBackgroundColor = () => {
         const body = document.querySelector('body');
         const bodyBackgroundColor = getElementComputedStyle(body, 'background-color');
         let RGBBodyBackgroundColorObject = RGBStringToObject(bodyBackgroundColor);
@@ -193,7 +150,7 @@ const colorService = function() {
         }
         return RGBBodyBackgroundColorObject;
     }
-    function getAncestorsStackInfo(element) {
+    const getAncestorsStackInfo = (element) => {
         const ancestors = [];
         for (; element && element.tagName.toLowerCase() !== 'body'; element = element.parentNode) {
             let elementInfoObject = element._wcc?._info;
@@ -221,7 +178,7 @@ const colorService = function() {
         });
         return ancestors;
     }
-    function getColorFromStack(ancestors) {
+    const getColorFromStack = (ancestors) => {
         let updated = ancestors[0].bgColor;
         updated.o = updated.o * ancestors[0].opacity
         for (let i = 1; i < ancestors.length; i++) {
@@ -230,14 +187,14 @@ const colorService = function() {
         }
         return updated
     }
-    function getOpacityFromStack(stack) {
+    const  getOpacityFromStack = (stack) => {
         let opacity = 1;
         stack.forEach(element => {
             opacity = opacity * element.opacity;
         });
         return opacity;
     }
-    function flattenColors(fgColor, bgColor) {
+    const flattenColors = (fgColor, bgColor) => {
         const alpha = fgColor.o;
         if (alpha === 1) {
             return fgColor;
@@ -253,7 +210,7 @@ const colorService = function() {
             o
         };
     }
-    function isValidHex(hexToCheck) {
+    const isValidHex = (hexToCheck) => {
         if (!hexToCheck || typeof hexToCheck !== 'string' || hexToCheck.indexOf('#') > 0) {
             return false;
         }
@@ -269,13 +226,13 @@ const colorService = function() {
                 return false;
         }
     }
-    function hexShorthandToExtended(shorthandHex) {
+    const hexShorthandToExtended = (shorthandHex) => {
         const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
         return shorthandHex.replace(shorthandRegex, function(m, r, g, b) {
             return '#' + r + r + g + g + b + b;
         });
     }
-    function RGBStringToObject(color) {
+    const RGBStringToObject = (color) => {
         let separator;
         const plainParameters = color.replace('rgb(', '')
             .replace('rgba(', '')
@@ -299,7 +256,7 @@ const colorService = function() {
             o: rgbValues[3] === undefined ? 1 : parseFloat(rgbValues[3])
         }
     }
-    function decToHex(positionInDecimalBase) {
+    const decToHex = (positionInDecimalBase) => {
         if (positionInDecimalBase == null) {
             return '00';
         }
@@ -315,10 +272,10 @@ const colorService = function() {
         const baseString = '0123456789ABCDEF';
         return baseString.charAt((positionAsNumber - positionAsNumber % 16) / 16) + baseString.charAt(positionAsNumber % 16);
     }
-    function rgbObjectToString(rgbObject) {
+    const rgbObjectToString = (rgbObject) => {
         return 'rgb(' + rgbObject.r + ',' + rgbObject.g + ',' + rgbObject.b + ')';
     }
-    function hexToRGB(hex) {
+    const hexToRGB = (hex) => {
         hex = hexShorthandToExtended(hex);
         const rgbValue = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
         return rgbValue ? {
@@ -327,13 +284,58 @@ const colorService = function() {
             b: parseInt(rgbValue[3], 16)
         } : null;
     }
-    function rgbStringToHex(RGBColorString) {
+    const rgbStringToHex = (RGBColorString) => {
         const RGBColor = RGBStringToObject(RGBColorString);
         return rgbToHex(RGBColor);
     }
-    function rgbToHex(RGBColor) {
+    const rgbToHex = (RGBColor) => {
         return '#' + decToHex(RGBColor.r) + decToHex(RGBColor.g) + decToHex(RGBColor.b);
     }
+    const element = document.querySelectorAll('body *');
+
+    const  isElementVisible=(element) => {
+        if (!element._wcc) {
+            element._wcc = {};
+        }
+        let isVisible = element._wcc._isVisible;
+        if (isVisible === false) {
+            return isVisible;
+        }
+        if (element.tagName.toLowerCase() === 'body') {
+            return true;
+        }
+        const parentNode = element.parentNode;
+        if (!parentNode._wcc) {
+            parentNode._wcc = {};
+        }
+        const isParentVisible = parentNode._wcc._isVisible;
+        if (isParentVisible === false) {
+            element._wcc._isVisible = false;
+            return isParentVisible;
+        }
+        const getComputedStyle = document.defaultView.getComputedStyle(element, null);
+        isVisible = getComputedStyle.getPropertyValue('display') !== 'none' &&
+            getComputedStyle.getPropertyValue('visibility') !== 'hidden' &&
+            isVisibleByPosition(getComputedStyle);
+        if (isVisible && isParentVisible) {
+            element._wcc._isVisible = isVisible;
+            return isVisible;
+        }
+        if (isVisible && parentNode.tagName.toLowerCase() !== 'body') {
+            isVisible = isElementVisible(parentNode);
+        }
+        element._wcc._isVisible = isVisible;
+        return isVisible;
+    }
+    return {
+        singleEvaluation,
+        getBodyBackgroundColor,
+        evaluateColorContrastFromElement,
+        isValidHex,
+        hexShorthandToExtended,
+        rgbToHex
+    };
+
 };
 
 let results = {},elementsReferences = {};
@@ -347,19 +349,19 @@ const {
 elementsToCheck.forEach((element) => {
     element._wcc = {};
 });
-function getCurrentColorMatrix() {
+const getCurrentColorMatrix = () => {
     const currentColorMatrix = (currentBlindnessSimulation && currentBlindnessSimulation !== 'none') ? colorMatrix[currentBlindnessSimulation] : undefined;
     return currentColorMatrix;
 }
-function getInputValue(input) {
+const getInputValue = (input) => {
     return input.value;
 }
 
-function hasText(element) {
+const hasText = (element) => {
     return getChildText(element).trim().length > 0;
 }
 
-function getTextFromNode(element) {
+const getTextFromNode = (element) => {
     if (isTextNode(element)) {
         return element.nodeValue.replace("\"", "'").replace("\"", "'").replace("<", "&lt;").replace(">", "&gt;");
     }
@@ -371,15 +373,15 @@ function getTextFromNode(element) {
     return '';
 }
 
-function isTextNode(node) {
+const isTextNode = (node) => {
     return node.nodeType === 3;
 }
 
-function isCommentNode(node) {
+const isCommentNode = (node) => {
     return node.nodeType === 8;
 }
 
-function isElementWithAltText(element) {
+const isElementWithAltText = (element) => {
     if (isCommentNode(element)) {
         return false;
     }
@@ -389,7 +391,7 @@ function isElementWithAltText(element) {
     return ((tagName === 'img' || tagName === 'area') && element.getAttribute('alt')) || (tagName === 'input' && element.getAttribute('type') && element.getAttribute('type').toLowerCase() === 'image');
 }
 
-function getChildText(element) {
+const getChildText = (element) => {
     if (isTextNode(element)) {
         return element.nodeValue.replace("\"", "'").replace("\"", "'").replace("<", "&lt;").replace(">", "&gt;");
     }
@@ -407,7 +409,7 @@ function getChildText(element) {
 
     return text.replace(/\n/g, ' ').replace(/\t/g, ' ').replace(/\s+/gi, ' ');
 }
-function isVisibleByPosition(getComputedStyle) {
+const isVisibleByPosition = (getComputedStyle) => {
     const position = getComputedStyle.getPropertyValue('position');
     const isPositioned = position === 'relative' || position === 'absolute';
     const top = getComputedStyle.getPropertyValue('top').replace('px', '');
@@ -422,7 +424,7 @@ const elementsToExclude = [
     '[type=hidden]', '[type=color], .vc_single_image-wrapper'
 ];
 let targets = [];
-function checkAllElementsInDocument() {
+const checkAllElementsInDocument = () => {
     let results = {};
     let query = 'body *';
 
@@ -507,7 +509,7 @@ function checkAllElementsInDocument() {
 }
 const seuilContraste = 4.5;
 const resultContrast = checkAllElementsInDocument();
-function verifierValidation(elementValidation) {
+const verifierValidation = (elementValidation) => {
   // Vérifiez si isValidAA et isValidAAA sont à false
   if (elementValidation.isValidAA === false && elementValidation.isValidAAA === false) {
     return false;
@@ -515,7 +517,7 @@ function verifierValidation(elementValidation) {
     return true;
   }
 }
-function filtrerParContraste(objet, seuil) {
+const filtrerParContraste = (objet, seuil) =>   {
   // Créez un tableau pour stocker les éléments filtrés
   const elementsFiltres = [];
 
@@ -551,7 +553,7 @@ const elementsFiltres = filtrerParContraste(resultContrast.results, seuilContras
 // Créez un tableau pour stocker les éléments filtrés
 
 // Associez les données de resultContrast et targets en utilisant leurs ID correspondants
-function parseInfos(infos) {
+const parseInfos = (infos) => {
     const keyValuePairs = infos.split(',');
 
     const parsedInfos = {};
@@ -572,7 +574,7 @@ function parseInfos(infos) {
 // ...
 
 // Associez les données de resultContrast et targets en utilisant leurs ID correspondants
-function associerDonnees(resultContrast, targets) {
+const associerDonnees = (resultContrast, targets) => {
     const elementsAssocies = [];
 
     // Parcourez les éléments de elementsFiltres
@@ -602,13 +604,13 @@ function associerDonnees(resultContrast, targets) {
 }
 
 // Utilisez la fonction pour associer les données
-const elementsAssocies = associerDonnees(resultContrast, targets);
+const contrastWarning = associerDonnees(resultContrast, targets);
 
 console.log(
     "----------------------------- Start Check contrast valitidy --------------------------------------------"
   );
-  elementsAssocies.length && console.log('%c Attention vous avez des problèmes liés au contrast de vos textes','color:red');
-console.log({elementsAssocies});
+  contrastWarning.length && console.log('%c Attention vous avez des problèmes liés au contrast de vos textes','color:red');
+console.log({contrastWarning});
  // const lowContrast = resultContrast.results.forEach((c)=>console.log({c}));
  // console.log({resultContrast});
  console.log(
