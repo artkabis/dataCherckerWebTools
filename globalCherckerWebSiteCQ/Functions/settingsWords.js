@@ -1,13 +1,13 @@
 
-(()=>{
+(() => {
 
-settingWords={};
+  settingWords = {};
 
   // Exlusion de ces termes dans l'affichage des Hn de la page web (headings)
   settingWords.exclusesWords = [
     ":",
     "(",
-    ")", 
+    ")",
     "?",
     "!",
     "&",
@@ -206,23 +206,24 @@ settingWords={};
     "votre",
     "vous",
     "y"
-];
+  ];
 
-//Classes exclues dans la récupération des mot de la page web
+  //Classes exclues dans la récupération des mot de la page web
   settingWords.excludedClasses = [
     "vc_btn3-container",
     "vc_btn3",
     "pj-prolive-hc",
     "dmButtonLink",
     "proliveContainer",
-    'vc_mappy-map', 
-    "dmFooterContainer", 
+    'vc_mappy-map',
+    "dmFooterContainer",
     "widgets_wrapper",
     "footer_action",
-    "footer_copy"
+    "footer_copy",
+    "cloned"
   ];
   //Noeuds exclus dans la récupération des mot de la page web
-  
+
   settingWords.excludedNodes = [
     "iframe",
     "button",
