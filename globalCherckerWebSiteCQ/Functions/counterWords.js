@@ -135,8 +135,8 @@
 (() => {
   $ = jQuery;
 
-  const excludedNodes =  settingWords.excludedNodes;
-  const excludedClasses =settingWords.excludedClasses;
+  const excludedNodes = settingWords.excludedNodes;
+  const excludedClasses = settingWords.excludedClasses;
   const replaceWords = settingWords.replaceWords;
 
   function getTextFromElement(element) {
@@ -165,7 +165,7 @@
     return "";
   }
 
-  let filteredText = $('body #Content, body #dm_content .dmNewParagraph:not(.proliveContainer)')
+  let filteredText = $('body #Content, body #dm_content .dmRespCol')
     .map(function () {
       return getTextFromElement(this);
     })
@@ -173,7 +173,7 @@
     .join(" ")
     .replace(/\s+/g, " ")
     .trim();
-    // Il faudra map le texte afin de replace les words à exclure
+  // Il faudra map le texte afin de replace les words à exclure
   console.log("Texte récupéré :", filteredText);
   console.log("Nombre de mots liés au texte récupéré :", filteredText.split(' ').length);
 })()
