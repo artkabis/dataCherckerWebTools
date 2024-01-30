@@ -562,6 +562,9 @@ function initcheckerLinksAndImages() {
   const nbLinks = linksStackFilter.length;
   console.log({ linksStackFilter }, { warningLinks });
 
+
+
+
   //Vérification des numéros de téléphone
   const checkValidityPhoneNumber = (t, url) => {
     checkPhoneNumber = new RegExp(
@@ -612,6 +615,11 @@ function initcheckerLinksAndImages() {
   warningLinks.forEach(function (t, i) {
     checkValidityPhoneNumber(t.target, t.url);
   });
+
+  //Check phone number in slider rev
+  const SliderRevPhone = $('rs-layer[data-actions*="url:tel:"]') && $('rs-layer[data-actions*="url:tel:"]')[0];
+  (SliderRevPhone) && checkValidityPhoneNumber(SliderRevPhone, SliderRevPhone?.getAttribute('data-actions')?.split('url:')[1]?.split(' ;')[0]);
+
 
   nbLinks === 0 && checkerImageWP();
   let iterationsLinks = 0;
