@@ -799,7 +799,7 @@ function initcheckerLinksAndImages() {
           dataChecker.link_check.link_check_state = true;
           iterationsLinks++;
           console.log("Link checked : ", iterationsLinks + "/" + (nbLinks));
-          const linksNumberPreco = (maillageInterne > 1 && maillageInterne < 4) ? "color:green" : "color:red";
+          const linksNumberPreco = (maillageInterne >= 1 && maillageInterne < 4) ? "color:green" : "color:red";
           iterationsLinks === (nbLinks) &&
             (console.log(`%cVous avez ${maillageInterne} lien(s) interne(s) sur cette page (préco de 1 à 3 ) >>> `, `${linksNumberPreco}`), console.log(liensInternes)
               , console.log('Lien(s) externe(s) : ', liensExternes)

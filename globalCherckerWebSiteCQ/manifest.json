@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
   "name": "Health checker Website",
-  "version": "2.5.5",
+  "version": "2.5.6",
   "background": {
     "service_worker": "service_worker.js",
-    "type":"module"
+    "type": "module"
   },
   "action": {
     "default_popup": "popup.html",
@@ -30,9 +30,7 @@
     "webRequest",
     "debugger"
   ],
-"options_page": 
-  "options.html",
-
+  "options_page": "options.html",
   "host_permissions": [
     "<all_urls>",
     "*://*/*",
@@ -40,15 +38,23 @@
     "*://site-privilege.pagesjaunes.fr/*",
     "*://soprod.solocalms.fr/*"
   ],
-  "web_accessible_resources": [{
-    "resources": ["./Functions/HnOutlineValidity.js"],
-    "matches": ["<all_urls>"]
-  }],
-  "declarative_net_request" : {
-    "rule_resources" : [{
-      "id": "overwrite-origin",
-      "enabled": false,
-      "path": "rulesets/overwrite-origin.json"
-    }]
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "./Functions/HnOutlineValidity.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "overwrite-origin",
+        "enabled": false,
+        "path": "rulesets/overwrite-origin.json"
+      }
+    ]
   }
 }
