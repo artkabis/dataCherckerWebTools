@@ -624,7 +624,7 @@ function initcheckerLinksAndImages() {
   nbLinks === 0 && checkerImageWP();
   let iterationsLinks = 0;
   let maillageInterne = 0;
-  const liensInternes = [];
+  const liensInternes = [], liensExternes = [];
   const styleLinkError = 'border: 3px double red!important;outline: 5px solid #bb0000!important;outline-offset: 5px;!important';
   const check = (_url, _txt, _node) => {
     cmp_url++;
@@ -696,6 +696,7 @@ function initcheckerLinksAndImages() {
             }
           }
           const isImageWidget = imageWidget(inContent);
+          const isExternalLink = _url.includes('http') && !new URL(_url).href.includes(window.location.origin) ? true : false;
           const isImageLink = (_node && (_node.closest('.image-container') || isImageWidget === true || _node?.getAttribute("class")?.includes("caption-button") || _node.querySelector('img') || _node?.style?.backgroundImage)) ? true : false;
           const isMenuLink = (_node && (_node.closest('.main-navigation') || _node?.closest('.menu'))) ? true : false
           const isMedia = _url.split('.').at(-1).toLowerCase().match(/png|jpe?g|jpg|mp3|mp4|gif|pdf|mov|webp/);
@@ -703,9 +704,10 @@ function initcheckerLinksAndImages() {
 
 
 
-          const permalien = /*(_url.startsWith('/') || _url.includes(window.location.origin)) &&*/ (!isMenuLink && !isCTA && !isImageLink && inContent) ? true : false;//(!_node?.closest('#Footer') || !_node?.closest('.dmFooterContainer') || _node?.closest('footer'))
+          const permalien = /*(_url.startsWith('/') || _url.includes(window.location.origin)) &&*/ (!isExternalLink && !isMenuLink && !isCTA && !isImageLink && inContent && !(_url.includes('openstreetmap') || _url.includes('mapbox'))) ? true : false;//(!_node?.closest('#Footer') || !_node?.closest('.dmFooterContainer') || _node?.closest('footer'))
           const cleanUrl = _url.includes('solocaldudaadmin') || _url.includes('pagesjaune.fr') ? new URL(_url).pathname : _url;
           (!underForm && !isMedia && permalien) && (liensInternes.push(cleanUrl), maillageInterne++);
+          (isExternalLink) && liensExternes.push(_url);
           const txtMediaLog = " --_ 🖼️ CTA avec image _--";
           const isImageLinkLog = (!isMedia && isImageLink) ? txtMediaLog : (isMedia) ? txtMediaLog + ' Au format >> ' + isMedia[0] : "";
           const isMenuLinkLog = isMenuLink ? " >> 🎫 Interne au menu << " : "";
@@ -778,6 +780,13 @@ function initcheckerLinksAndImages() {
               _node,
               "color:red;"
             );
+          (_node.closest("#dm") && !window.location.href.includes('solocaldudaadmin.eu-responsivesiteeditor') && _url.includes('eu-responsivesiteeditor.com')) && console.log(
+            "%cAttention lien prépup Duda présent dans le site en ligne : " +
+            _url +
+            " - élément : " +
+            _node,
+            "color:red;"
+          );
           dataChecker.link_check.link.push({
             link_state: true,
             link_status: response.status,
@@ -790,8 +799,10 @@ function initcheckerLinksAndImages() {
           dataChecker.link_check.link_check_state = true;
           iterationsLinks++;
           console.log("Link checked : ", iterationsLinks + "/" + (nbLinks));
+          const linksNumberPreco = (maillageInterne > 1 && maillageInterne < 4) ? "color:green" : "color:red";
           iterationsLinks === (nbLinks) &&
-            (console.log('Vous avez ', maillageInterne, 'lien(s) interne(s) sur cette page >>>  ', liensInternes)
+            (console.log(`%cVous avez ${maillageInterne} lien(s) interne(s) sur cette page (préco de 1 à 3 ) >>> `, `${linksNumberPreco}`), console.log(liensInternes)
+              , console.log('Lien(s) externe(s) : ', liensExternes)
               , console.log(
                 "--------------------- END check validity links -----------------------------"
               ),
@@ -810,7 +821,7 @@ function initcheckerLinksAndImages() {
             link_url: _url,
             link_text: _txt.replace(",  text : ", "").trim(),
             link_score: 0,
-            link_msg: "Imposssible de traiter le lien, veillez vérifier celui-c manuellement.",
+            link_msg: "Imposssible de traiter le lien, veillez vérifier celui-ci manuellement.",
           });
 
           resolve(response);
@@ -852,11 +863,11 @@ function initcheckerLinksAndImages() {
         url.at(0) === "/" || (url.at(0) === "?" && !url.includes("tel:"))
           ? window.location.origin + url
           : url;
-      let prepubRefonteWPCheck =
+      let prepubCheck =
         url.includes("site-privilege.pagesjaunes") ||
           url.includes("solocaldudaadmin.eu-responsivesiteeditor")
           ? true
-          : !url.includes("pagesjaunes");
+          : false;
 
       const externalLink = !url.includes(window.location.origin);
       let txtContent =
