@@ -36,7 +36,8 @@
     "*://*/*",
     "*://le-de.cdn-website.com/*",
     "*://site-privilege.pagesjaunes.fr/*",
-    "*://soprod.solocalms.fr/*"
+    "*://soprod.solocalms.fr/*",
+    "*://maxcdn.bootstrapcdn.com/*"
   ],
   "web_accessible_resources": [
     {

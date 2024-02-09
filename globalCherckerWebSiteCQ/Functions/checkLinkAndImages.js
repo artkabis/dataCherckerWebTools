@@ -791,7 +791,7 @@ function initcheckerLinksAndImages() {
             link_state: true,
             link_status: response.status,
             link_url: _url,
-            link_text: _txt.replace(",  text : ", "").trim(),
+            link_text: _txt.replace(",  text : ", "").trim().replace('!!! ALT MANQUANT !!!', ''),
             link_score: res.ok ? 5 : 0,
             link_msg: res.ok ? "Lien valide." : "Lien non valide.",
           });
@@ -819,7 +819,7 @@ function initcheckerLinksAndImages() {
             link_state: true,
             link_status: response.status,
             link_url: _url,
-            link_text: _txt.replace(",  text : ", "").trim(),
+            link_text: _txt.replace(",  text : ", "").trim()?.replace('!!! ALT MANQUANT !!!', ''),
             link_score: 0,
             link_msg: "Imposssible de traiter le lien, veillez vérifier celui-ci manuellement.",
           });
@@ -875,9 +875,9 @@ function initcheckerLinksAndImages() {
           url.at(-4) &&
           !url.at(-4).includes(".") &&
           t.target.textContent.length > 1
-          ? ",  text : " + t.target.textContent.replace(/(\r\n|\n|\r)/gm, "")
-          : $this.find("svg") && $this.find("svg").attr("alt")
-            ? ",  text : " + $this.find("svg").attr("alt") : '';
+          ? ",  text : " + t.target.textContent.replace(/(\r\n|\n|\r)/gm, "")?.replace('!!! ALT MANQUANT !!!', '')
+          : $this.find("svg") && $this.find("svg").attr("alt")?.replace('!!! ALT MANQUANT !!!', '')
+            ? ",  text : " + $this.find("svg").attr("alt")?.replace('!!! ALT MANQUANT !!!', '') : '';
       (url && verifExcludesUrls(url)) &&
         check(url, txtContent, t.target, externalLink);
 
