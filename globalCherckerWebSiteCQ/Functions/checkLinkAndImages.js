@@ -791,7 +791,7 @@ function initcheckerLinksAndImages() {
             link_state: true,
             link_status: response.status,
             link_url: _url,
-            link_text: _txt.replace(",  text : ", "").trim(),
+            link_text: _txt.replace(",  text : ", "").trim().replace('!!! ALT MANQUANT !!!', ''),
             link_score: res.ok ? 5 : 0,
             link_msg: res.ok ? "Lien valide." : "Lien non valide.",
           });
@@ -799,7 +799,7 @@ function initcheckerLinksAndImages() {
           dataChecker.link_check.link_check_state = true;
           iterationsLinks++;
           console.log("Link checked : ", iterationsLinks + "/" + (nbLinks));
-          const linksNumberPreco = (maillageInterne > 1 && maillageInterne < 4) ? "color:green" : "color:red";
+          const linksNumberPreco = (maillageInterne >= 1 && maillageInterne < 4) ? "color:green" : "color:red";
           iterationsLinks === (nbLinks) &&
             (console.log(`%cVous avez ${maillageInterne} lien(s) interne(s) sur cette page (préco de 1 à 3 ) >>> `, `${linksNumberPreco}`), console.log(liensInternes)
               , console.log('Lien(s) externe(s) : ', liensExternes)
@@ -819,7 +819,7 @@ function initcheckerLinksAndImages() {
             link_state: true,
             link_status: response.status,
             link_url: _url,
-            link_text: _txt.replace(",  text : ", "").trim(),
+            link_text: _txt.replace(",  text : ", "").trim()?.replace('!!! ALT MANQUANT !!!', ''),
             link_score: 0,
             link_msg: "Imposssible de traiter le lien, veillez vérifier celui-ci manuellement.",
           });
@@ -875,9 +875,9 @@ function initcheckerLinksAndImages() {
           url.at(-4) &&
           !url.at(-4).includes(".") &&
           t.target.textContent.length > 1
-          ? ",  text : " + t.target.textContent.replace(/(\r\n|\n|\r)/gm, "")
-          : $this.find("svg") && $this.find("svg").attr("alt")
-            ? ",  text : " + $this.find("svg").attr("alt") : '';
+          ? ",  text : " + t.target.textContent.replace(/(\r\n|\n|\r)/gm, "")?.replace('!!! ALT MANQUANT !!!', '')
+          : $this.find("svg") && $this.find("svg").attr("alt")?.replace('!!! ALT MANQUANT !!!', '')
+            ? ",  text : " + $this.find("svg").attr("alt")?.replace('!!! ALT MANQUANT !!!', '') : '';
       (url && verifExcludesUrls(url)) &&
         check(url, txtContent, t.target, externalLink);
 

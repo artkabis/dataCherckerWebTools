@@ -222,7 +222,8 @@
     "widgets_wrapper",
     "footer_action",
     "footer_copy",
-    "cloned"
+    "cloned",
+    "SOMS_avis-container"
   ];
   //Noeuds exclus dans la récupération des mot de la page web
 
