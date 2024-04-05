@@ -4,7 +4,7 @@ import { toggleDesignMode } from "./Functions/toggleDesignMode.js";
 import { copyExpressionsSoprod } from "./Functions/copyExpressionsSoprod.js";
 import { dudaSitemap } from "./Functions/DudaSitemap.js";
 import { HnOutlineValidity } from "./Functions/HnOutlineValidity.js";
-import {downloaderWPMedia} from "./Functions/downloaderWPMedias.js";
+import { downloaderWPMedia } from "./Functions/downloaderWPMedias.js";
 
 // chrome.tabs.query({ active: true, currentWindow: true }, function (tab) {
 //   chrome.scripting.executeScript({
@@ -56,14 +56,14 @@ document
     });
   });
 
-  document
+document
   .querySelector("#downloadMediaWP")
   .addEventListener("click", function () {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       downloaderWPMedia(tabs[0]);
     });
   });
-  
+
 
 document
   .querySelector("#openGoogleSchemaValidator")
@@ -115,40 +115,40 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
             "./assets/console.image.min.js",
             "./Functions/checkAndAddJquery.js",
             './Functions/settingsOptions.js',
-          ],        
+          ],
         }, () => {
           setTimeout(() => {
-          chrome.scripting.executeScript(
-            {
-              target: { tabId: tab.id },
-              files: [
-                "./Functions/settingsWords.js",
-                "./Functions/dataCheckerSchema.js",
-                "./Functions/initLighthouse.js",
-                "./Functions/counterWords.js",
-                "./Functions/checkAltImages.js",
-                "./Functions/checkMetas.js",
-                "./Functions/checkOldRGPD.js",
-                "./Functions/checkBold.js",
-                "./Functions/checkOutlineHn.js",
-                "./Functions/checkColorContrast.js",
-                "./Functions/counterLettersHn.js",
-                //"./Functions/checkUserSoprod.js",
-                "./Functions/initDataChecker.js",
-                "./Functions/checkDataBindingDuda.js",
-                "./Functions/checkLinkAndImages.js",
-                
-              ],
-            }, () => {
-              // Fermez la fenêtre contextuelle
-              window.close();
-            });
+            chrome.scripting.executeScript(
+              {
+                target: { tabId: tab.id },
+                files: [
+                  "./Functions/settingsWords.js",
+                  "./Functions/dataCheckerSchema.js",
+                  "./Functions/initLighthouse.js",
+                  "./Functions/counterWords.js",
+                  "./Functions/checkAltImages.js",
+                  "./Functions/checkMetas.js",
+                  "./Functions/checkOldRGPD.js",
+                  "./Functions/checkBold.js",
+                  "./Functions/checkOutlineHn.js",
+                  "./Functions/checkColorContrast.js",
+                  "./Functions/counterLettersHn.js",
+                  //"./Functions/checkUserSoprod.js",
+                  "./Functions/initDataChecker.js",
+                  "./Functions/checkDataBindingDuda.js",
+                  "./Functions/checkLinkAndImages.js",
+
+                ],
+              }, () => {
+                // Fermez la fenêtre contextuelle
+                window.close();
+              });
           }, 50);
-          });
-        };
-      });
+        });
+      };
     });
   });
+});
 document.querySelector("#wordsCloud").addEventListener("click", function () {
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     var activeTab = tabs[0];
@@ -160,6 +160,7 @@ document.querySelector("#wordsCloud").addEventListener("click", function () {
         chrome.scripting.executeScript({
           target: { tabId: tab.id },
           files: [
+            "./assets/jquery-3.6.4.min.js",
             "./Functions/settingsWords.js",
             "./Functions/counterWords.js",
             "./Functions/wordsCountLexical.js",
@@ -175,7 +176,7 @@ document.addEventListener("DOMContentLoaded", function () {
   let corsEnabled = false;
   chrome.storage.sync.set({ corsEnabled: corsEnabled }, function () {
     // update state of cors
-    
+
     toggleButton.checked = corsEnabled;
     toggleButton.textContent = !corsEnabled ? "Désactiver" : "Activer";
     console.log("click toggle cors : ", { corsEnabled });

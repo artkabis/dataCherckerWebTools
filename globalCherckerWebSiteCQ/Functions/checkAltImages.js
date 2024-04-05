@@ -6,7 +6,7 @@
   async function getImageAsBase64(imageUrl, validUrl) {
     if (validUrl) {
       try {
-        const response = await fetch(imageUrl);
+        const response = await fetch(imageUrl, { redirect: 'manual' });
         const blob = await response.blob();
         const base64Data = await new Promise((resolve) => {
           const reader = new FileReader();
