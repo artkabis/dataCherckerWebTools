@@ -4,7 +4,8 @@
 ## Checklist:
 - Check meta title and description validity.
 - Check bold and strong iteration (alert if count is not <3 and >5).
-- Check only alt images (tag img for Duda and WP).
+- Check alt images (tag img for Duda and WP).
+- Check duplicated alt image in webpage.
 - Check validity phone number format
 - Check Hn validity (letter length, word length, and number of words).
 - Check the validity structure of the title plan (specify Hn missing).
@@ -13,7 +14,7 @@
 - View alt check in webpage.
 - View 404 error request status links in webpage.
 - Check valid links (status 200, 404, 300, 403 and output external manual check external links or parameter paths).
-- Check content text links.
+- Check links anchor.
 - Check image size (KB, MB, GB), ratio (image vs container), alt, title, and image format: background-image, img tag, base64, svg.
 - Check duplicate images (do not count logo images and cloned owl images).
 - Check databinding in Duda builder.
