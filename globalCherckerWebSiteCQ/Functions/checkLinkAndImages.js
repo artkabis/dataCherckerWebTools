@@ -74,7 +74,7 @@ function initcheckerLinksAndImages() {
           !args[1].includes("data:image") &&
           (await fetch(args[1], {
             method: "GET",
-            //redirect: "manual", // Permet de suivre les redirections explicitement
+            redirect: "manual", // Permet de suivre les redirections explicitement
             mode: "cors",
           })); //.then(response=>requestCompletedCount++);
 
@@ -641,7 +641,7 @@ function initcheckerLinksAndImages() {
 
       fetch(_url, {
         method: "GET",
-        //redirect: "manual", // Permet de suivre les redirections explicitement
+        redirect: "manual", // Permet de suivre les redirections explicitement
         mode: "cors",
       })
         .then((res) => {
@@ -655,7 +655,7 @@ function initcheckerLinksAndImages() {
                 const target = t.target;
                 let isLinkedin = url.includes("linkedin") ? "Linkedin" : "";
                 let isNosecure = url.includes("http:")
-                  ? "ATTENTION VOTRE LE EST EN HTTP ET DONC NON SECURISE : AJOUTER HTTPS"
+                  ? "ATTENTION VOTRE LIEN EST EN HTTP ET DONC NON SECURISE : AJOUTER HTTPS"
                   : "";
                 verifExcludesUrls(url) && !url.includes('tel:') &&
                   (console.log(

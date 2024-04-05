@@ -1,4 +1,7 @@
- const wordsCloudCounter = (counterwords) =>{
+
+let wordsCloudCounter = () => {
+  // let counterWords = window["counterWord"];
+  console.log('counterWords >>>>>>>>>>>>>>>>>> ', counterWords);
   // Fonction pour obtenir le top 16 des mots les plus utilisés
   function getTopWords(text, excludeWords) {
 
@@ -12,8 +15,8 @@
       //.replace(/(\w*')|(\w+)/g, ( p1, p2) => p1 ? p1 : p2)
       .trim()
 
-      //console.log('____________________________words clean : ',words);
-      words = words.split(" ");
+    //console.log('____________________________words clean : ',words);
+    words = words.split(" ");
 
     const wordCounts = {};
 
@@ -48,7 +51,7 @@
 
   // Exemple d'utilisation
   const excludedWords = settingWords.exclusesWords;
-  const contentBody = counterwords
+  const contentBody = counterWords
     .replace(/\n/gm, " ")
     .replace(/\t/gm, " ")
     .replace(/’/g, "'")
@@ -58,7 +61,8 @@
     .replace(/  /g, " ")
     .replace("(", "")
     .replace(")", "")
-    .replace(/'/g," ")
+    .replace(/'/g, " ").replaceAll(excludedWords);
+
 
 
   const topWords = getTopWords(contentBody, excludedWords);
@@ -175,4 +179,4 @@
   };
 }
 
-wordsCloudCounter(counterWords().words);
+wordsCloudCounter();
