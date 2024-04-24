@@ -526,16 +526,19 @@ function initcheckerLinksAndImages() {
   };
 
   const isElementVisible = (el) => {
-    var rect = el.getBoundingClientRect();
-    return (
-      rect &&
-      rect?.top >= 0 &&
-      rect?.left >= 0 &&
-      rect?.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-      rect?.right <= (window.innerWidth || document.documentElement.clientWidth) ||
-      el.clientHeight === 0 ||
-      el.clientWidth === 0
-    );
+    const rects = el.getClientRects();
+    for (let i = 0; i < rects.length; i++) {
+      const rect = rects[i];
+      if (
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+        rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+      ) {
+        return true;
+      }
+    }
+    return false;
   }
 
   let warningLinks = [];
@@ -641,15 +644,17 @@ function initcheckerLinksAndImages() {
 
       fetch(_url, {
         method: "GET",
-        redirect: "manual", // Permet de suivre les redirections explicitement
-        mode: "cors",
+        //redirect: "manual", // Permet de suivre les redirections explicitement
+        //mode: "cors",
       })
         .then((res) => {
+
           iterationsLinks === 0 &&
             (console.log(
               "--------------------- Start check validity links -----------------------------"
             ),
               //Message d'alerte pour les liens http: et linkedin et tel: qui ne peuvent être envoyé dans la requête
+
               warningLinks.forEach((t, i) => {
                 const url = t.url;
                 const target = t.target;
@@ -657,6 +662,8 @@ function initcheckerLinksAndImages() {
                 let isNosecure = url.includes("http:")
                   ? "ATTENTION VOTRE LIEN EST EN HTTP ET DONC NON SECURISE : AJOUTER HTTPS"
                   : "";
+
+
                 verifExcludesUrls(url) && !url.includes('tel:') &&
                   (console.log(
                     `%c ${isNosecure} - Vérifier le lien  ${isLinkedin}: 
@@ -667,7 +674,7 @@ function initcheckerLinksAndImages() {
                     target.setAttribute(
                       "title",
                       isNosecure ? "HTTP - No secure" : ""
-                    ));
+                    ))
               }));
           clearTimeout(fetchTimeout);
           response.status = res.status;
@@ -695,6 +702,8 @@ function initcheckerLinksAndImages() {
               }
             }
           }
+          const underPathLink = _url.includes(window.location.pathname);
+          underPathLink && console.log('%cAttention, vous utiliser un lien qui redirige vers la même page !!!!', 'color:red');
           const isImageWidget = imageWidget(inContent);
           const isExternalLink = _url.includes('http') && !new URL(_url).href.includes(window.location.origin) ? true : false;
           const isImageLink = (_node && (_node.closest('.image-container') || isImageWidget === true || _node?.getAttribute("class")?.includes("caption-button") || _node.querySelector('img') || _node?.style?.backgroundImage)) ? true : false;
