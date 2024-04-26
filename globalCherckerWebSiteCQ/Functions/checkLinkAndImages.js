@@ -703,7 +703,7 @@ function initcheckerLinksAndImages() {
             }
           }
           const underPathLink = _url.includes(window.location.pathname);
-          underPathLink && console.log('%cAttention, vous utiliser un lien qui redirige vers la même page !!!!', 'color:red');
+          underPathLink && console.log(`%cAttention, vous utiliser un lien qui redirige vers la même page : ${_url - underPathLink}`, 'color:red');
           const isImageWidget = imageWidget(inContent);
           const isExternalLink = _url.includes('http') && !new URL(_url).href.includes(window.location.origin) ? true : false;
           const isImageLink = (_node && (_node.closest('.image-container') || isImageWidget === true || _node?.getAttribute("class")?.includes("caption-button") || _node.querySelector('img') || _node?.style?.backgroundImage)) ? true : false;
