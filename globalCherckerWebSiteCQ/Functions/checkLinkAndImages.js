@@ -702,14 +702,16 @@ function initcheckerLinksAndImages() {
               }
             }
           }
-          const underPathLink = _url.includes(window.location.pathname);
-          underPathLink && console.log('%cAttention, vous utiliser un lien qui redirige vers la même page !!!!', 'color:red');
+          const dudaPrepub = window.location.origin.includes('solocaldudaadmin') && _url.includes('site');
+          const underPathLink = dudaPrepub ? _url.includes(window.location.pathname.split('/')[3]) : _url.includes(window.location.pathname);
+          //console.log(window.location.origin, ' duda prepub : ', dudaPrepub, "  check Duda prepub interne : ", _url.includes(window.location.pathname.split('/')[3]), 'si non Duda prepub : ', _url.includes(window.location.pathname));
           const isImageWidget = imageWidget(inContent);
           const isExternalLink = _url.includes('http') && !new URL(_url).href.includes(window.location.origin) ? true : false;
           const isImageLink = (_node && (_node.closest('.image-container') || isImageWidget === true || _node?.getAttribute("class")?.includes("caption-button") || _node.querySelector('img') || _node?.style?.backgroundImage)) ? true : false;
           const isMenuLink = (_node && (_node.closest('.main-navigation') || _node?.closest('.menu'))) ? true : false
           const isMedia = _url.split('.').at(-1).toLowerCase().match(/png|jpe?g|jpg|mp3|mp4|gif|pdf|mov|webp/);
           const underForm = (_node && (_node.closest('form')));
+          (!isMenuLink && underPathLink) && (console.log(`%cAttention, vous utiliser un lien qui redirige vers la même page : ${_url} - ${underPathLink}`, 'color:red'), console.log(_node));
 
 
 
