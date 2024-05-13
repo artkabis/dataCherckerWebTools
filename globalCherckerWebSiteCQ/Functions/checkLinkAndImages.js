@@ -702,8 +702,7 @@ function initcheckerLinksAndImages() {
               }
             }
           }
-          const dudaPrepub = window.location.origin.includes('solocaldudaadmin') && _url.includes('site');
-          const underPathLink = dudaPrepub ? _url.includes(window.location.pathname.split('/')[3]) : _url.includes(window.location.pathname);
+
           //console.log(window.location.origin, ' duda prepub : ', dudaPrepub, "  check Duda prepub interne : ", _url.includes(window.location.pathname.split('/')[3]), 'si non Duda prepub : ', _url.includes(window.location.pathname));
           const isImageWidget = imageWidget(inContent);
           const isExternalLink = _url.includes('http') && !new URL(_url).href.includes(window.location.origin) ? true : false;
@@ -711,9 +710,31 @@ function initcheckerLinksAndImages() {
           const isMenuLink = (_node && (_node.closest('.main-navigation') || _node?.closest('.menu'))) ? true : false
           const isMedia = _url.split('.').at(-1).toLowerCase().match(/png|jpe?g|jpg|mp3|mp4|gif|pdf|mov|webp/);
           const underForm = (_node && (_node.closest('form')));
-          (!isMenuLink && underPathLink) && (console.log(`%cAttention, vous utiliser un lien qui redirige vers la même page : ${_url} - ${underPathLink}`, 'color:red'), console.log(_node));
 
+          const isDudaPrepub = window.location.origin.includes('solocaldudaadmin');
+          const dudaPrepub = isDudaPrepub && typeof window.location.pathname === 'string' && window.location.pathname.split('/')[3] ? window.location.pathname.split('/')[3].replaceAll('/', '') : '/';
 
+          let underPathLink;
+          if (isDudaPrepub) {
+            underPathLink = (typeof new URL(_url).pathname === 'string' && new URL(_url).pathname.split('/')[3] === dudaPrepub);
+          } else {
+            underPathLink = (_url?.includes(window.location.pathname).length > 0 ? _url?.includes(window.location.pathname?.replaceAll('/', '')) : '/');
+          }
+          const isSamePageLink = (link) => {
+            const currentPageUrl = window.location.href;
+            const linkUrl = new URL(link, window.location.origin).href;
+            if (linkUrl === currentPageUrl) {
+              return true;
+            }
+            if (linkUrl.startsWith(currentPageUrl + '#')) {
+              return true;
+            }
+            return false;
+          }
+          (!isExternalLink && !isMenuLink && isSamePageLink(_url) && !_url.includes('#')) && (console.log(`%cAttention, vous utilisez un lien qui redirige vers la même page : ${_url} - ${underPathLink}`, 'color:red'),
+            console.log(_node),
+            _node.setAttribute("title", "Votre lien redirige vers la page en cours"),
+            _node.style.cssText = styleLinkError);
 
           const permalien = /*(_url.startsWith('/') || _url.includes(window.location.origin)) &&*/ (!isExternalLink && !isMenuLink && !isCTA && !isImageLink && inContent && !(_url.includes('openstreetmap') || _url.includes('mapbox'))) ? true : false;//(!_node?.closest('#Footer') || !_node?.closest('.dmFooterContainer') || _node?.closest('footer'))
           const cleanUrl = _url.includes('solocaldudaadmin') || _url.includes('pagesjaune.fr') ? new URL(_url).pathname : _url;
