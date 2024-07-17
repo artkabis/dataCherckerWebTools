@@ -90,7 +90,7 @@
         );
     } else if (
       this.tagName == "svg" &&
-      !this.getAttribute("alt") && $(this).attr("class") && !$(this).attr("class").includes("close")
+      (!$(this).find('title').text() || $(this).find('title').text().length === 0) && $(this).attr("class") && !$(this).attr("class").includes("close")
     ) {
       console.log(
         `%cNO ALT SVG >>>`,
@@ -107,17 +107,17 @@
       scoreTabAltImg.push(0);
     } else if (
       this.tagName == "svg" &&
-      this.getAttribute("alt") &&
-      this.getAttribute("alt").length > 2
+      $(this).find('title') &&
+      $(this).find('title').text().length > 2
     ) {
       dataChecker.alt_img_check.alt_img.push({
         alt_img_state: true,
         alt_img_src: src ? src : $(this).attr("class"),
-        alt_img_text: this.getAttribute("alt"),
+        alt_img_text: $(this).find('title').text(),
         alt_img_score: 5,
       });
       scoreTabAltImg.push(5);
-      $(this).before(`<span class="alt_tooltip" style="position:relative;top:0;left:0;background:darkred;color:white;padding:5px;height: auto!important;margin:5px;box-shadow: 0 0 5px 0 rgb( 0 0 0 / 80%);width: max-content;display: inline-block !important;font-family: monospace;font-size: 13px !important;line-height: 15px !important;z-index:999999;">${$(this).attr("alt")}</span>`)
+      $(this).before(`<span class="alt_tooltip" style="position:relative;top:0;left:0;background:darkred;color:white;padding:5px;height: auto!important;margin:5px;box-shadow: 0 0 5px 0 rgb( 0 0 0 / 80%);width: max-content;display: inline-block !important;font-family: monospace;font-size: 13px !important;line-height: 15px !important;z-index:999999;">${$(this).find('title').text()}</span>`)
     }
     let validUrl;
     try {

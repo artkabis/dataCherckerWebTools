@@ -707,7 +707,7 @@ function initcheckerLinksAndImages() {
           const isImageWidget = imageWidget(inContent);
           const isExternalLink = _url.includes('http') && !new URL(_url).href.includes(window.location.origin) ? true : false;
           const isImageLink = (_node && (_node.closest('.image-container') || isImageWidget === true || _node?.getAttribute("class")?.includes("caption-button") || _node.querySelector('img') || _node?.style?.backgroundImage)) ? true : false;
-          const isMenuLink = (_node && (_node.closest('.main-navigation') || _node?.closest('.menu'))) ? true : false
+          const isMenuLink = (_node && (_node?.closest('.main-navigation') || _node?.closest('.menu')   )) ? true : false
           const isMedia = _url.split('.').at(-1).toLowerCase().match(/png|jpe?g|jpg|mp3|mp4|gif|pdf|mov|webp/);
           const underForm = (_node && (_node.closest('form')));
 
@@ -731,7 +731,7 @@ function initcheckerLinksAndImages() {
             }
             return false;
           }
-          (!isExternalLink && !isMenuLink && isSamePageLink(_url) && !_url.includes('#')) && (console.log(`%cAttention, vous utilisez un lien qui redirige vers la même page : ${_url} - ${underPathLink}`, 'color:red'),
+          ((_node.closest('#dm_content') || _node.closest('#Content')) && !isExternalLink && !isMenuLink && isSamePageLink(_url) && !_url.includes('#')) && (console.log(`%cAttention, vous utilisez un lien qui redirige vers la même page : ${_url} - ${underPathLink}`, 'color:red'),
             console.log(_node),
             _node.setAttribute("title", "Votre lien redirige vers la page en cours"),
             _node.style.cssText = styleLinkError);
