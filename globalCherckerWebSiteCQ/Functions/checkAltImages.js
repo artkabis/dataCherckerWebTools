@@ -116,6 +116,10 @@
         alt_img_text: $(this).find('title').text(),
         alt_img_score: 5,
       });
+      console.log(
+        `%cTitre SVG similaire au alt du tag img : ${$(this).find('title')?.text()?.length > 2 ? $(this).find('title').text() : "ALT MANQUANT"}`,
+        `${$(this).find('title')?.text()?.length > 2 ? "color:green" : "color:red"}`
+      );
       scoreTabAltImg.push(5);
       $(this).before(`<span class="alt_tooltip" style="position:relative;top:0;left:0;background:darkred;color:white;padding:5px;height: auto!important;margin:5px;box-shadow: 0 0 5px 0 rgb( 0 0 0 / 80%);width: max-content;display: inline-block !important;font-family: monospace;font-size: 13px !important;line-height: 15px !important;z-index:999999;">${$(this).find('title').text()}</span>`)
     }
