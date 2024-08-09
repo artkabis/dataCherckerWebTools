@@ -332,6 +332,8 @@ let allTabs = [];
 //     }
 //   }
 // });
+
+//Suppression du CAT IA MerciApp qui est injecté sur toutes les pages web actives.
 const removeMAButton = async () => {
   const activeTabsMA = await chrome.tabs.query({
     currentWindow: true,
