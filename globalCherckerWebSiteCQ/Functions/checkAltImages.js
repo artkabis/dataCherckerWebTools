@@ -50,8 +50,8 @@
         : (src && !src.includes("http") && !src.at(0).includes('/')) ? window.location.origin + '/' + src : src;
     let alt;
     const excludes =
-      this.getAttribute("class") !== "lb-image" &&
-      !$(this).hasClass("leaflet-marker-icon");
+      this.getAttribute("class") !== "lb-image" ||
+      !$(this).hasClass("leaflet-marker-icon") || $('.accordion-item-arrow svg')?.length;
     src = (isSVG) ? "no-src-svg" : src;
     const filterDomain =
       src &&
@@ -150,7 +150,7 @@
       excludes && isDudaImage &&
       console.log(
         `%cFichier SVG :  %c${!this.getAttribute("alt")
-          ? this.getAttribute("data-icon-name")
+          ? this.getAttribute("data-icon-name") | $(this).find('title')
           : this.getAttribute("alt")
         }`,
         "color:white;",
@@ -176,8 +176,7 @@
 
   console.log(
     'notes sur 5 des alt : ', scoreTabAltImg,
-    "   score moyen des alt :",
-    dataChecker.alt_img_check.global_score
+    "   score moyen des alt :",dataChecker.alt_img_check.global_score
   );
   console.log(
     "----------------------------- END Check ALT images --------------------------------------------"
