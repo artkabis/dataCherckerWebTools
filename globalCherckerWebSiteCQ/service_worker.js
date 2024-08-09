@@ -242,11 +242,11 @@ const toggle = (name, rule, value) => {
   chrome.declarativeNetRequest.updateEnabledRulesets(
     corsEnabled
       ? {
-        enableRulesetIds: [rule],
-      }
+          enableRulesetIds: [rule],
+        }
       : {
-        disableRulesetIds: [rule],
-      }
+          disableRulesetIds: [rule],
+        }
   );
   //});
 };
@@ -286,7 +286,9 @@ let allTabs = [];
 
 (async () => {
   try {
-    const solocalmsTabs = await chrome.tabs.query({ url: "*://*.solocalms.fr/*" });
+    const solocalmsTabs = await chrome.tabs.query({
+      url: "*://*.solocalms.fr/*",
+    });
 
     if (solocalmsTabs.length > 0) {
       console.log("soprod tab detected...");
@@ -294,20 +296,20 @@ let allTabs = [];
       allTabs.push(...solocalmsTabs);
     } else {
       // Aucun onglet avec solocalms.fr détecté, ajouter uniquement l'onglet actif
-      const activeTab = await chrome.tabs.query({ currentWindow: true, active: true });
+      const activeTab = await chrome.tabs.query({
+        currentWindow: true,
+        active: true,
+      });
       console.log("active tab car pas d'onglet soprod : ", activeTab);
       allTabs.push(activeTab[0]);
     }
   } catch (error) {
-    console.error('Error:', error);
+    console.error("Error:", error);
   } finally {
     // Votre code à exécuter après la récupération des onglets
-    console.log('allTabs:', allTabs);
+    console.log("allTabs:", allTabs);
   }
 })();
-
-
-
 
 // const detectOnotherInterface = (allTabs) => {
 //   chrome.tabs.query({}, tabs => {tabs.forEach((tab, i) => {
@@ -330,7 +332,37 @@ let allTabs = [];
 //     }
 //   }
 // });
+const removeMAButton = async () => {
+  const activeTabsMA = await chrome.tabs.query({
+    currentWindow: true,
+    active: true,
+  });
 
+  activeTabsMA.forEach(async (tab) => {
+    // Vérifier si l'URL ne commence pas par "chrome://"
+    if (tab.id && !tab.url.startsWith("chrome://")) {
+      console.log(
+        "_________________tab id  all for remove button merciApp : ",
+        tab
+      );
+      chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        function: () => {
+          const maButtonDiv = document.querySelector(
+            'div[style*="position: fixed; z-index: 9999999;"]'
+          );
+          if (maButtonDiv && maButtonDiv.childElementCount === 0) {
+            maButtonDiv.style.display = "none";
+          }
+        },
+      });
+    }
+  });
+};
+
+setInterval(async function () {
+  await removeMAButton();
+}, 1000);
 
 let cmp = 0;
 let cmpInterval = 0;
@@ -340,7 +372,7 @@ const detecteSoprod = async () => {
   console.log("detecting soprod tab");
   const storageUser = await chrome.storage.sync.get("user");
 
-  console.log('All tabs : ', { allTabs });
+  console.log("All tabs : ", { allTabs });
   let isSoprodTab = {};
   isSoprodTab.detected = false;
   let userSoprod = undefined;
@@ -403,9 +435,7 @@ const detecteSoprod = async () => {
         "includes SO : ",
         storageUser.user.includes("SO")
       );
-      if (
-        storageUser.user === undefined &&
-        !storageUser.user.includes("SO")) {
+      if (storageUser.user === undefined && !storageUser.user.includes("SO")) {
         console.log("mise en place du name par défaut !!!");
         // Si l'onglet n'est pas lié à "soprod", le stocker comme dernier onglet non "soprod"
         await chrome.scripting.executeScript({
@@ -419,42 +449,49 @@ const detecteSoprod = async () => {
       } else if (storageUser.user.includes("SO")) {
         console.log(
           "user detected and username includes SO : " +
-          storageUser.user.includes("SO"),
+            storageUser.user.includes("SO"),
           "     user : ",
           storageUser.user
         );
 
-        chrome.windows.getCurrent({ populate: true }, async function (currentWindow) {
-          // Vérifier si la fenêtre est valide et si elle contient des onglets
-          if (currentWindow && currentWindow.tabs) {
-            for (const tab of currentWindow.tabs) {
-              // Vérifier si l'URL commence par "http" et n'est pas de type "chrome://"
-              if (tab.url && tab.url.startsWith("http") && !tab.url.startsWith("chrome://")) {
-                // Faites quelque chose avec l'onglet, par exemple, affichez l'URL dans la console
-                await chrome.scripting.executeScript({
-                  target: { tabId: tab.id },
-                  async function(tab) {
-                    console.log('_____________');
-                    const storageUser = await chrome.storage.sync.get("user");
-                    console.log(
-                      "++",
-                      storageUser.user
-                    );
-                    chrome.storage.sync.set({ user: storageUser.user }, function () {
-                      chrome.runtime.sendMessage({ user: storageUser.user });
-                    });
-                  },
-                });
+        chrome.windows.getCurrent(
+          { populate: true },
+          async function (currentWindow) {
+            // Vérifier si la fenêtre est valide et si elle contient des onglets
+            if (currentWindow && currentWindow.tabs) {
+              for (const tab of currentWindow.tabs) {
+                // Vérifier si l'URL commence par "http" et n'est pas de type "chrome://"
+                if (
+                  tab.url &&
+                  tab.url.startsWith("http") &&
+                  !tab.url.startsWith("chrome://")
+                ) {
+                  // Faites quelque chose avec l'onglet, par exemple, affichez l'URL dans la console
+                  await chrome.scripting.executeScript({
+                    target: { tabId: tab.id },
+                    async function(tab) {
+                      console.log("_____________");
+                      const storageUser = await chrome.storage.sync.get("user");
+                      console.log("++", storageUser.user);
+                      chrome.storage.sync.set(
+                        { user: storageUser.user },
+                        function () {
+                          chrome.runtime.sendMessage({
+                            user: storageUser.user,
+                          });
+                        }
+                      );
+                    },
+                  });
+                }
               }
             }
           }
-        });
+        );
       }
-
     }
   });
 };
-
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   let user,
@@ -469,10 +506,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
       //detectOnotherInterface(allTabs);
       console.log("launch detected soprod tab and snip username ");
       detecteSoprod();
-      console.log(
-        "Data de datachecker : ",
-        request.data
-      );
+      console.log("Data de datachecker : ", request.data);
       cmp++;
       console.log(" cmp + 1 in datachecker interface : ", cmp);
       data_checker = request.data;
@@ -485,10 +519,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     let cmpUserSoprod = 0;
     if (cmpUserSoprod === 0) {
       cmpUserSoprod++;
-      console.log(
-        " Data de user Soprod : ",
-        request.user
-      );
+      console.log(" Data de user Soprod : ", request.user);
       cmp === 1 && cmp++;
       console.log(" cmp + 1 in user soprod : ", cmp);
       user = request.user;
@@ -498,26 +529,14 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   const checkDatas = () => {
     cmpInterval++;
     if (cmp === 2) {
-      console.log(
-        "Interval function ready : ",
-        { interCheck }
-      );
+      console.log("Interval function ready : ", { interCheck });
       //cleanInterval();
-      console.log(
-        "Data_checker -> ",
-        global_data.dataChecker
-      );
+      console.log("Data_checker -> ", global_data.dataChecker);
       if (global_data.dataChecker) {
         const user = global_data.user;
-        console.log(
-          "User pour envoi vers indexDB : ",
-          global_data.user
-        );
-        global_data.user = global_data.user ? global_data.user : "Customer";//JSON.parse(global_data.user)
-        console.log(
-          "Les deux datas sont bien arrivées : ",
-          { global_data }
-        );
+        console.log("User pour envoi vers indexDB : ", global_data.user);
+        global_data.user = global_data.user ? global_data.user : "Customer"; //JSON.parse(global_data.user)
+        console.log("Les deux datas sont bien arrivées : ", { global_data });
         const dataCheckerParse = JSON.parse(global_data.dataChecker);
         creatDB(user, db_name, dataCheckerParse);
         console.log(
@@ -530,16 +549,16 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         cmp = 0;
         // Fonction pour récupérer l'ID de l'onglet depuis le stockage local
         const getPopupWindowId = (callback) => {
-          chrome.storage.local.get(['popupWindowId'], (result) => {
+          chrome.storage.local.get(["popupWindowId"], (result) => {
             const storedPopupWindowId = result.popupWindowId;
             callback(storedPopupWindowId);
           });
-        }
+        };
 
         // Fonction pour stocker l'ID de l'onglet dans le stockage local
         const setPopupWindowId = (id) => {
-          chrome.storage.local.set({ 'popupWindowId': id });
-        }
+          chrome.storage.local.set({ popupWindowId: id });
+        };
 
         // Fonction pour fermer la fenêtre si elle existe
         const closeWindowIfExists = (windowId, callback) => {
@@ -547,12 +566,15 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             chrome.windows.get(windowId, {}, (windowInfo) => {
               if (chrome.runtime.lastError || !windowInfo) {
                 // Fenêtre introuvable ou erreur, ne pas fermer
-                console.log('Window not found or error:', chrome.runtime.lastError);
+                console.log(
+                  "Window not found or error:",
+                  chrome.runtime.lastError
+                );
                 callback();
               } else {
                 // Fenêtre trouvée, la fermer
                 chrome.windows.remove(windowId, () => {
-                  console.log('Closed existing window with ID:', windowId);
+                  console.log("Closed existing window with ID:", windowId);
                   callback();
                 });
               }
@@ -561,33 +583,36 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             // Aucun ID de fenêtre, ne rien faire
             callback();
           }
-        }
+        };
 
         // Fonction pour ouvrir ou remplacer la fenêtre
         const openOrReplaceWindow = () => {
-          console.log('start open interface');
+          console.log("start open interface");
           const interfacePopupUrl = chrome.runtime.getURL("interface.html");
 
           // Récupérer l'ID de l'onglet depuis le stockage local
           getPopupWindowId((popupWindowId) => {
-            console.log('Stored popup interface ID:', popupWindowId);
+            console.log("Stored popup interface ID:", popupWindowId);
 
             // Fermer la fenêtre existante (si elle existe encore)
             closeWindowIfExists(popupWindowId, () => {
               // Ouvrir une nouvelle fenêtre
-              chrome.windows.create({
-                type: 'popup',
-                url: interfacePopupUrl,
-                width: 1000,
-                height: 1000,
-              }, (window) => {
-                // Stocker le nouvel ID de fenêtre dans le stockage local
-                setPopupWindowId(window.id);
-                console.log('New popup interface ID:', window.id);
-              });
+              chrome.windows.create(
+                {
+                  type: "popup",
+                  url: interfacePopupUrl,
+                  width: 1000,
+                  height: 1000,
+                },
+                (window) => {
+                  // Stocker le nouvel ID de fenêtre dans le stockage local
+                  setPopupWindowId(window.id);
+                  console.log("New popup interface ID:", window.id);
+                }
+              );
             });
           });
-        }
+        };
 
         // Appel de la fonction pour ouvrir ou remplacer la fenêtre
         openOrReplaceWindow();
