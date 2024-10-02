@@ -1,10 +1,8 @@
-
 let wordsCloudCounter = () => {
   // let counterWords = window["counterWord"];
-  console.log('counterWords >>>>>>>>>>>>>>>>>> ', counterWords);
+  console.log("counterWords >>>>>>>>>>>>>>>>>> ", counterWords);
   // Fonction pour obtenir le top 16 des mots les plus utilisés
   function getTopWords(text, excludeWords) {
-
     let words = text
       .replace(/\n|\t/g, " ")
       .replace(/’/g, "'")
@@ -13,7 +11,7 @@ let wordsCloudCounter = () => {
       //.replace(/(['])\w+\b(?!\1)/g, '')
       //.replace(/\b\w*'\w*\b/g, '')
       //.replace(/(\w*')|(\w+)/g, ( p1, p2) => p1 ? p1 : p2)
-      .trim()
+      .trim();
 
     //console.log('____________________________words clean : ',words);
     words = words.split(" ");
@@ -36,7 +34,7 @@ let wordsCloudCounter = () => {
     // Obtenir le top 16 des mots les plus utilisés
     const topWords = Object.keys(wordCounts)
       .sort((a, b) => wordCounts[b] - wordCounts[a])
-      .slice(0, 16);
+      .slice(0, 20);
 
     // Compter les occurrences de chaque mot du top 16
     const wordCountsTop16 = topWords.map((word) => ({
@@ -61,14 +59,15 @@ let wordsCloudCounter = () => {
     .replace(/  /g, " ")
     .replace("(", "")
     .replace(")", "")
-    .replace(/'/g, " ").replaceAll(excludedWords);
-
-
+    .replace(/'/g, " ")
+    .replaceAll(excludedWords);
 
   const topWords = getTopWords(contentBody, excludedWords);
   const cloudContainer = document.createElement("div");
   cloudContainer.className = "cloud";
-  const rand = [10, 7, 11, 8, 14, 3, 5, 1, 4, 12, 13, 9, 6, 16, 2];
+  const rand = [
+    10, 7, 11, 18, 8, 14, 3, 17, 5, 1, 15, 4, 19, 12, 13, 9, 20, 6, 16, 2,
+  ];
 
   rand.forEach((index) => {
     const wordInfo = topWords[index - 1];
@@ -82,7 +81,7 @@ let wordsCloudCounter = () => {
     }
   });
   console.log(cloudContainer.h);
-  console.log("Top 16 des mots les plus utilisés :", topWords);
+  console.log("Top 20 des mots les plus utilisés :", topWords);
   let cloudWindow = window.open(
     "",
     "_blank",
@@ -166,6 +165,22 @@ let wordsCloudCounter = () => {
         color:#3f6a8e;
         opacity: 0.7;
         padding: 0px 5px;
+      }
+      .cloud17,.cloud18{
+        display: inline-block;
+        font-size:15px;
+        letter-spacing: 1px;
+        color:#3f6a8e;
+        opacity: 0.65;
+        padding: 0px 5px;
+      }
+        .cloud19,.cloud20{
+        display: inline-block;
+        font-size:15px;
+        letter-spacing: 1px;
+        color:#3f6a8e;
+        opacity: 0.6;
+        padding: 0px 5px;
       }</style><title>Words cloud</title>`);
 
   cloudWindow.document.write(
@@ -177,6 +192,6 @@ let wordsCloudCounter = () => {
       .querySelector(".word-cloud")
       .appendChild(cloudContainer);
   };
-}
+};
 
 wordsCloudCounter();

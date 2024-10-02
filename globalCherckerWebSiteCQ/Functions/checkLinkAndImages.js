@@ -554,12 +554,17 @@ function initcheckerLinksAndImages() {
 
   let warningLinks = [];
   let linksStack = document.querySelector("#Wrapper")
-    ? $("#Wrapper a[href]")
+    ? $(
+        '#Wrapper a[href], #Wrapper rs-layer[data-actions*="o:click;a:simplelink"]'
+      )
     : $("#dm a[href]");
   linksStack = linksStack.length ? linksStack : $("body a");
   let linksStackFilter = [];
   linksStack.each(function (i, t) {
-    const href = $(this).attr("href");
+    const href =
+      t.nodeName !== "RS-LAYER"
+        ? $(this).attr("href")
+        : $(this).attr("data-actions").split("url:")[1].replaceAll(";", "");
     verifExcludesUrls(href) &&
       !href.includes("linkedin.") &&
       (href.includes("https:") || (href.at(0) === "/" && href.length > 0)) &&
