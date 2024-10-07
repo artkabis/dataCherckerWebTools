@@ -492,7 +492,7 @@ function initcheckerLinksAndImages() {
     console.log({ allImg });
     let cmpImages = 0;
     for (const item of allImg) {
-      const content = item.value;
+      const content = item?.value;
       cmpImages++;
       checkUrlImg(content);
       allUrlsImages.push(item.value[1]);
@@ -500,11 +500,11 @@ function initcheckerLinksAndImages() {
   };
 
   let sliderButtonValidity = false;
-  if ($(".dmImageSlider .slide-button-visible").length) {
+  if ($(".dmImageSlider .slide-button-visible")?.length) {
     sliderButtonValidity =
       $(".dmImageSlider a") &&
-      $(".dmImageSlider a").attr("href") &&
-      $(".dmImageSlider a").attr("href").includes("/");
+      $(".dmImageSlider a")?.attr("href") &&
+      $(".dmImageSlider a")?.attr("href")?.includes("/");
     if (sliderButtonValidity === !!0 || sliderButtonValidity === "") {
       console.log(
         "%c \n !!! ATTENTION !!! Votre slider comporte un bouton mais aucun lien n'a été paramètré.\n",
@@ -520,23 +520,23 @@ function initcheckerLinksAndImages() {
     return (
       url !== undefined &&
       url.length > 0 &&
-      !url.includes("mailto:") &&
-      !url.includes("javascript:") &&
-      !url.includes("logflare") &&
-      !url.includes("solocal.com") &&
-      !url.includes("sp.report-uri") &&
-      !url.includes("chrome-extension") &&
-      !url.includes("mappy") &&
-      !url.includes("bloctel.gouv.fr") &&
+      !url?.includes("mailto:") &&
+      !url?.includes("javascript:") &&
+      !url?.includes("logflare") &&
+      !url?.includes("solocal.com") &&
+      !url?.includes("sp.report-uri") &&
+      !url?.includes("chrome-extension") &&
+      !url?.includes("mappy") &&
+      !url?.includes("bloctel.gouv.fr") &&
       //!url.includes("client.adhslx.com") &&
-      !url.includes("sominfraprdstb001.blob.core.windows.net") &&
-      url.at(0) !== "?"
+      !url?.includes("sominfraprdstb001.blob.core.windows.net") &&
+      url?.at(0) !== "?"
     );
   };
 
   const isElementVisible = (el) => {
-    const rects = el.getClientRects();
-    for (let i = 0; i < rects.length; i++) {
+    const rects = el?.getClientRects();
+    for (let i = 0; i < rects?.length; i++) {
       const rect = rects[i];
       if (
         rect.top >= 0 &&
@@ -558,36 +558,36 @@ function initcheckerLinksAndImages() {
         '#Wrapper a[href], #Wrapper rs-layer[data-actions*="o:click;a:simplelink"]'
       )
     : $("#dm a[href]");
-  linksStack = linksStack.length ? linksStack : $("body a");
+  linksStack = linksStack?.length ? linksStack : $("body a");
   let linksStackFilter = [];
   linksStack.each(function (i, t) {
     const href =
       t.nodeName !== "RS-LAYER"
-        ? $(this).attr("href")
-        : $(this).attr("data-actions").split("url:")[1].replaceAll(";", "");
+        ? $(this)?.attr("href")
+        : $(this)?.attr("data-actions")?.split("url:")[1]?.replaceAll(";", "");
     verifExcludesUrls(href) &&
-      !href.includes("linkedin.") &&
-      (href.includes("https:") || (href.at(0) === "/" && href.length > 0)) &&
-      !href.includes("tel:") &&
+      !href?.includes("linkedin.") &&
+      (href?.includes("https:") || (href.at(0) === "/" && href.length > 0)) &&
+      !href?.includes("tel:") &&
       linksStackFilter.push({ target: t, href: href });
-    (href.includes("http:") ||
-      href.includes("linkedin.") ||
-      href.includes("tel:") ||
+    (href?.includes("http:") ||
+      href?.includes("linkedin.") ||
+      href?.includes("tel:") ||
       !verifExcludesUrls(href)) &&
       warningLinks.push({ target: t, url: href });
   });
 
   //console.log('liens à analyser : ',urlsScanned);
-  const nbLinks = linksStackFilter.length;
+  const nbLinks = linksStackFilter?.length;
   console.log({ linksStackFilter }, { warningLinks });
 
   //Vérification des numéros de téléphone
   const checkValidityPhoneNumber = (t, url) => {
     checkPhoneNumber = new RegExp(
       /^(?:(?:\+|00)33|0)\s*[1-9](?:\d{2}){4}$/
-    ).test(url.replaceAll(" ", "").split("tel:")[1]);
+    )?.test(url?.replaceAll(" ", "")?.split("tel:")[1]);
 
-    url.includes("tel:") &&
+    url?.includes("tel:") &&
       (checkPhoneNumber
         ? console.log(
             `%cNuméro de téléphone detécté :${url} - Validité : OK`,
@@ -600,14 +600,14 @@ function initcheckerLinksAndImages() {
 
     const dudaPhone =
       t &&
-      t.getAttribute("class") &&
+      t?.getAttribute("class") &&
       //(t.target.getAttribute("class") !== undefined || t.target.getAttribute("class") !== null) &&
       t?.getAttribute("class")?.includes("dmCall")
         ? t?.getAttribute("phone")
         : false;
     checkDudaPhoneNumber =
       dudaPhone &&
-      new RegExp(/^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/).test(
+      new RegExp(/^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/)?.test(
         dudaPhone.replaceAll(" ", "")
       );
     if (dudaPhone) {
@@ -661,7 +661,7 @@ function initcheckerLinksAndImages() {
     return new Promise(function (resolve, reject) {
       let fetchTimeout = null;
       const startDoubleSlash = /^\/\//;
-      _url = _url.match(startDoubleSlash) !== null ? "https:" + _url : _url;
+      _url = _url?.match(startDoubleSlash) !== null ? "https:" + _url : _url;
       //(!_url.includes('http:') )&& !_url.includes('.linkedin.com') &&
 
       fetch(_url, {
@@ -747,9 +747,10 @@ function initcheckerLinksAndImages() {
               isImageWidget === true ||
               _node?.getAttribute("class")?.includes("caption-button") ||
               _node.querySelector("img") ||
-              _node?.style?.backgroundImage)
+              (_node?.style?.backgroundImage && !isImageProductShop))
               ? true
               : false;
+          const isImageProductShop = _node.closest(".ec-store") ? true : false;
           const isMenuLink =
             _node &&
             (_node?.closest(".main-navigation") || _node?.closest(".menu"))
@@ -814,6 +815,7 @@ function initcheckerLinksAndImages() {
             !isMenuLink &&
             !isCTA &&
             !isImageLink &&
+            !isImageProductShop &&
             inContent &&
             !(_url.includes("openstreetmap") || _url.includes("mapbox"))
               ? true
@@ -824,20 +826,25 @@ function initcheckerLinksAndImages() {
               : _url;
           !underForm &&
             !isMedia &&
+            !isImageProductShop &&
             permalien &&
             (liensInternes.push(cleanUrl), maillageInterne++);
           isExternalLink && liensExternes.push(_url);
           const txtMediaLog = " --_ 🖼️ CTA avec image _--";
           const isImageLinkLog =
-            !isMedia && isImageLink
+            !isMedia && isImageLink && !isImageProductShop
               ? txtMediaLog
               : isMedia
               ? txtMediaLog + " Au format >> " + isMedia[0]
               : "";
+          const isImageProductShopLog = isImageProductShop
+            ? "--__  🤑 CTA product shop__--"
+            : "";
           const isMenuLinkLog = isMenuLink ? " >> 🎫 Interne au menu << " : "";
-          const isCTALog = isCTA ? "__ 🆙 CTA detecté __" : "";
+          const isCTALog =
+            isCTA && !isImageProductShop ? "__ 🆙 CTA detecté __" : "";
           const permalienLog =
-            !underForm && !isMedia && permalien
+            !underForm && !isMedia && !isImageProductShop && permalien
               ? " ---> 🔗 Maillage interne"
               : "";
 
@@ -848,7 +855,7 @@ function initcheckerLinksAndImages() {
                 response.status
               } %c ${!isMenuLink ? isCTALog : ""} %c${isMenuLinkLog} %c${
                 !isImageLink ? permalienLog : ""
-              } %c${isImageLinkLog} %c${
+              } %c${isImageLinkLog} %c${isImageProductShopLog} %c${
                 isElementVisible(_node) ? "Visible" : "Non visible"
               }`,
               "color:cornflowerblue;",
@@ -857,6 +864,7 @@ function initcheckerLinksAndImages() {
               "color:mediumpurple;",
               "color:powderblue;",
               "color:greenyellow;",
+              "color: chartreuse",
               "color:mediumpurple;",
               `color: ${isElementVisible(_node) ? "green" : "orange"}`
             );
@@ -867,9 +875,8 @@ function initcheckerLinksAndImages() {
                 !isMenuLink ? isCTALog : ""
               } %c${isMenuLinkLog} %c${
                 !isImageLink ? permalienLog : ""
-              } %c${isImageLinkLog}  %c${isImageLinkLog} %c${
-                isElementVisible(_node) ? "Visible" : "Non visible"
-              }`,
+              } %c${isImageLinkLog}  %c${isImageLinkLog}  %c${isImageProductShopLog}
+              %c${isElementVisible(_node) ? "Visible" : "Non visible"}`,
               "color:cornflowerblue;",
               "color:white;",
               "color:red",
