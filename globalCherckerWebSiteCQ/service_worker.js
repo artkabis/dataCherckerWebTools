@@ -333,38 +333,56 @@ let allTabs = [];
 //   }
 // });
 
-//Suppression du CAT IA MerciApp qui est injecté sur toutes les pages web actives.
-const removeMAButton = async () => {
-  const activeTabsMA = await chrome.tabs.query({
-    currentWindow: true,
-    active: true,
-  });
-
-  activeTabsMA.forEach(async (tab) => {
-    // Vérifier si l'URL ne commence pas par "chrome://"
-    if (tab.id && !tab.url.startsWith("chrome://")) {
-      console.log(
-        "_________________tab id  all for remove button merciApp : ",
-        tab
-      );
-      chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        function: () => {
-          const maButtonDiv = document.querySelector(
-            'div[style*="position: fixed; z-index: 9999999;"]'
-          );
-          if (maButtonDiv && maButtonDiv.childElementCount === 0) {
-            maButtonDiv.style.display = "none";
-          }
-        },
-      });
-    }
-  });
+//Suppression du CTA IA MerciApp qui est injecté sur toutes les pages web actives.
+const removeMAButton = async (tabId, url) => {
+  // Vérifier si l'URL ne commence pas par "chrome://", "chrome-extension://", ou une autre URL non autorisée
+  if (
+    url &&
+    !url.startsWith("chrome://") &&
+    !url.startsWith("chrome-extension://")
+  ) {
+    console.log("Vérification de l'élément dans l'onglet : ", tabId);
+    chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      function: () => {
+        const maButtonDiv = document.querySelector(
+          'div[style*="position: fixed; z-index: 9999999;"]'
+        );
+        if (maButtonDiv && maButtonDiv.childElementCount === 0) {
+          maButtonDiv.style.display = "none";
+        }
+      },
+    });
+  }
 };
 
-setInterval(async function () {
-  await removeMAButton();
-}, 1000);
+// Fonction pour vérifier l'onglet actif actuel et exécuter le script
+const checkCurrentTab = async () => {
+  const [activeTab] = await chrome.tabs.query({
+    active: true,
+    currentWindow: true,
+  });
+  if (activeTab) {
+    removeMAButton(activeTab.id, activeTab.url);
+  }
+};
+
+// Écouter quand un onglet est mis à jour (changement d'URL, rechargement)
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === "complete") {
+    removeMAButton(tabId, tab.url);
+  }
+});
+
+// Écouter quand l'utilisateur change d'onglet actif
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
+  const tab = await chrome.tabs.get(activeInfo.tabId);
+  removeMAButton(tab.id, tab.url);
+});
+
+// Vérifier l'onglet actuel au démarrage de l'extension ou au rechargement
+chrome.runtime.onStartup.addListener(checkCurrentTab);
+chrome.runtime.onInstalled.addListener(checkCurrentTab);
 
 let cmp = 0;
 let cmpInterval = 0;
