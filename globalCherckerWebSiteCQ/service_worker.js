@@ -399,7 +399,11 @@ const detecteSoprod = async () => {
   let soprodTabsDetected = 0;
 
   allTabs.map(async (tab, i) => {
-    if (tab && tab.url.includes("soprod")) {
+    if (
+      tab &&
+      tab.url.includes("soprod") &&
+      !!tab.url.startsWith("chrome://")
+    ) {
       soprodTabsDetected++; // Incrémente le compteur de tabs "soprod" détectés
       console.log("soprod detecteSoprod");
       // Exécute le script dans le tab actuel s'il existe
@@ -585,12 +589,14 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
           if (windowId) {
             chrome.windows.get(windowId, {}, (windowInfo) => {
               if (chrome.runtime.lastError || !windowInfo) {
-                // Fenêtre introuvable ou erreur, ne pas fermer
+                // Fenêtre introuvable ou erreur, réinitialiser l'ID stocké
                 console.log(
                   "Window not found or error:",
                   chrome.runtime.lastError
                 );
-                callback();
+                chrome.storage.local.remove("popupWindowId", () => {
+                  callback();
+                });
               } else {
                 // Fenêtre trouvée, la fermer
                 chrome.windows.remove(windowId, () => {
@@ -605,8 +611,46 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
           }
         };
 
-        // Fonction pour ouvrir ou remplacer la fenêtre
-        const openOrReplaceWindow = () => {
+        // Fonction pour vérifier si un onglet est ouvert et n'est pas une page Chrome
+        const isTabOpenAndNotChrome = (tabId, callback) => {
+          chrome.tabs.get(tabId, (tab) => {
+            if (
+              chrome.runtime.lastError ||
+              !tab ||
+              tab.url.startsWith("chrome://")
+            ) {
+              console.log(
+                "Tab not found, is a Chrome page, or error:",
+                chrome.runtime.lastError
+              );
+              callback(false);
+            } else {
+              callback(true);
+            }
+          });
+        };
+
+        // Fonction pour fermer l'onglet s'il existe et n'est pas une page Chrome
+        const closeTabIfExists = (tabId, callback) => {
+          isTabOpenAndNotChrome(tabId, (isOpen) => {
+            if (isOpen) {
+              chrome.tabs.remove(tabId, () => {
+                console.log("Closed existing tab with ID:", tabId);
+                callback();
+              });
+            } else {
+              console.log(
+                "Tab not found, is a Chrome page, or resetting stored tab ID"
+              );
+              chrome.storage.local.remove("popupWindowId", () => {
+                callback();
+              });
+            }
+          });
+        };
+
+        // Fonction pour ouvrir ou remplacer l'onglet
+        const openOrReplaceTab = () => {
           console.log("start open interface");
           const interfacePopupUrl = chrome.runtime.getURL("interface.html");
 
@@ -614,28 +658,20 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
           getPopupWindowId((popupWindowId) => {
             console.log("Stored popup interface ID:", popupWindowId);
 
-            // Fermer la fenêtre existante (si elle existe encore)
-            closeWindowIfExists(popupWindowId, () => {
-              // Ouvrir une nouvelle fenêtre
-              chrome.windows.create(
-                {
-                  type: "popup",
-                  url: interfacePopupUrl,
-                  width: 1000,
-                  height: 1000,
-                },
-                (window) => {
-                  // Stocker le nouvel ID de fenêtre dans le stockage local
-                  setPopupWindowId(window.id);
-                  console.log("New popup interface ID:", window.id);
-                }
-              );
+            // Fermer l'onglet existant (s'il existe encore et n'est pas une page Chrome)
+            closeTabIfExists(popupWindowId, () => {
+              // Ouvrir un nouvel onglet
+              chrome.tabs.create({ url: interfacePopupUrl }, (tab) => {
+                // Stocker le nouvel ID de l'onglet dans le stockage local
+                setPopupWindowId(tab.id);
+                console.log("New popup interface ID:", tab.id);
+              });
             });
           });
         };
 
-        // Appel de la fonction pour ouvrir ou remplacer la fenêtre
-        openOrReplaceWindow();
+        // Appel de la fonction pour ouvrir ou remplacer l'onglet
+        openOrReplaceTab();
 
         // chrome.windows.create({
         //   url: `${interfacePopupUrl}`, //?data=${encodeURIComponent(JSON.stringify(dataCheckerJSON))}
