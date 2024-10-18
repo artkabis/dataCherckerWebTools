@@ -339,7 +339,8 @@ const removeMAButton = async (tabId, url) => {
   if (
     url &&
     !url.startsWith("chrome://") &&
-    !url.startsWith("chrome-extension://")
+    !url.startsWith("chrome-extension://") &&
+    !url.startsWith("chrome-devtools://")
   ) {
     console.log("Vérification de l'élément dans l'onglet : ", tabId);
     chrome.scripting.executeScript({
@@ -402,7 +403,9 @@ const detecteSoprod = async () => {
     if (
       tab &&
       tab.url.includes("soprod") &&
-      !!tab.url.startsWith("chrome://")
+      !tab.url.startsWith("chrome://") &&
+      !tab.url.startsWith("chrome-extension://") &&
+      !tab.url.startsWith("chrome-devtools://")
     ) {
       soprodTabsDetected++; // Incrémente le compteur de tabs "soprod" détectés
       console.log("soprod detecteSoprod");
@@ -491,7 +494,8 @@ const detecteSoprod = async () => {
                 if (
                   tab.url &&
                   tab.url.startsWith("http") &&
-                  !tab.url.startsWith("chrome://")
+                  !tab.url.startsWith("chrome://") &&
+                  !tab.url.startsWith("chrome-extension://")
                 ) {
                   // Faites quelque chose avec l'onglet, par exemple, affichez l'URL dans la console
                   await chrome.scripting.executeScript({
@@ -604,7 +608,9 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                 // Fenêtre trouvée, la fermer
                 chrome.windows.remove(windowId, () => {
                   console.log("Closed existing window with ID:", windowId);
-                  callback();
+                  chrome.storage.local.remove("popupWindowId", () => {
+                    callback();
+                  });
                 });
               }
             });
@@ -614,13 +620,15 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
           }
         };
 
-        // Fonction pour vérifier si un onglet est ouvert et n'est pas une page Chrome
+        // Fonction pour vérifier si un onglet est ouvert et n'est pas une page Chrome ou DevTools
         const isTabOpenAndNotChrome = (tabId, callback) => {
           chrome.tabs.get(tabId, (tab) => {
             if (
               chrome.runtime.lastError ||
               !tab ||
-              tab.url.startsWith("chrome://")
+              tab.url.startsWith("chrome://") ||
+              tab.url.startsWith("chrome-extension://") ||
+              tab.url.startsWith("chrome-devtools://")
             ) {
               console.log(
                 "Tab not found, is a Chrome page, or error:",
@@ -633,7 +641,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
           });
         };
 
-        // Fonction pour fermer l'onglet s'il existe et n'est pas une page Chrome
+        // Fonction pour fermer l'onglet s'il existe et n'est pas une page Chrome ou DevTools
         const closeTabIfExists = (tabId, callback) => {
           isTabOpenAndNotChrome(tabId, (isOpen) => {
             if (isOpen) {
