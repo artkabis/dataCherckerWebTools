@@ -456,10 +456,13 @@ const detecteSoprod = async () => {
       console.log(
         "is valide user soprod : ",
         storageUser.user,
-        "includes SO : ",
-        storageUser.user.includes("SO")
+        "includes @solocal.com : ",
+        storageUser.user.includes("@solocal.com")
       );
-      if (storageUser.user === undefined && !storageUser.user.includes("SO")) {
+      if (
+        storageUser.user === undefined &&
+        !storageUser.user.includes("@solocal.com")
+      ) {
         console.log("mise en place du name par défaut !!!");
         // Si l'onglet n'est pas lié à "soprod", le stocker comme dernier onglet non "soprod"
         await chrome.scripting.executeScript({
@@ -470,10 +473,10 @@ const detecteSoprod = async () => {
             });
           },
         });
-      } else if (storageUser.user.includes("SO")) {
+      } else if (storageUser.user.includes("@solocal.com")) {
         console.log(
-          "user detected and username includes SO : " +
-            storageUser.user.includes("SO"),
+          "user detected and username includes email domain solocal.com : " +
+            storageUser.user.includes("@solocal.com"),
           "     user : ",
           storageUser.user
         );
@@ -571,7 +574,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         );
 
         cmp = 0;
-        // Fonction pour récupérer l'ID de l'onglet depuis le stockage local
+        // Fonction pour récupérer l'ID de la fenêtre depuis le stockage local
         const getPopupWindowId = (callback) => {
           chrome.storage.local.get(["popupWindowId"], (result) => {
             const storedPopupWindowId = result.popupWindowId;
@@ -579,7 +582,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
           });
         };
 
-        // Fonction pour stocker l'ID de l'onglet dans le stockage local
+        // Fonction pour stocker l'ID de la fenêtre dans le stockage local
         const setPopupWindowId = (id) => {
           chrome.storage.local.set({ popupWindowId: id });
         };
@@ -649,30 +652,37 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
           });
         };
 
-        // Fonction pour ouvrir ou remplacer l'onglet
-        const openOrReplaceTab = () => {
+        // Fonction pour ouvrir ou remplacer la fenêtre
+        const openOrReplaceWindow = () => {
           console.log("start open interface");
           const interfacePopupUrl = chrome.runtime.getURL("interface.html");
 
-          // Récupérer l'ID de l'onglet depuis le stockage local
+          // Récupérer l'ID de la fenêtre depuis le stockage local
           getPopupWindowId((popupWindowId) => {
             console.log("Stored popup interface ID:", popupWindowId);
 
-            // Fermer l'onglet existant (s'il existe encore et n'est pas une page Chrome)
-            closeTabIfExists(popupWindowId, () => {
-              // Ouvrir un nouvel onglet
-              chrome.tabs.create({ url: interfacePopupUrl }, (tab) => {
-                // Stocker le nouvel ID de l'onglet dans le stockage local
-                setPopupWindowId(tab.id);
-                console.log("New popup interface ID:", tab.id);
-              });
+            // Fermer la fenêtre existante (si elle existe encore)
+            closeWindowIfExists(popupWindowId, () => {
+              // Ouvrir une nouvelle fenêtre
+              chrome.windows.create(
+                {
+                  type: "popup",
+                  url: interfacePopupUrl,
+                  width: 1000,
+                  height: 1000,
+                },
+                (window) => {
+                  // Stocker le nouvel ID de fenêtre dans le stockage local
+                  setPopupWindowId(window.id);
+                  console.log("New popup interface ID:", window.id);
+                }
+              );
             });
           });
         };
 
-        // Appel de la fonction pour ouvrir ou remplacer l'onglet
-        openOrReplaceTab();
-
+        // Appel de la fonction pour ouvrir ou remplacer la fenêtre
+        openOrReplaceWindow();
         // chrome.windows.create({
         //   url: `${interfacePopupUrl}`, //?data=${encodeURIComponent(JSON.stringify(dataCheckerJSON))}
         //   type: "popup",
