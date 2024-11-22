@@ -4,7 +4,6 @@
   "version": "2.5.8",
   "background": {
     "service_worker": "service_worker.js",
-    "scripts": ["background.ts"],
     "type": "module"
   },
   "action": {
