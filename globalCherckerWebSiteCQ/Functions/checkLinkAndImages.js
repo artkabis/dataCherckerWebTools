@@ -631,6 +631,7 @@ function initcheckerLinksAndImages() {
   warningLinks.forEach(function (t, i) {
     checkValidityPhoneNumber(t.target, t.url);
   });
+  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   //Check phone number in slider rev
   const SliderRevPhone =
@@ -669,7 +670,7 @@ function initcheckerLinksAndImages() {
         //redirect: "manual", // Permet de suivre les redirections explicitement
         //mode: "cors",
       })
-        .then((res) => {
+        .then(async (res) => {
           iterationsLinks === 0 &&
             (console.log(
               "--------------------- Start check validity links -----------------------------"
@@ -903,6 +904,12 @@ function initcheckerLinksAndImages() {
               `color: ${isElementVisible(_node) ? "green" : "orange"}`
             );
             scoreCheckLink.push(5);
+          } else if (response.status === 429) {
+            const retryAfter = response.headers.get("Retry-After") || 1000;
+            scoreCheckLink.push(5);
+            console.log(`429 reçu, attente de ${retryAfter} ms.`);
+            await delay(retryAfter * 1000);
+            return fetch(_url);
           } else if (res.status === 403) {
             console.log(
               `%c!!!! ATENTION LIEN EN STATUS 403, VUEILLEZ LES VERIFIER MANUELLEMENT-> url: ${_url} %c${_txt} -> %cstatus: %c${response.status
@@ -1027,7 +1034,6 @@ function initcheckerLinksAndImages() {
   // );
 
   console.log({ linksStackFilter });
-  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const processLinks = async (linksStackFilter) => {
     for (const t of linksStackFilter) {
