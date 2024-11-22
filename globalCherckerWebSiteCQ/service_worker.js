@@ -242,11 +242,11 @@ const toggle = (name, rule, value) => {
   chrome.declarativeNetRequest.updateEnabledRulesets(
     corsEnabled
       ? {
-          enableRulesetIds: [rule],
-        }
+        enableRulesetIds: [rule],
+      }
       : {
-          disableRulesetIds: [rule],
-        }
+        disableRulesetIds: [rule],
+      }
   );
   //});
 };
@@ -363,13 +363,16 @@ const checkCurrentTab = async () => {
     active: true,
     currentWindow: true,
   });
-  if (activeTab) {
+  if (activeTab && (activeTab.url.startsWith('chrome://') || activeTab.url.startsWith('chrome-extension://') || activeTab.url.startsWith('chrome-devtools://'))) {
     removeMAButton(activeTab.id, activeTab.url);
   }
 };
 
 // Écouter quand un onglet est mis à jour (changement d'URL, rechargement)
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://') || tab.url.startsWith('chrome-devtools://')) {
+    return;
+  }
   if (changeInfo.status === "complete") {
     removeMAButton(tabId, tab.url);
   }
@@ -479,7 +482,7 @@ const detecteSoprod = async () => {
       } else if (storageUser.user.includes("@solocal.com")) {
         console.log(
           "user detected and username includes email domain solocal.com : " +
-            storageUser.user.includes("@solocal.com"),
+          storageUser.user.includes("@solocal.com"),
           "     user : ",
           storageUser.user
         );
