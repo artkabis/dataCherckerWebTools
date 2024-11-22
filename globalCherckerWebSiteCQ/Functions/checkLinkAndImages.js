@@ -680,22 +680,24 @@ function initcheckerLinksAndImages() {
                 const url = t.url;
                 const target = t.target;
                 let isLinkedin = url.includes("linkedin") ? "Linkedin" : "";
-                let isNosecure = url.includes("http:")
+                const isNotSecure = url.includes("http:");
+                let isNotsecureMsg = isNotSecure
                   ? "ATTENTION VOTRE LIEN EST EN HTTP ET DONC NON SECURISE : AJOUTER HTTPS"
                   : "";
 
                 verifExcludesUrls(url) &&
-                  !url.includes("tel:") &&
-                  (console.log(
-                    `%c ${isNosecure} - Vérifier le lien  ${isLinkedin}: 
+                  (!url.includes("tel:") && isLinkedin && !isNotSecure) &&
+                  console.log(
+                    `%c Vérifier le lien  ${isLinkedin}: 
             ${url} manuellement >>>`,
-                    `color:${isNosecure ? "red" : "orange"}`
-                  ),
-                    (target.style.cssText = isNosecure ? styleLinkError : ""),
-                    target.setAttribute(
-                      "title",
-                      isNosecure ? "HTTP - No secure" : ""
-                    ));
+                    `color:${isNotSecure ? "red" : "orange"}`
+                  );
+                (isNotSecure) &&
+                  (target.style.cssText = styleLinkError),
+                  target.setAttribute(
+                    "title",
+                    isNotsecureMsg
+                  );
               }));
           clearTimeout(fetchTimeout);
           response.status = res.status;
