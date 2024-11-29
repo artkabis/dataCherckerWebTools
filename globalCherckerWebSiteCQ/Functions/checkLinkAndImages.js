@@ -263,11 +263,12 @@ function initcheckerLinksAndImages() {
     }
     requestCompletedCount++;
     dataChecker.img_check.nb_img = requestCompletedCount;
-
     if (requestCompletedCount === allUrlsImages.length) {
       ratio_scores.push(ratioScoreImg);
       console.log(" Fin du traitement du check des images size and alt");
       checkUrlImgDuplicate();
+      const titleTxt = $('meta[property="og:title"]').attr("content") || $(' head title').text();
+      $('meta[property="og:title"], head title').text(titleTxt.replace('⟳ ', ''));
     }
   };
 
