@@ -146,8 +146,8 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
           {
             target: { tabId: tab.id },
             files: [
-              "./Functions/clear.js",
               "./assets/jquery-3.6.4.min.js",
+              "./Functions/clear.js",
               "./assets/console.image.min.js",
               "./Functions/checkAndAddJquery.js",
               "./Functions/settingsOptions.js",

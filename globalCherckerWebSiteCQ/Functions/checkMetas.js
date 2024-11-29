@@ -5,7 +5,7 @@
   MIN_META_DESC_CARACTERES = currentSettings.MIN_META_DESC_CARACTERE || 140;
   MAX_META_DESC_CARACTERES = currentSettings.MAX_META_DESC_CARACTERE || 156;
 
-  const title = $('meta[property="og:title"]').attr("content");
+  const title = $('meta[property="og:title"]').attr("content") || $('head title').text();
   const desc = $('meta[name="description"]').attr("content");
   dataChecker.hn.hn_reco.hn = [];
   let titleLength,
@@ -89,15 +89,15 @@
   );
   title && checkTitle
     ? console.log(
-        `%c Meta title : ${title} -> caractère : ${titleLength} ----- (de ${MIN_META_TITLE_CARACTERES} à ${MAX_META_TITLE_CARACTERES})`,
-        `color:${checkValideTitle ? "green" : "red"}`
-      )
+      `%c Meta title : ${title} -> caractère : ${titleLength} ----- (de ${MIN_META_TITLE_CARACTERES} à ${MAX_META_TITLE_CARACTERES})`,
+      `color:${checkValideTitle ? "green" : "red"}`
+    )
     : console.log(`%c Meta title non présente !!!`, `color:red`);
   desc && desc.length > 0
     ? console.log(
-        `%c Meta description : ${desc} -> caractère : ${descLength} ----- (de ${MIN_META_DESC_CARACTERES} à ${MAX_META_DESC_CARACTERES})`,
-        `color:${checkValideDesc ? "green" : "red"}`
-      )
+      `%c Meta description : ${desc} -> caractère : ${descLength} ----- (de ${MIN_META_DESC_CARACTERES} à ${MAX_META_DESC_CARACTERES})`,
+      `color:${checkValideDesc ? "green" : "red"}`
+    )
     : console.log(`%c Meta desc non présente !!!`, `color:red`);
   console.log(
     "----------------------------- END Check META --------------------------------------------"
