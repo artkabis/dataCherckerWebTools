@@ -57,7 +57,6 @@ const resourcesToCache = [
   "./Functions/settingsWords.js",
   "./Functions/toggleDesignMode.js",
   "./Functions/utils.js",
-  "./Functions/wordsCloud.js",
   "./Functions/wordsCountLexical.js",
 ];
 // Fonction pour mettre en cache une ressource

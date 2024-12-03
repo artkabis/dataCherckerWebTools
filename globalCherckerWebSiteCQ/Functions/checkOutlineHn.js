@@ -34,6 +34,10 @@
   hnTagContentArray = [];
   document.querySelectorAll("h1, h2, h3, h4, h5, h6").forEach(function (t, i) {
     hnTagArray.push(t.tagName.toLowerCase());
+    t.tagName.toLowerCase() == 'h1' && $(t).css("border", "double 3px green");
+    t.tagName.toLowerCase() == 'h2' && $(t).css("border", "double 3px purple");
+    t.tagName.toLowerCase() == 'h3' && $(t).css("border", "double 3px orange");
+
     hnTagContentArray.push(t.textContent);
   });
 
