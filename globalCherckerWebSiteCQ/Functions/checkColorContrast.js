@@ -624,7 +624,7 @@
     const displayContrastWarnings = (contrastWarning) => {
         console.group('Analyse de contraste des textes');
         if (contrastWarning.length === 0) {
-            console.log('%c✓ Aucun problème de contraste détecté', 'color:green');
+            console.log('%c✔️✔️✔️ Aucun problème de contraste détecté', 'color:green');
         } else {
             console.log(`%c⚠️⚠️⚠️ ${contrastWarning.length} problème(s) de contraste détecté(s)`, 'color: #FFA500; font-weight: bold;');
 
@@ -652,7 +652,7 @@
         "----------------------------- Start Check contrast valitidy --------------------------------------------"
     );
     //contrastWarning.length && console.log('%c Attention vous avez des problèmes liés au contrast de vos textes', 'color:red');
-    console.log({ contrastWarning });
+    //console.log({ contrastWarning });
     displayContrastWarnings(contrastWarning);
 
 

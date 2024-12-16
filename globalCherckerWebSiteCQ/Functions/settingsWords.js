@@ -213,7 +213,7 @@
     "y"
   ];
 
-  //Classes exclues dans la récupération des mot de la page web
+  //Classes exclues dans la récupération des mots de la page web
   settingWords.excludedClasses = [
     "vc_btn3-container",
     "vc_btn3",

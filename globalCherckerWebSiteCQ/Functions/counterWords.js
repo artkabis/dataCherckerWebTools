@@ -148,6 +148,9 @@ function getTextFromElement(element) {
     if (excludedNodes.includes(tagName) || (classes && classes.split(" ").some(className => excludedClasses.includes(className)))) {
       return "";
     }
+    if (element.textContent.trim().split(' ').some(wordBan => replaceWords.includes(wordBan))) {
+      return "";
+    }
 
     const parentWordsCounter = (element.closest('.dmRespCol') || element.closest('.vc_column-inner'));
     const childText = Array.from(element.childNodes)
@@ -164,7 +167,7 @@ function getTextFromElement(element) {
   return "";
 }
 
-let filteredText = $('body #Content, body #dm_content .dmRespCol')
+let filteredText = $('body #Content, body #dm_content .dmRespCol, body main')
   .map(function () {
     return getTextFromElement(this);
   })
