@@ -363,13 +363,13 @@ const checkCurrentTab = async () => {
     currentWindow: true,
   });
   if (activeTab && (activeTab.url.startsWith('chrome://') || activeTab.url.startsWith('chrome-extension://') || activeTab.url.startsWith('chrome-devtools://'))) {
-    removeMAButton(activeTab.id, activeTab.url);
+    (activeTab.id && activeTab.url) && removeMAButton(activeTab.id, activeTab.url);
   }
 };
 
 // Écouter quand un onglet est mis à jour (changement d'URL, rechargement)
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://') || tab.url.startsWith('chrome-devtools://')) {
+  if (tab.url && tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://') || tab.url.startsWith('chrome-devtools://')) {
     return;
   }
   if (changeInfo.status === "complete") {
@@ -379,7 +379,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 // Écouter quand l'utilisateur change d'onglet actif
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
-  const tab = await chrome.tabs.get(activeInfo.tabId);
+  const tab = await chrome?.tabs?.get(activeInfo.tabId);
   removeMAButton(tab.id, tab.url);
 });
 
@@ -414,7 +414,7 @@ const detecteSoprod = async () => {
       // Exécute le script dans le tab actuel s'il existe
       console.log("tab id soprod : ", tab.id);
 
-      if (tab.id) {
+      if (tab?.id) {
         console.log("_________________tab id  soprod : ", tab);
         chrome.scripting.executeScript({
           target: { tabId: tab.id },
@@ -478,26 +478,27 @@ const detecteSoprod = async () => {
             });
           },
         });
-      } else if (storageUser.user.includes("@solocal.com")) {
+      } else if (storageUser?.user?.includes("@solocal.com")) {
         console.log(
           "user detected and username includes email domain solocal.com : " +
           storageUser.user.includes("@solocal.com"),
           "     user : ",
-          storageUser.user
+          storageUser?.user
         );
 
         chrome.windows.getCurrent(
           { populate: true },
           async function (currentWindow) {
             // Vérifier si la fenêtre est valide et si elle contient des onglets
-            if (currentWindow && currentWindow.tabs) {
+            if (currentWindow && currentWindow?.tabs) {
               for (const tab of currentWindow.tabs) {
                 // Vérifier si l'URL commence par "http" et n'est pas de type "chrome://"
                 if (
-                  tab.url &&
-                  tab.url.startsWith("http") &&
-                  !tab.url.startsWith("chrome://") &&
-                  !tab.url.startsWith("chrome-extension://")
+                  (tab &&
+                    tab?.url) &&
+                  tab?.url.startsWith("http") &&
+                  !tab?.url.startsWith("chrome://") &&
+                  !tab?.url.startsWith("chrome-extension://")
                 ) {
                   // Faites quelque chose avec l'onglet, par exemple, affichez l'URL dans la console
                   await chrome.scripting.executeScript({
