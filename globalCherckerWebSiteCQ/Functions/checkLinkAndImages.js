@@ -642,7 +642,7 @@ function initcheckerLinksAndImages() {
       _url = _url?.match(startDoubleSlash) !== null ? "https:" + _url : _url;
 
       fetch(_url, {
-        method: "HEAD",
+        method: "GET",
         //redirect: "manual", // Permet de suivre les redirections explicitement
         //mode: "cors",
         headers: {
