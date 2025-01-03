@@ -228,7 +228,7 @@
     "cloned",
     "SOMS_avis-container"
   ];
-  //Noeuds exclus dans la récupération des mot de la page web
+  //Noeuds exclus dans la récupération des mots de la page web
 
   settingWords.excludedNodes = [
     "iframe",

@@ -9,15 +9,15 @@
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "icons/SofixedMenu-16.png",
-      "48": "icons/SofixedMenu-48.png",
-      "128": "icons/SofixedMenu-128.png"
+      "16": "icons/HCW-logo-16.png",
+      "48": "icons/HCW-logo-48.png",
+      "128": "icons/HCW-logo-128.png"
     }
   },
   "icons": {
-    "16": "icons/SofixedMenu-16.png",
-    "48": "icons/SofixedMenu-48.png",
-    "128": "icons/SofixedMenu-128.png"
+    "16": "icons/HCW-logo-16.png",
+    "48": "icons/HCW-logo-48.png",
+    "128": "icons/HCW-logo-128.png"
   },
   "permissions": [
     "storage",
