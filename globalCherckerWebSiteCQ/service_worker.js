@@ -361,7 +361,7 @@ const checkCurrentTab = async () => {
     active: true,
     currentWindow: true,
   });
-  if (activeTab && (activeTab.url.startsWith('chrome://') || activeTab.url.startsWith('chrome-extension://') || activeTab.url.startsWith('chrome-devtools://'))) {
+  if (activeTab && !(activeTab.url.startsWith('chrome://') || activeTab.url.startsWith('chrome-extension://') || activeTab.url.startsWith('chrome-devtools://'))) {
     (activeTab.id && activeTab.url) && removeMAButton(activeTab.id, activeTab.url);
   }
 };
