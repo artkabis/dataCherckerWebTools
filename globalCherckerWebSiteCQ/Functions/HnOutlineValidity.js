@@ -4,149 +4,246 @@ export const HnOutlineValidity = (tab) => {
     function: function () {
       // Constants
       const HEADING_SELECTORS = 'h1, h2, h3, h4, h5, h6';
-      const WARNING_COLOR = '#FFA500'; // orange
-      const SUCCESS_COLOR = '#008000'; // green
+      const WARNING_COLOR = '#FFA500';
+      const SUCCESS_COLOR = '#008000';
+      const ERROR_COLOR = '#FF4444';
+
+      // Configuration des règles SEO
+      const SEO_RULES = {
+        maxH1Length: 60, // Longueur maximale recommandée pour un H1
+        minH1Length: 20, // Longueur minimale recommandée pour un H1
+        maxHeadingLength: 70, // Longueur maximale recommandée pour les autres headings
+      };
+
+      // Statistiques globales
+      let stats = {
+        totalHeadings: 0,
+        headingsPerLevel: {},
+        averageLength: 0,
+        totalWords: 0,
+        structureScore: 100, // Score initial
+        errors: [],
+        warnings: []
+      };
 
       // Utility functions
       const cleanTextContent = (text) => {
         const cleaned = text.replace(/<br\s*\/?>/gi, ' ').trim();
-        return cleaned || '(Aucun texte présent dans ce Hn)';
+        return cleaned || '(Aucun texte présent dans Hn)';
       };
 
-      const isHeadingValid = (currentLevel, previousLevel) => {
-        if (currentLevel === previousLevel) return false;
-        return currentLevel === previousLevel + 1;
+      const countWords = (text) => {
+        return text.split(/\s+/).filter(word => word.length > 0).length;
       };
 
-      const hasDuplicateH1 = () => {
-        const h1s = document.querySelectorAll('h1');
-        const h1Texts = new Set(Array.from(h1s).map(h1 => h1.textContent.toLowerCase()));
-        return h1s.length > 1 && h1s.length !== h1Texts.size;
+      const analyzeHeadingContent = (content, level) => {
+        const length = content.length;
+        const words = countWords(content);
+
+        let analysis = {
+          length,
+          words,
+          issues: []
+        };
+
+        // Analyse spécifique pour H1
+        if (level === 1) {
+          if (length > SEO_RULES.maxH1Length) {
+            analysis.issues.push(`H1 trop long (${length}/${SEO_RULES.maxH1Length} caractères recommandés)`);
+          }
+          if (length < SEO_RULES.minH1Length) {
+            analysis.issues.push(`H1 trop court (${length}/${SEO_RULES.minH1Length} caractères recommandés)`);
+          }
+        } else if (length > SEO_RULES.maxHeadingLength) {
+          analysis.issues.push(`Heading trop long (${length}/${SEO_RULES.maxHeadingLength} caractères recommandés)`);
+        }
+
+        return analysis;
       };
 
-      // Style generators
-      const createStyles = {
-        heading: (isValid, level, parentStyle) => ({
-          marginLeft: `${level * 50}px`,
-          color: parentStyle?.backgroundColor == "rgb(70, 97, 67)" ? "white" : 'green',
-          display: 'flex',
-          alignItems: 'center',
-          backgroundColor: isValid ? parentStyle.backgroundColor : WARNING_COLOR
-        }),
-
-        tag: (isValid, isMissing) => ({
-          color: 'white',
-          background: isMissing ? WARNING_COLOR : SUCCESS_COLOR,
-          textTransform: 'uppercase',
-          padding: '5px 20px',
-          borderRadius: "10px"
-        })
-      };
-
-      // Main processing
-      const processHeadings = () => {
+      const generateHeadingStructure = () => {
         const headings = document.querySelectorAll(HEADING_SELECTORS);
-        const headingData = Array.from(headings).map(heading => ({
-          tag: heading.tagName.toLowerCase(),
-          content: cleanTextContent(heading.textContent),
-          level: parseInt(heading.tagName[1]),
-          style: window.getComputedStyle(heading)
-        }));
+        stats.totalHeadings = headings.length;
 
+        const headingData = Array.from(headings).map(heading => {
+          const tag = heading.tagName.toLowerCase();
+          const level = parseInt(tag[1]);
+          const content = cleanTextContent(heading.textContent);
+          const analysis = analyzeHeadingContent(content, level);
+
+          // Mise à jour des statistiques
+          stats.headingsPerLevel[tag] = (stats.headingsPerLevel[tag] || 0) + 1;
+          stats.totalWords += analysis.words;
+          stats.averageLength += content.length;
+
+          return {
+            tag,
+            content,
+            level,
+            style: window.getComputedStyle(heading),
+            analysis,
+            position: getElementPosition(heading)
+          };
+        });
+
+        if (stats.totalHeadings > 0) {
+          stats.averageLength = Math.round(stats.averageLength / stats.totalHeadings);
+        }
+
+        return processHeadingStructure(headingData);
+      };
+
+      const getElementPosition = (element) => {
+        const rect = element.getBoundingClientRect();
+        return {
+          top: Math.round(rect.top + window.scrollY),
+          left: Math.round(rect.left + window.scrollX)
+        };
+      };
+
+      const processHeadingStructure = (headingData) => {
         let structure = '';
+        let previousLevel = 0;
 
-        // Si le premier heading n'est pas un h1, ajouter les headings manquants
+        // Vérification initiale de la structure
         if (headingData.length > 0 && headingData[0].level !== 1) {
-          const firstLevel = headingData[0].level;
-          const style = headingData[0].style;
+          stats.errors.push("La page ne commence pas par un H1");
+          stats.structureScore -= 20;
 
-          // Ajouter tous les niveaux manquants avant le premier heading
-          for (let i = 1; i < firstLevel; i++) {
-            structure += generateHeadingHTML({
-              tag: `h${i}`,
-              content: `Missing Heading - h${i}`,
-              level: i,
-              style,
-              isMissing: true
-            });
+          // Ajout des headings manquants au début
+          for (let i = 1; i < headingData[0].level; i++) {
+            structure += generateMissingHeadingHTML(i, headingData[0].style);
           }
         }
 
-        let previousLevel = 0;
-
+        // Analyse des headings
         headingData.forEach((heading, index) => {
-          const { tag, content, level, style } = heading;
+          const { tag, content, level, style, analysis, position } = heading;
 
-          // Handle missing headings
+          // Vérification de la structure
           if (index > 0) {
-            const isValid = isHeadingValid(level, previousLevel);
+            const levelDiff = level - previousLevel;
+            if (levelDiff > 1) {
+              stats.errors.push(`Saut de niveau non valide : ${previousLevel} à ${level}`);
+              stats.structureScore -= 10;
 
-            if (!isValid) {
-              const missingCount = level - (previousLevel + 1);
-              for (let i = 1; i <= missingCount; i++) {
-                const missingLevel = previousLevel + i;
-                structure += generateHeadingHTML({
-                  tag: `h${missingLevel}`,
-                  content: `Missing Heading - h${missingLevel}`,
-                  level: missingLevel,
-                  style,
-                  isMissing: true
-                });
+              // Ajout des niveaux manquants
+              for (let i = 1; i < levelDiff; i++) {
+                structure += generateMissingHeadingHTML(previousLevel + i, style);
               }
-            }
-
-            // Check for duplicate H1
-            if (tag === 'h1' && hasDuplicateH1()) {
-              structure += generateHeadingHTML({
-                tag,
-                content: `Warning: Duplicate H1 - ${content}`,
-                level,
-                style,
-                isDuplicate: true
-              });
             }
           }
 
-          structure += generateHeadingHTML({ tag, content, level, style });
+          // Construction du HTML pour ce heading
+          structure += generateHeadingHTML({
+            tag,
+            content,
+            level,
+            style,
+            analysis,
+            position,
+            isDuplicate: tag === 'h1' && stats.headingsPerLevel.h1 > 1
+          });
+
           previousLevel = level;
         });
 
         return structure;
       };
 
-      // HTML generation
-      const generateHeadingHTML = ({ tag, content, level, style, isMissing = false, isDuplicate = false }) => {
-        const headingStyle = createStyles.heading(!isMissing && !isDuplicate, level, style);
-        const tagStyle = createStyles.tag(!isMissing && !isDuplicate, isMissing);
-
-        const className = isMissing ? 'missing' : isDuplicate ? 'duplicate' : '';
-
-        return `
-          <${tag} class="${className}" style="${styleToString(headingStyle)}">
-            <span style="${styleToString(tagStyle)}">${tag}</span> - ${content}
-          </${tag}><br>`;
+      const generateMissingHeadingHTML = (level, style) => {
+        return generateHeadingHTML({
+          tag: `h${level}`,
+          content: `Missing Heading - h${level}`,
+          level,
+          style,
+          isMissing: true
+        });
       };
 
-      // Helper to convert style object to string
+      const generateHeadingHTML = ({ tag, content, level, style, analysis, position = null, isMissing = false, isDuplicate = false }) => {
+        const headingStyle = {
+          marginLeft: `${level * 50}px`,
+          padding: '10px',
+          marginBottom: '10px',
+          borderRadius: '4px',
+          border: '1px solid #ddd',
+          backgroundColor: isMissing ? WARNING_COLOR :
+            isDuplicate ? ERROR_COLOR :
+              analysis?.issues.length ? WARNING_COLOR :
+                '#fff'
+        };
+
+        const positionInfo = position ? `<small>Position: ${position.top}px from top</small>` : '';
+        const analysisInfo = analysis ? `
+          <div style="font-size: 0.9em; margin-top: 5px; color: #666;">
+            ${analysis.length} caractères | ${analysis.words} mots
+            ${analysis.issues.map(issue => `<div style="color: ${WARNING_COLOR}">${issue}</div>`).join('')}
+          </div>
+        ` : '';
+
+        return `
+          <div style="${styleToString(headingStyle)}">
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+              <span style="background: ${isMissing ? WARNING_COLOR : SUCCESS_COLOR}; color: white; padding: 3px 8px; border-radius: 3px;">
+                ${tag}
+              </span>
+              ${positionInfo}
+            </div>
+            <div style="margin-top: 8px;">${content}</div>
+            ${analysisInfo}
+          </div>
+        `;
+      };
+
       const styleToString = (styles) =>
         Object.entries(styles)
           .map(([key, value]) => `${key.replace(/([A-Z])/g, '-$1').toLowerCase()}: ${value}`)
           .join('; ');
 
-      // Create and populate new window
-      const createResultWindow = (structure) => {
+      const generateSummaryHTML = () => {
+        const score = Math.max(0, stats.structureScore);
+        return `
+          <div style="background: #f5f5f5; padding: 20px; margin-bottom: 20px; border-radius: 4px;">
+            <h2>Résumé de l'analyse</h2>
+            <p>Score de structure: <strong style="color: ${score > 70 ? SUCCESS_COLOR : WARNING_COLOR}">${score}%</strong></p>
+            <ul>
+              <li>Nombre total de headings: ${stats.totalHeadings}</li>
+              <li>Longueur moyenne: ${stats.averageLength} caractères</li>
+              <li>Nombre total de mots: ${stats.totalWords}</li>
+              ${Object.entries(stats.headingsPerLevel)
+            .map(([tag, count]) => `<li>${tag}: ${count}</li>`)
+            .join('')}
+            </ul>
+            ${stats.errors.length > 0 ? `
+              <div style="color: ${ERROR_COLOR}; margin-top: 10px;">
+                <strong>Erreurs:</strong>
+                <ul>${stats.errors.map(error => `<li>${error}</li>`).join('')}</ul>
+              </div>
+            ` : ''}
+            ${stats.warnings.length > 0 ? `
+              <div style="color: ${WARNING_COLOR}; margin-top: 10px;">
+                <strong>Avertissements:</strong>
+                <ul>${stats.warnings.map(warning => `<li>${warning}</li>`).join('')}</ul>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      };
+
+      const createResultWindow = () => {
+        const structure = generateHeadingStructure();
+        const summary = generateSummaryHTML();
+
         const newWindow = window.open('', '_blank');
         const css = `
-          .missing {
-            background-color: white !important;
-            color: ${WARNING_COLOR} !important;
-          }
-          .duplicate {
-            background-color: ${WARNING_COLOR}
-          }
           body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.5;
             padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #fafafa;
           }
         `;
 
@@ -154,18 +251,23 @@ export const HnOutlineValidity = (tab) => {
           <!DOCTYPE html>
           <html>
             <head>
-              <title>Structure des headings</title>
+              <title>Analyse de la structure des headings</title>
               <style>${css}</style>
+              <meta charset="UTF-8">
             </head>
-            <body>${structure}</body>
+            <body>
+              ${summary}
+              <div class="structure">
+                ${structure}
+              </div>
+            </body>
           </html>
         `);
         newWindow.document.close();
       };
 
-      // Execute
-      const structure = processHeadings();
-      createResultWindow(structure);
+      // Exécution
+      createResultWindow();
     },
   });
 };
