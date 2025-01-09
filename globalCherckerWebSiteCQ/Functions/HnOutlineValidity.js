@@ -2,31 +2,26 @@ export const HnOutlineValidity = (tab) => {
   chrome.scripting.executeScript({
     target: { tabId: tab.id },
     function: function () {
-      // Constants
       const HEADING_SELECTORS = 'h1, h2, h3, h4, h5, h6';
       const WARNING_COLOR = '#FFA500';
       const SUCCESS_COLOR = '#008000';
       const ERROR_COLOR = '#FF4444';
 
-      // Configuration des règles SEO
       const SEO_RULES = {
-        maxH1Length: 60, // Longueur maximale recommandée pour un H1
-        minH1Length: 20, // Longueur minimale recommandée pour un H1
-        maxHeadingLength: 70, // Longueur maximale recommandée pour les autres headings
+        maxH1H2Length: 90,
+        minH1H2Length: 50,
       };
 
-      // Statistiques globales
       let stats = {
         totalHeadings: 0,
         headingsPerLevel: {},
         averageLength: 0,
         totalWords: 0,
-        structureScore: 100, // Score initial
+        structureScore: 100,
         errors: [],
         warnings: []
       };
 
-      // Utility functions
       const cleanTextContent = (text) => {
         const cleaned = text.replace(/<br\s*\/?>/gi, ' ').trim();
         return cleaned || '(Aucun texte présent dans Hn)';
@@ -36,7 +31,7 @@ export const HnOutlineValidity = (tab) => {
         return text.split(/\s+/).filter(word => word.length > 0).length;
       };
 
-      const analyzeHeadingContent = (content, level) => {
+      const analyzeHeadingContent = (content, level, tag) => {
         const length = content.length;
         const words = countWords(content);
 
@@ -46,19 +41,24 @@ export const HnOutlineValidity = (tab) => {
           issues: []
         };
 
-        // Analyse spécifique pour H1
-        if (level === 1) {
-          if (length > SEO_RULES.maxH1Length) {
-            analysis.issues.push(`H1 trop long (${length}/${SEO_RULES.maxH1Length} caractères recommandés)`);
+        if (level <= 2) {
+          if (length > SEO_RULES.maxH1H2Length) {
+            analysis.issues.push(`${tag.toUpperCase()} trop long (${length}/${SEO_RULES.maxH1H2Length} caractères max.)`);
           }
-          if (length < SEO_RULES.minH1Length) {
-            analysis.issues.push(`H1 trop court (${length}/${SEO_RULES.minH1Length} caractères recommandés)`);
+          if (length < SEO_RULES.minH1H2Length) {
+            analysis.issues.push(`${tag.toUpperCase()} trop court (${length}/${SEO_RULES.minH1H2Length} caractères min.)`);
           }
-        } else if (length > SEO_RULES.maxHeadingLength) {
-          analysis.issues.push(`Heading trop long (${length}/${SEO_RULES.maxHeadingLength} caractères recommandés)`);
         }
 
         return analysis;
+      };
+
+      const getElementPosition = (element) => {
+        const rect = element.getBoundingClientRect();
+        return {
+          top: Math.round(rect.top + window.scrollY),
+          left: Math.round(rect.left + window.scrollX)
+        };
       };
 
       const generateHeadingStructure = () => {
@@ -69,9 +69,8 @@ export const HnOutlineValidity = (tab) => {
           const tag = heading.tagName.toLowerCase();
           const level = parseInt(tag[1]);
           const content = cleanTextContent(heading.textContent);
-          const analysis = analyzeHeadingContent(content, level);
+          const analysis = analyzeHeadingContent(content, level, tag);
 
-          // Mise à jour des statistiques
           stats.headingsPerLevel[tag] = (stats.headingsPerLevel[tag] || 0) + 1;
           stats.totalWords += analysis.words;
           stats.averageLength += content.length;
@@ -93,48 +92,34 @@ export const HnOutlineValidity = (tab) => {
         return processHeadingStructure(headingData);
       };
 
-      const getElementPosition = (element) => {
-        const rect = element.getBoundingClientRect();
-        return {
-          top: Math.round(rect.top + window.scrollY),
-          left: Math.round(rect.left + window.scrollX)
-        };
-      };
-
       const processHeadingStructure = (headingData) => {
         let structure = '';
         let previousLevel = 0;
 
-        // Vérification initiale de la structure
         if (headingData.length > 0 && headingData[0].level !== 1) {
           stats.errors.push("La page ne commence pas par un H1");
           stats.structureScore -= 20;
 
-          // Ajout des headings manquants au début
           for (let i = 1; i < headingData[0].level; i++) {
             structure += generateMissingHeadingHTML(i, headingData[0].style);
           }
         }
 
-        // Analyse des headings
         headingData.forEach((heading, index) => {
           const { tag, content, level, style, analysis, position } = heading;
 
-          // Vérification de la structure
           if (index > 0) {
             const levelDiff = level - previousLevel;
             if (levelDiff > 1) {
               stats.errors.push(`Saut de niveau non valide : ${previousLevel} à ${level}`);
               stats.structureScore -= 10;
 
-              // Ajout des niveaux manquants
               for (let i = 1; i < levelDiff; i++) {
                 structure += generateMissingHeadingHTML(previousLevel + i, style);
               }
             }
           }
 
-          // Construction du HTML pour ce heading
           structure += generateHeadingHTML({
             tag,
             content,
@@ -167,11 +152,10 @@ export const HnOutlineValidity = (tab) => {
           padding: '10px',
           marginBottom: '10px',
           borderRadius: '4px',
-          border: '1px solid #ddd',
           backgroundColor: isMissing ? WARNING_COLOR :
             isDuplicate ? ERROR_COLOR :
-              analysis?.issues.length ? WARNING_COLOR :
-                '#fff'
+              '#fff',
+          border: analysis?.issues.length ? `2px solid ${WARNING_COLOR}` : '1px solid #ddd'
         };
 
         const positionInfo = position ? `<small>Position: ${position.top}px from top</small>` : '';
@@ -266,7 +250,6 @@ export const HnOutlineValidity = (tab) => {
         newWindow.document.close();
       };
 
-      // Exécution
       createResultWindow();
     },
   });
