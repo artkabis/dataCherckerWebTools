@@ -192,17 +192,42 @@ document.querySelector("#wordsCloud").addEventListener("click", function () {
     var activeTab = tabs[0];
     var tabId = activeTab.id;
     chrome.tabs.get(tabId, function (tab) {
-      var tabContent = tab ? tab.content : null;
-      console.log(tab, { tabContent });
       if (tab) {
+        // Exécuter les scripts dans l'ordre
         chrome.scripting.executeScript({
           target: { tabId: tab.id },
-          files: [
-            "./assets/jquery-3.6.4.min.js",
-            "./Functions/settingsWords.js",
-            "./Functions/counterWords.js",
-            "./Functions/wordsCountLexical.js",
-          ],
+          files: ["./assets/jquery-3.6.4.min.js"]
+        }).then(() => {
+          return chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ["./Functions/settingsWords.js"]
+          });
+        }).then(() => {
+          return chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ["./Functions/counterWords.js"]
+          });
+        }).then(() => {
+          return chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ["./Functions/wordsCountLexical.js"]
+          });
+        }).then(() => {
+          // Exécuter la fonction après le chargement de tous les scripts
+          chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: () => {
+              // On vérifie que la fonction existe bien
+              if (typeof window.wordsCloudCounter === 'function') {
+                // On l'exécute
+                window.wordsCloudCounter();
+              } else {
+                console.error("wordsCloudCounter n'est pas disponible");
+              }
+            }
+          });
+        }).catch(err => {
+          console.error('Erreur lors du chargement des scripts:', err);
         });
       }
     });
