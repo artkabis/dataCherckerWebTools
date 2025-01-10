@@ -5,6 +5,7 @@
 
   // Exlusion de ces termes dans l'affichage des Hn de la page web (headings)
   settingWords.exclusesWords = [
+    "🟥",
     ":",
     "(",
     ")",
@@ -31,6 +32,7 @@
     "aucuns",
     "auquel",
     "autrui",
+    "aussi",
     "aux",
     "auxquelles",
     "auxquels",
@@ -98,6 +100,7 @@
     'grâce',
     "il",
     "ils",
+    "ici",
     "je",
     "l'",
     "l’",

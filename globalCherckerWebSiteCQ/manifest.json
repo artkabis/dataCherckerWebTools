@@ -19,6 +19,9 @@
     "48": "icons/HCW-logo-48.png",
     "128": "icons/HCW-logo-128.png"
   },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
   "permissions": [
     "storage",
     "notifications",
@@ -42,7 +45,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "./Functions/HnOutlineValidity.js"
+        "./Functions/HnOutlineValidity.js",
+        "./Functions/wordCloudEnhanced.js"
       ],
       "matches": [
         "<all_urls>"
