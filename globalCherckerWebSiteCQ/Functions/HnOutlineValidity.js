@@ -43,25 +43,23 @@ export const HnOutlineValidity = (tab) => {
             ]
           })
         },
-        structure: {
-          missingH1: {
-            title: 'H1 manquant en début de page',
-            tips: [
-              'Ajoutez un H1 qui résume le sujet principal de la page',
-              'Intégrez votre mot-clé principal dans le H1',
-              'Assurez-vous que le H1 est unique sur la page',
-              'Alignez le H1 avec le titre meta de la page'
-            ]
-          },
-          levelSkip: (from, to) => ({
-            title: `Saut de niveau de titre (${from} à ${to})`,
-            tips: [
-              'Ajoutez les niveaux de titres manquants',
-              'Restructurez la hiérarchie de vos titres',
-              'Vérifiez la cohérence de votre plan',
-              'Assurez une progression logique des sections'
-            ]
-          })
+        duplicates: {
+          title: 'Contenu dupliqué détecté',
+          tips: [
+            'Chaque titre doit avoir un contenu unique',
+            'Différenciez les titres de sections similaires',
+            'Utilisez des variations sémantiques',
+            'Ajoutez des qualificatifs spécifiques au contexte'
+          ]
+        },
+        multipleH1: {
+          title: 'Plusieurs H1 détectés',
+          tips: [
+            'Une page ne doit avoir qu\'un seul H1',
+            'Le H1 doit représenter le titre principal de la page',
+            'Utilisez des H2 pour les sections principales',
+            'Restructurez la hiérarchie des titres'
+          ]
         }
       };
 
@@ -73,8 +71,11 @@ export const HnOutlineValidity = (tab) => {
         totalWords: 0,
         structureScore: 100,
         errors: [],
-        warnings: []
+        warnings: [],
+        duplicateContents: [],
+        h1Count: 0
       };
+
       // Utilitaires
       const cleanTextContent = text => {
         const cleaned = text.replace(/<br\s*\/?>/gi, ' ').trim();
@@ -98,8 +99,69 @@ export const HnOutlineValidity = (tab) => {
           .map(([key, value]) => `${key.replace(/([A-Z])/g, '-$1').toLowerCase()}: ${value}`)
           .join('; ');
 
+      // Fonction pour trouver les titres dupliqués
+      const findDuplicateHeadings = (headings) => {
+        const contentMap = new Map();
+        const duplicates = [];
+
+        headings.forEach((heading, index) => {
+          const content = cleanTextContent(heading.textContent);
+          if (!contentMap.has(content)) {
+            contentMap.set(content, []);
+          }
+          contentMap.get(content).push({
+            index,
+            tag: heading.tagName.toLowerCase()
+          });
+        });
+
+        contentMap.forEach((occurrences, content) => {
+          if (occurrences.length > 1) {
+            duplicates.push({
+              content,
+              occurrences
+            });
+          }
+        });
+
+        return duplicates;
+      };
+
+      const generateSEOTooltip = (analysis, tag) => {
+        let recommendations = [];
+
+        // Recommendations pour la longueur
+        if (analysis.length > SEO_RULES.maxH1H2Length) {
+          recommendations.push(SEO_RECOMMENDATIONS.length.tooLong(tag, analysis.length, SEO_RULES.maxH1H2Length));
+        }
+        if (analysis.length < SEO_RULES.minH1H2Length) {
+          recommendations.push(SEO_RECOMMENDATIONS.length.tooShort(tag, analysis.length, SEO_RULES.minH1H2Length));
+        }
+
+        // Recommendations pour les erreurs
+        if (analysis.issues.some(issue => issue.includes('dupliqué'))) {
+          recommendations.push(SEO_RECOMMENDATIONS.duplicates);
+        }
+        if (analysis.issues.some(issue => issue.includes('Multiple H1'))) {
+          recommendations.push(SEO_RECOMMENDATIONS.multipleH1);
+        }
+
+        return `
+          <div class="seo-tooltip">
+            ${recommendations.map(rec => `
+              <div class="tooltip-section">
+                <h4 class="tooltip-title">${rec.title}</h4>
+                <ul class="tooltip-list">
+                  ${rec.tips.map(tip => `<li>${tip}</li>`).join('')}
+                </ul>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      };
+
       // Fonctions d'analyse
-      const analyzeHeadingContent = (content, level, tag) => {
+      const analyzeHeadingContent = (content, level, tag, headings, index) => {
         const length = content.length;
         const words = countWords(content);
 
@@ -110,6 +172,7 @@ export const HnOutlineValidity = (tab) => {
           status: 'valid'
         };
 
+        // Vérification de la longueur pour H1 et H2
         if (level <= 2) {
           if (length > SEO_RULES.maxH1H2Length) {
             analysis.issues.push(`${tag.toUpperCase()} trop long (${length}/${SEO_RULES.maxH1H2Length} caractères max.)`);
@@ -118,6 +181,26 @@ export const HnOutlineValidity = (tab) => {
           if (length < SEO_RULES.minH1H2Length) {
             analysis.issues.push(`${tag.toUpperCase()} trop court (${length}/${SEO_RULES.minH1H2Length} caractères min.)`);
             analysis.status = 'warning';
+          }
+        }
+
+        // Vérification des doublons
+        const duplicateCheck = Array.from(headings).find((h, i) => {
+          return i !== index &&
+            cleanTextContent(h.textContent) === content;
+        });
+
+        if (duplicateCheck) {
+          analysis.issues.push(`Contenu dupliqué avec un autre ${duplicateCheck.tagName.toLowerCase()}`);
+          analysis.status = 'error';
+        }
+
+        // Vérification du H1
+        if (tag === 'h1') {
+          const h1Count = Array.from(headings).filter(h => h.tagName.toLowerCase() === 'h1').length;
+          if (h1Count > 1) {
+            analysis.issues.push(`Multiple H1 détectés sur la page (${h1Count} au total)`);
+            analysis.status = 'error';
           }
         }
 
@@ -155,6 +238,7 @@ export const HnOutlineValidity = (tab) => {
 
         return treeStructure;
       };
+
       const renderTreeNode = (node, depth = 0) => {
         const padding = depth * 20;
         const icon = STATUS_ICONS[node.status] || STATUS_ICONS.valid;
@@ -163,7 +247,8 @@ export const HnOutlineValidity = (tab) => {
           <div class="tree-node" style="margin-left: ${padding}px; margin-bottom: 10px;">
             <div class="node-content" style="display: flex; align-items: center; gap: 10px;">
               <span class="status-icon">${icon}</span>
-              <span class="tag-badge" style="background: ${node.status === 'valid' ? SUCCESS_COLOR : WARNING_COLOR}; 
+              <span class="tag-badge" style="background: ${node.status === 'valid' ? SUCCESS_COLOR :
+            node.status === 'error' ? ERROR_COLOR : WARNING_COLOR}; 
                                            color: white; 
                                            padding: 2px 6px; 
                                            border-radius: 4px;">
@@ -177,26 +262,30 @@ export const HnOutlineValidity = (tab) => {
       };
 
       // Fonction de génération HTML
-      let generateHeadingHTML = ({ tag, content, level, style, analysis, position = null, isMissing = false, status = 'valid' }) => {
+      const generateHeadingHTML = ({ tag, content, level, style, analysis, position = null, isMissing = false, status = 'valid' }) => {
+        // Utiliser le statut de l'analyse si disponible
+        const finalStatus = analysis ? analysis.status : status;
+
         const headingStyle = {
           marginLeft: `${level * 50}px`,
           padding: '15px',
           marginBottom: '15px',
           borderRadius: '8px',
           position: 'relative',
-          backgroundColor: status === 'error' ? ERROR_COLOR :
-            status === 'warning' ? WARNING_COLOR :
+          backgroundColor: finalStatus === 'error' ? ERROR_COLOR :
+            finalStatus === 'warning' ? WARNING_COLOR :
               '#fff',
           border: '1px solid #ddd',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          color: finalStatus === 'error' ? '#fff' : 'inherit'
         };
 
-        const icon = STATUS_ICONS[status];
+        const icon = STATUS_ICONS[finalStatus];
         const analysisInfo = analysis ? `
-          <div style="font-size: 0.9em; margin-top: 5px; color: #666;">
+          <div style="font-size: 0.9em; margin-top: 5px; color: ${finalStatus === 'error' ? '#fff' : '#666'};">
             ${analysis.length} caractères | ${analysis.words} mots
             ${analysis.issues.map(issue =>
-          `<div style="color: ${WARNING_COLOR}; margin-top: 5px;">${issue}</div>`
+          `<div style="color: ${finalStatus === 'error' ? '#fff' : WARNING_COLOR}; margin-top: 5px;">${issue}</div>`
         ).join('')}
           </div>
         ` : '';
@@ -206,18 +295,19 @@ export const HnOutlineValidity = (tab) => {
             <div style="display: flex; justify-content: space-between; align-items: start;">
               <div style="display: flex; align-items: center; gap: 10px;">
                 <span class="status-icon">${icon}</span>
-                <span style="background: ${status === 'valid' ? SUCCESS_COLOR : WARNING_COLOR}; 
-                            color: white; 
+                <span style="background: ${finalStatus === 'valid' ? SUCCESS_COLOR :
+            finalStatus === 'error' ? '#fff' : WARNING_COLOR}; 
+                            color: ${finalStatus === 'error' ? ERROR_COLOR : '#fff'}; 
                             padding: 5px 10px; 
                             border-radius: 4px;">
                   ${tag}
                 </span>
-                ${position ? `<small>Position: ${position.top}px</small>` : ''}
+                ${position ? `<small style="color: ${finalStatus === 'error' ? '#fff' : 'inherit'}">Position: ${position.top}px</small>` : ''}
               </div>
             </div>
             <div style="margin: 10px 0;">${content}</div>
             ${analysisInfo}
-            ${status === 'warning' ? generateSEOTooltip(analysis, tag) : ''}
+            ${(finalStatus === 'warning' || finalStatus === 'error') ? generateSEOTooltip(analysis, tag) : ''}
           </div>
         `;
       };
@@ -232,30 +322,7 @@ export const HnOutlineValidity = (tab) => {
           status: 'error'
         });
       };
-
-      const generateSEOTooltip = (analysis, tag) => {
-        let recommendations = [];
-
-        if (analysis.length > SEO_RULES.maxH1H2Length) {
-          recommendations.push(SEO_RECOMMENDATIONS.length.tooLong(tag, analysis.length, SEO_RULES.maxH1H2Length));
-        }
-        if (analysis.length < SEO_RULES.minH1H2Length) {
-          recommendations.push(SEO_RECOMMENDATIONS.length.tooShort(tag, analysis.length, SEO_RULES.minH1H2Length));
-        }
-
-        return `
-          <div class="seo-tooltip">
-            ${recommendations.map(rec => `
-              <div class="tooltip-section">
-                <h4 class="tooltip-title">${rec.title}</h4>
-                <ul class="tooltip-list">
-                  ${rec.tips.map(tip => `<li>${tip}</li>`).join('')}
-                </ul>
-              </div>
-            `).join('')}
-          </div>
-        `;
-      };
+      // Fonction de traitement de la structure des headings
       const processHeadingStructure = (headingData) => {
         let structure = '';
         let previousLevel = 0;
@@ -290,8 +357,7 @@ export const HnOutlineValidity = (tab) => {
             level,
             style,
             analysis,
-            position,
-            status: analysis.status
+            position
           });
 
           previousLevel = level;
@@ -301,14 +367,33 @@ export const HnOutlineValidity = (tab) => {
       };
 
       const generateHeadingStructure = () => {
-        const headings = document.querySelectorAll(HEADING_SELECTORS);
+        const headingsList = document.querySelectorAll(HEADING_SELECTORS);
+        const headings = Array.from(headingsList);
         stats.totalHeadings = headings.length;
 
-        const headingData = Array.from(headings).map(heading => {
+        // Vérification des doublons
+        stats.duplicateContents = findDuplicateHeadings(headings);
+        if (stats.duplicateContents.length > 0) {
+          stats.errors.push("Des titres avec un contenu identique ont été détectés");
+          stats.structureScore -= 10 * stats.duplicateContents.length;
+        }
+
+        // Vérification du nombre de H1
+        const h1Count = document.querySelectorAll('h1').length;
+        stats.h1Count = h1Count;
+        if (h1Count === 0) {
+          stats.errors.push("Aucun H1 n'a été trouvé sur la page");
+          stats.structureScore -= 20;
+        } else if (h1Count > 1) {
+          stats.errors.push(`${h1Count} H1 ont été trouvés sur la page (il devrait y en avoir un seul)`);
+          stats.structureScore -= 15 * (h1Count - 1);
+        }
+
+        const headingData = Array.from(headings).map((heading, index) => {
           const tag = heading.tagName.toLowerCase();
           const level = parseInt(tag[1]);
           const content = cleanTextContent(heading.textContent);
-          const analysis = analyzeHeadingContent(content, level, tag);
+          const analysis = analyzeHeadingContent(content, level, tag, headings, index);
 
           stats.headingsPerLevel[tag] = (stats.headingsPerLevel[tag] || 0) + 1;
           stats.totalWords += analysis.words;
@@ -327,7 +412,6 @@ export const HnOutlineValidity = (tab) => {
         if (stats.totalHeadings > 0) {
           stats.averageLength = Math.round(stats.averageLength / stats.totalHeadings);
         }
-
         const treeStructure = createTreeView(headingData);
         const treeView = `
           <div class="tree-view" style="margin: 20px 0; padding: 20px; background: #f5f5f5; border-radius: 8px;">
@@ -341,14 +425,29 @@ export const HnOutlineValidity = (tab) => {
           treeView
         };
       };
+
       const generateSummaryHTML = () => {
         const score = Math.max(0, stats.structureScore);
+        const duplicateContent = stats.duplicateContents.length > 0 ? `
+          <div style="margin-top: 10px;">
+            <strong>Titres dupliqués détectés :</strong>
+            <ul>
+              ${stats.duplicateContents.map(dup => `
+                <li>
+                  "${dup.content}" utilisé dans : ${dup.occurrences.map(occ => occ.tag).join(', ')}
+                </li>
+              `).join('')}
+            </ul>
+          </div>
+        ` : '';
+
         return `
           <div style="background: #f5f5f5; padding: 20px; margin-bottom: 20px; border-radius: 8px;">
             <h2>Résumé de l'analyse</h2>
             <p>Score de structure: <strong style="color: ${score > 70 ? SUCCESS_COLOR : WARNING_COLOR}">${score}%</strong></p>
             <ul>
               <li>Nombre total de headings: ${stats.totalHeadings}</li>
+              <li>Nombre de H1: ${stats.h1Count}</li>
               <li>Longueur moyenne: ${stats.averageLength} caractères</li>
               <li>Nombre total de mots: ${stats.totalWords}</li>
               ${Object.entries(stats.headingsPerLevel)
@@ -361,6 +460,7 @@ export const HnOutlineValidity = (tab) => {
                 <ul>${stats.errors.map(error => `<li>${error}</li>`).join('')}</ul>
               </div>
             ` : ''}
+            ${duplicateContent}
           </div>
         `;
       };
@@ -440,6 +540,7 @@ export const HnOutlineValidity = (tab) => {
           .tooltip-list {
             margin: 0;
             padding-left: 20px;
+            color: #333;
           }
 
           .tooltip-list li {
