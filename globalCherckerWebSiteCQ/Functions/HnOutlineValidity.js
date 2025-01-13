@@ -129,20 +129,21 @@ export const HnOutlineValidity = (tab) => {
 
       const generateSEOTooltip = (analysis, tag) => {
         let recommendations = [];
+        console.log('>>>>>>>>>>>>>>>>>>>>>>>>', analysis);
 
         // Recommendations pour la longueur
-        if (analysis.length > SEO_RULES.maxH1H2Length) {
+        if (analysis?.length > SEO_RULES.maxH1H2Length) {
           recommendations.push(SEO_RECOMMENDATIONS.length.tooLong(tag, analysis.length, SEO_RULES.maxH1H2Length));
         }
-        if (analysis.length < SEO_RULES.minH1H2Length) {
+        if (analysis?.length < SEO_RULES.minH1H2Length) {
           recommendations.push(SEO_RECOMMENDATIONS.length.tooShort(tag, analysis.length, SEO_RULES.minH1H2Length));
         }
 
         // Recommendations pour les erreurs
-        if (analysis.issues.some(issue => issue.includes('dupliqué'))) {
+        if (analysis?.issues.some(issue => issue.includes('dupliqué'))) {
           recommendations.push(SEO_RECOMMENDATIONS.duplicates);
         }
-        if (analysis.issues.some(issue => issue.includes('Multiple H1'))) {
+        if (analysis?.issues.some(issue => issue.includes('Multiple H1'))) {
           recommendations.push(SEO_RECOMMENDATIONS.multipleH1);
         }
 
@@ -281,6 +282,7 @@ export const HnOutlineValidity = (tab) => {
         };
 
         const icon = STATUS_ICONS[finalStatus];
+
         const analysisInfo = analysis ? `
           <div style="font-size: 0.9em; margin-top: 5px; color: ${finalStatus === 'error' ? '#fff' : '#666'};">
             ${analysis.length} caractères | ${analysis.words} mots
@@ -289,6 +291,7 @@ export const HnOutlineValidity = (tab) => {
         ).join('')}
           </div>
         ` : '';
+        console.log(analysis, { analysisInfo });
 
         return `
           <div class="heading-container" style="${styleToString(headingStyle)}">
@@ -445,13 +448,13 @@ export const HnOutlineValidity = (tab) => {
           <div style="background: #f5f5f5; padding: 20px; margin-bottom: 20px; border-radius: 8px;">
             <h2>Résumé de l'analyse</h2>
             <p>Score de structure: <strong style="color: ${score > 70 ? SUCCESS_COLOR : WARNING_COLOR}">${score}%</strong></p>
-            <ul>
-              <li>Nombre total de headings: ${stats.totalHeadings}</li>
-              <li>Nombre de H1: ${stats.h1Count}</li>
-              <li>Longueur moyenne: ${stats.averageLength} caractères</li>
-              <li>Nombre total de mots: ${stats.totalWords}</li>
+            <ul class="resumeList">
+              <li>Nombre total de headings: <span class="resumeResult">${stats.totalHeadings}</span></li>
+              <li>Nombre de H1: <span class="resumeResult">${stats.h1Count}</span></li>
+              <li>Longueur moyenne: <span class="resumeResult">${stats.averageLength} caractères</span></li>
+              <li>Nombre total de mots: <span class="resumeResult">${stats.totalWords}</span></li>
               ${Object.entries(stats.headingsPerLevel)
-            .map(([tag, count]) => `<li>${tag}: ${count}</li>`)
+            .map(([tag, count]) => `<li>${tag}: <span class="resumeResult">${count}</span></li>`)
             .join('')}
             </ul>
             ${stats.errors.length > 0 ? `
@@ -545,6 +548,26 @@ export const HnOutlineValidity = (tab) => {
 
           .tooltip-list li {
             margin-bottom: 4px;
+          }
+            ul.resumeList {
+              display: flex;
+              list-style: none;
+              flex-direction: column;
+              max-width: 13vw;
+              flex-wrap: wrap;
+              max-height: 250px;
+          }
+
+          ul.resumeList li {
+              margin: 0 15px;
+          }
+          ul.resumeList li .resumeResult{
+              display: block;
+              color: white;
+              background: green;
+              padding: 5px;
+              text-align: center;
+              border-radius: 5px;
           }
 
           @media (max-width: 1600px) {
