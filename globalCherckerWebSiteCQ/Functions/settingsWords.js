@@ -168,6 +168,7 @@
     "plusieurs",
     "pour",
     "près",
+    "prêt",
     "qu'est-ce",
     "que",
     "quelles",
@@ -219,6 +220,8 @@
   //Classes exclues dans la récupération des mots de la page web
   settingWords.excludedClasses = [
     "vc_btn3-container",
+    "dmCustomWidget",
+    "slide-text",
     "vc_btn3",
     "pj-prolive-hc",
     "dmButtonLink",

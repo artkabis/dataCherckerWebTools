@@ -6,6 +6,7 @@ import { dudaSitemap } from "./Functions/DudaSitemap.js";
 import { HnOutlineValidity } from "./Functions/HnOutlineValidity.js";
 import { downloaderWPMedia } from "./Functions/downloaderWPMedias.js";
 
+
 // chrome.tabs.query({ active: true, currentWindow: true }, function (tab) {
 //   chrome.scripting.executeScript({
 //     target: { tabId: tab[0].id },
@@ -165,6 +166,7 @@ document.querySelector("#analyserBtn").addEventListener("click", function () {
                     "./Functions/counterWords.js",
                     "./Functions/checkAltImages.js",
                     "./Functions/checkMetas.js",
+                    "./Functions/checkLogoHeader.js",
                     "./Functions/checkOldRGPD.js",
                     "./Functions/checkBold.js",
                     "./Functions/checkOutlineHn.js",

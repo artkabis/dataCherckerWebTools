@@ -637,6 +637,7 @@ function initcheckerLinksAndImages() {
       document: null,
     };
     return new Promise((resolve, reject) => {
+
       let fetchTimeout = null;
       const startDoubleSlash = /^\/\//;
       _url = _url?.match(startDoubleSlash) !== null ? "https:" + _url : _url;
@@ -694,8 +695,8 @@ function initcheckerLinksAndImages() {
             _node.clientHeight >= 10 ||
             _node.clientWidth >= 10 ||
             (_node.getAttribute("class")
-              ? _node.getAttribute("class").includes("dmButtonLink") ||
-              _node.getAttribute("class").includes("vc_btn3")
+              ? (_node.getAttribute("class").includes("dmButtonLink") ||
+                _node.getAttribute("class").includes("vc_btn3") || _node.getAttribute("class").toLowerCase().includes("button") || _node.getAttribute("class").toLowerCase().includes("boutton"))
               : false);
           const inContent =
             _node.closest("#Content") || _node.closest(".dmContent")
@@ -718,6 +719,7 @@ function initcheckerLinksAndImages() {
 
           //console.log(window.location.origin, ' duda prepub : ', dudaPrepub, "  check Duda prepub interne : ", _url.includes(window.location.pathname.split('/')[3]), 'si non Duda prepub : ', _url.includes(window.location.pathname));
           const isImageWidget = imageWidget(inContent);
+          const isImageProductShop = _node.closest(".ec-store") ? true : false;
           const isExternalLink =
             _url.includes("http") &&
               !new URL(_url).href.includes(window.location.origin)
@@ -732,7 +734,7 @@ function initcheckerLinksAndImages() {
                 (_node?.style?.backgroundImage && !isImageProductShop))
               ? true
               : false;
-          const isImageProductShop = _node.closest(".ec-store") ? true : false;
+
           const isMenuLink =
             _node &&
               (_node?.closest(".main-navigation") || _node?.closest(".menu"))
@@ -934,11 +936,11 @@ function initcheckerLinksAndImages() {
               _node,
               "color:red;"
             );
-          _node.closest("#dm") &&
+          _node?.closest("#dm") &&
             !window.location.href.includes(
               "solocaldudaadmin.eu-responsivesiteeditor"
             ) &&
-            _url.includes("eu-responsivesiteeditor.com") &&
+            _url?.includes("eu-responsivesiteeditor.com") &&
             console.log(
               "%cAttention lien prépup Duda présent dans le site en ligne : " +
               _url +
