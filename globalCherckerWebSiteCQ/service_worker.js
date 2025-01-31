@@ -90,69 +90,6 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 // Événement d'installation du service worker
-// self.addEventListener('install', event => {
-//   event.waitUntil(
-//     caches.open(cacheName).then(cache => {
-//       // Mettre en cache toutes les ressources
-//       return cache.addAll(resourcesToCache);
-//     })
-//   );
-// });
-
-// // Événement de récupération (fetch) de ressources
-// self.addEventListener('fetch', event => {
-//   event.respondWith(
-//     caches.match(event.request).then(cachedResponse => {
-//       // Retourner la ressource mise en cache si elle existe, sinon effectuer une requête réseau
-//       return cachedResponse || fetch(event.request);
-//     })
-//   );
-// });
-
-// // Étape d'activation du service worker
-// self.addEventListener('activate', (event) => {
-//   event.waitUntil(
-//     caches.keys().then((cacheNames) => {
-//       return Promise.all(
-//         cacheNames.map((cacheName) => {
-//           if (cacheName !== 'dataschecker-cache') {
-//             return caches.delete(cacheName);
-//           }
-//         })
-//       );
-//     })
-//   );
-// });
-
-// Gestion des requêtes avec fetch
-// self.addEventListener('fetch', (event) => {
-//   event.respondWith(
-//     caches.match(event.request).then((response) => {
-//       // Si la ressource est présente dans le cache, renvoyez-la
-//       if (response) {
-//         return response;
-//       }
-
-//       // Sinon, effectuez une requête réseau et mettez en cache la réponse
-//       return fetch(event.request).then((response) => {
-//         // Assurez-vous que la réponse est valide
-//         if (!response || response.status !== 200 || response.type !== 'basic') {
-//           return response;
-//         }
-
-//         const responseToCache = response.clone();
-
-//         caches.open('dataschecker-cache').then((cache) => {
-//           cache.put(event.request, responseToCache);
-//         });
-
-//         return response;
-//       });
-//     })
-//   );
-// });
-
-// Événement d'installation du service worker
 chrome.runtime.onInstalled.addListener(() => {
   // Enregistrement du service worker
   if ("serviceWorker" in navigator) {
@@ -167,13 +104,8 @@ chrome.runtime.onInstalled.addListener(() => {
   }
 });
 
-// Événement fetch pour permettre au service worker de gérer les requêtes réseau
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  // Vérifiez si le message provient de votre contenu ou de votre script d'arrière-plan
-  // pour éviter de répondre à des messages non pertinents.
   if (message.from === "content_script" && message.subject === "fetch") {
-    // Utilisez la méthode 'fetch()' ici pour effectuer vos requêtes réseau
-    // et renvoyer la réponse via 'sendResponse'.
     fetch(message.url)
       .then((response) => response.text())
       .then((data) => {
@@ -182,8 +114,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .catch((error) => {
         sendResponse({ success: false, error: error.message });
       });
-    // Indiquez que vous souhaitez conserver le canal de communication ouvert
-    // jusqu'à ce que la réponse soit envoyée.
     return true;
   }
 });
@@ -309,33 +239,11 @@ let allTabs = [];
   }
 })();
 
-// const detectOnotherInterface = (allTabs) => {
-//   chrome.tabs.query({}, tabs => {tabs.forEach((tab, i) => {
-//     tab.url.includes("interface.html") && chrome.tabs.remove(tab.id);
-//   });
-// });
-// };
-// Fonction pour parcourir les onglets de la fenêtre active
-// chrome.windows.getCurrent({ populate: true }, function (currentWindow) {
-//   // Vérifier si la fenêtre est valide et si elle contient des onglets
-//   if (currentWindow && currentWindow.tabs) {
-//     for (const tab of currentWindow.tabs) {
-//       // Vérifier si l'URL commence par "http" et n'est pas de type "chrome://"
-//       if (tab.url && tab.url.startsWith("http") && !tab.url.startsWith("chrome://")) {
-//         // Faites quelque chose avec l'onglet, par exemple, affichez l'URL dans la console
-//         allTabs.push(tab)
-//       } else {
-//         console.log("URL non valide :", tab.url);
-//       }
-//     }
-//   }
-// });
-
 //Suppression du CTA IA MerciApp qui est injecté sur toutes les pages web actives.
-const removeMAButton = async (tabId, url) => {
-  // Vérifier si l'URL ne commence pas par "chrome://", "chrome-extension://", ou une autre URL non autorisée
+const removeMAButton = async (activeTab, tabId, url) => {
   if (
     url &&
+    activeTab?.url.startsWith("http") &&
     !url.startsWith("chrome://") &&
     !url.startsWith("chrome-extension://") &&
     !url.startsWith("chrome-devtools://")
@@ -362,7 +270,7 @@ const checkCurrentTab = async () => {
     currentWindow: true,
   });
   if (activeTab && !(activeTab.url.startsWith('chrome://') || activeTab.url.startsWith('chrome-extension://') || activeTab.url.startsWith('chrome-devtools://'))) {
-    (activeTab.id && activeTab.url) && removeMAButton(activeTab.id, activeTab.url);
+    (activeTab?.id && activeTab?.url) && removeMAButton(activeTab, activeTab.id, activeTab.url);
   }
 };
 
@@ -403,6 +311,7 @@ const detecteSoprod = async () => {
   allTabs.map(async (tab, i) => {
     if (
       tab &&
+      tab?.url.startsWith("http") &&
       tab.url.includes("soprod") &&
       !tab.url.startsWith("chrome://") &&
       !tab.url.startsWith("chrome-extension://") &&

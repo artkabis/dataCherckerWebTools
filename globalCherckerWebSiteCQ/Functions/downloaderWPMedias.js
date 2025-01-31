@@ -1,103 +1,189 @@
-export const downloaderWPMedia = (tab) => {
+export const downloaderWPMedia = async (tab) => {
   chrome.scripting.executeScript({
     target: { tabId: tab.id },
-    function: function () {
+    function: async function () {
+      // Configuration globale
+      const CONFIG = {
+        maxImages: Number(prompt("Entrez le nombre maximum d'images à télécharger", "100")),
+        startIndex: 0,
+        containerID: "ContainerLinks",
+        downloadBaseDelay: 500, // Délai de base en ms
+        sizeFactor: 0.01 // Facteur de multiplication pour le poids de l'image
+      };
 
-      /*1] POUR LISTER LES IMAGES*/
-      /******************************************************************************/
-      const max_img = Number(prompt("Entrez le nombre maximum d'image à télécharger", "100")), start_img = 0;//params de délimitation
-      const containerLink = document.createElement("div");
-      containerLink.id = "ContainerLinks";
-      document.querySelector("body").appendChild(containerLink);
+      // Créer le conteneur pour les liens de téléchargement
+      const createContainer = () => {
+        const container = document.createElement("div");
+        container.id = CONFIG.containerID;
+        document.body.appendChild(container);
+        return container;
+      };
 
-
-
-
-      const donwloadImages = () => {
-        document.querySelectorAll("#ContainerLinks a").forEach(function (t, i) {
-          setTimeout(function () {
-            t.click();
-          }, 1000 * i);
-        });
-
-      }
-      async function donwloaderMedias(href, name, iteration, ext) {
-        // Faire une requête AJAX pour récupérer le contenu du fichier
-        const isReady = (iteration <= max_img && String(href).includes('site-privilege'));
-        //console.log('loop<=max_img : ',iteration<=max_img,'    loop >= start_img : ',iteration >= start_img,'     href.includes("site-privilege") :',String(href).includes('site-privilege'));
-        //console.log('*************************** isReady : ',isReady);
-        if (isReady) {
-          var xhr = new XMLHttpRequest();
-          xhr.open('GET', href, true);
-          //xhr.responseType = 'blob';
-          xhr.responseType = 'arraybuffer';
-          console.log('_____________________________________extension param : ', ext);
-          xhr.onload = async function (e) {
-            const arrayBuffer = xhr.response;
-            const extension = +ext?.includes('.') ? ext?.split('.')[1] : ext;
-            console.log({ extension });
-            let mimeType = `image/${extension}`;
-            if (extension === 'jpg' || extension === 'JPG') {
-              mimeType = 'image/jpeg';
-            } else if (extension === 'png') {
-              mimeType = 'image/png';
-            } else if (extension === 'gif') {
-              mimeType = 'image/gif';
-            } else if (extension === 'svg') {
-              mimeType = 'image/svg+xml';
-            }
-            const blob = new Blob([arrayBuffer], { type: mimeType });
-
-            if (blob.size > 0 && xhr.status === 200) {
-              var link = document.createElement('a');
-              link.href = window.URL.createObjectURL(blob);
-              link.download = name;
-              document.getElementById("ContainerLinks").appendChild(link);
-              console.log('blob -> ', link.href);
-              console.log(iteration + 1, '/', max_img);
-              (iteration + 1 === max_img) && donwloadImages();
-
-            }
-            else {
-              console.error('Erreur lors du téléchargement du fichier : ' + href);
-            }
+      // Classe pour gérer les opérations sur les images
+      class ImageProcessor {
+        static getMimeType(extension) {
+          const mimeTypes = {
+            jpg: 'image/jpeg',
+            jpeg: 'image/jpeg',
+            png: 'image/png',
+            gif: 'image/gif',
+            svg: 'image/svg+xml',
+            webp: 'image/webp'
           };
-          xhr.send();
+          return mimeTypes[extension.toLowerCase()] || `image/${extension.toLowerCase()}`;
+        }
+
+        static async fetchImage(url) {
+          try {
+            // Utiliser XMLHttpRequest au lieu de fetch pour éviter les problèmes CORS
+            return new Promise((resolve, reject) => {
+              const xhr = new XMLHttpRequest();
+              xhr.open('GET', url, true);
+              xhr.responseType = 'blob';
+
+              xhr.onload = function () {
+                if (xhr.status === 200) {
+                  const blob = xhr.response;
+                  resolve({ blob, size: blob.size });
+                } else {
+                  reject(new Error(`HTTP error! status: ${xhr.status}`));
+                }
+              };
+
+              xhr.onerror = function () {
+                reject(new Error('Network request failed'));
+              };
+
+              xhr.send();
+            });
+          } catch (error) {
+            console.error(`Erreur lors du téléchargement de ${url}:`, error);
+            throw error;
+          }
+        }
+
+        static processImageUrl(imgSrc) {
+          // Gérer les URLs relatives et absolues
+          const url = imgSrc.startsWith('http') ? imgSrc : new URL(imgSrc, window.location.origin).href;
+          const urlObj = new URL(url);
+          const pathSegments = urlObj.pathname.split('/');
+          const filename = pathSegments[pathSegments.length - 1];
+          const extension = filename.split('.').pop();
+
+          // Détecter et corriger les images redimensionnées
+          const resizedPattern = /[-_](\d+x\d+)\./;
+          const isResized = resizedPattern.test(filename);
+
+          let finalUrl = url;
+          let name = filename.split('.')[0];
+
+          if (isResized) {
+            name = name.replace(resizedPattern, '');
+            finalUrl = url.replace(resizedPattern, '.');
+          }
+
+          return { url: finalUrl, name, extension };
         }
       }
 
-
-      const imgs = (document.querySelectorAll('.save-ready').length) ? document.querySelectorAll('.save-ready img') : document.querySelectorAll('td[data-colname="Fichier"] img');
-      const linksArray = Array.from(imgs).slice(start_img, max_img);
-      console.log({ linksArray });
-      let jsonImg = [];
-      linksArray.forEach((linkEl, i) => {
-        console.log('i : ', i, 'linkEl : ', linkEl);
-        const img = linkEl.getAttribute("src");
-        const ext = img.substring(img.lastIndexOf('.'), img.length);
-        const last2 = img.lastIndexOf('/');
-        var name = "", finalImg = "";
-        if (img.match(/\d{3}x\d{3}/m) || img.match(/\d{2}x\d{2}/m)) {
-          console.log('Redimentionnement détecté : ', img);
-          const last = img.lastIndexOf('-');
-          finalImg = window.location.origin + img.substring(0, last) + ext;
-          name = String(img.substring(last2, img.length).split(ext)[0].substring(0, img.substring(last2, img.length).split(ext)[0].lastIndexOf('-'))).replace('/', '');
-        } else {
-          console.log('no redim');
-          name = String(img.substring(last2, img.length).split(ext)[0]).replace('/', '');
-          finalImg = img;
+      // Gestionnaire de téléchargement
+      class DownloadManager {
+        constructor(container) {
+          this.container = container;
+          this.downloadQueue = [];
+          this.batchSize = 3; // Nombre d'images à télécharger simultanément
+          this.currentBatch = new Set(); // Suivi des téléchargements en cours
         }
-        console.log('src : ', img, '   name : ', name, '  link final image : ', finalImg, '  extension : ', ext);
-        jsonImg.push({ img: finalImg, name: name, cmp: i, extention: ext });
-      });
-      console.log('_______________ jsonImg : ', jsonImg);
-      const downloadAll = (elements) => {
-        for (var e in elements) {
-          donwloaderMedias(elements[e].img, elements[e].name, elements[e].cmp, elements[e].extention); // Lancement de la construction des img et du download.
+
+        addToQueue(imageData) {
+          this.downloadQueue.push(imageData);
+        }
+
+        createDownloadLink(blob, name, size) {
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = name;
+          link.dataset.size = size;
+          this.container.appendChild(link);
+          return link;
+        }
+
+        async downloadSingle(link, index, totalLinks) {
+          const size = Number(link.dataset.size);
+          // Calculer un délai basé uniquement sur la taille du fichier
+          const delay = Math.min(
+            Math.max(CONFIG.downloadBaseDelay, Math.sqrt(size) * CONFIG.sizeFactor),
+            2000 // Délai maximum de 2 secondes
+          );
+
+          await new Promise(resolve => {
+            setTimeout(() => {
+              try {
+                link.click();
+                URL.revokeObjectURL(link.href);
+                console.log(`Image ${index + 1}/${totalLinks} téléchargée. Taille: ${size} bytes, Délai: ${delay}ms`);
+              } catch (error) {
+                console.error(`Erreur lors du téléchargement de l'image ${index + 1}:`, error);
+              }
+              resolve();
+            }, delay);
+          });
+        }
+
+        async processQueue() {
+          const links = Array.from(document.querySelectorAll(`#${CONFIG.containerID} a`));
+          const totalLinks = links.length;
+
+          // Traiter les images par lots
+          for (let i = 0; i < totalLinks; i += this.batchSize) {
+            const batch = links.slice(i, i + this.batchSize);
+            // Télécharger plusieurs images en parallèle
+            await Promise.all(
+              batch.map((link, batchIndex) =>
+                this.downloadSingle(link, i + batchIndex, totalLinks)
+              )
+            );
+          }
         }
       }
-      downloadAll(jsonImg);
+
+      // Fonction principale
+      async function main() {
+        try {
+          const container = createContainer();
+          const downloadManager = new DownloadManager(container);
+
+          // Sélectionner les images
+          const selector = '.save-ready img, td[data-colname="Fichier"] img';
+          const images = Array.from(document.querySelectorAll(selector))
+            .slice(CONFIG.startIndex, CONFIG.maxImages);
+
+          console.log(`Traitement de ${images.length} images...`);
+
+          // Traiter chaque image
+          for (const img of images) {
+            const { url, name, extension } = ImageProcessor.processImageUrl(img.src);
+            try {
+              console.log(`Traitement de l'image: ${url}`);
+              const { blob, size } = await ImageProcessor.fetchImage(url);
+              downloadManager.createDownloadLink(blob, `${name}.${extension}`, size);
+            } catch (error) {
+              console.error(`Erreur lors du traitement de ${url}:`, error);
+              continue;
+            }
+          }
+
+          // Démarrer le téléchargement
+          await downloadManager.processQueue();
+
+          console.log('Téléchargement terminé !');
+        } catch (error) {
+          console.error('Erreur lors du traitement:', error);
+        }
+      }
+
+      // Lancer le script
+      main();
     }
   });
-
-}
+};
