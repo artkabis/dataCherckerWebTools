@@ -5,6 +5,33 @@ import { copyExpressionsSoprod } from "./Functions/copyExpressionsSoprod.js";
 import { dudaSitemap } from "./Functions/DudaSitemap.js";
 import { HnOutlineValidity } from "./Functions/HnOutlineValidity.js";
 import { downloaderWPMedia } from "./Functions/downloaderWPMedias.js";
+import { initSitemapAnalysis } from "./Functions/sitemapAnalyzer.js";
+
+// Ajoutez avec vos autres écouteurs d'événements
+document.querySelector("#sitemapAnalyzer").addEventListener("click", async function () {
+  try {
+    // Désactiver le bouton pendant l'analyse
+    this.disabled = true;
+    this.innerHTML = '<span class="icon">⏳</span><span class="text">Analyse en cours...</span>';
+
+    // Lancer l'analyse
+    const analysis = await initSitemapAnalysis();
+
+    // Sauvegarder les résultats
+    await chrome.storage.local.set({ sitemapAnalysis: analysis });
+
+    // Ouvrir la page de résultats dans un nouvel onglet
+    await chrome.tabs.create({
+      url: chrome.runtime.getURL('results.html')
+    });
+
+    // Fermer le popup
+    window.close();
+  } catch (error) {
+    console.error('Erreur lors de l\'analyse:', error);
+    this.innerHTML = '<span class="icon">❌</span><span class="text">Erreur</span>';
+  }
+});
 
 
 // chrome.tabs.query({ active: true, currentWindow: true }, function (tab) {

@@ -10,7 +10,7 @@
             console.log(`%cLe logo doit renvoyer vers l'accueil et comportait un title`, 'color:red');
         }
     } else if (stackLogo === "duda") {
-        const logo = document.querySelector('.dmHeader div[data-widget-type="image"]');
+        const logo = document.querySelector('.dmHeader .SOMS_logo');
         if (logo.querySelector('a') && logo.querySelector('img')?.getAttribute('title')) {
             console.log(`%cLogo renvoyant vers l'accueil avec titre définit : "${logo.querySelector('img')?.getAttribute('title')}"`, 'color:green');
         } else {
