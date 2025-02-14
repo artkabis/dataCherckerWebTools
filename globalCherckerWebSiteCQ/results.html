@@ -1,0 +1,154 @@
+<!-- results.html -->
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Résultats de l'analyse du site</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .stats-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .page-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .metric-group {
+            margin: 10px 0;
+            padding: 10px;
+            border-left: 3px solid #007bff;
+            background: #f8f9fa;
+        }
+
+        .metric-title {
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 5px;
+        }
+
+        .score {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            color: white;
+            font-weight: bold;
+        }
+
+        .score-good {
+            background-color: #28a745;
+        }
+
+        .score-warning {
+            background-color: #ffc107;
+        }
+
+        .score-error {
+            background-color: #dc3545;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 10px;
+            background-color: #007bff;
+            transition: width 0.3s ease;
+        }
+
+        .collapsible {
+            cursor: pointer;
+            padding: 10px;
+            width: 100%;
+            border: none;
+            text-align: left;
+            background-color: #f8f9fa;
+            margin: 5px 0;
+        }
+
+        .collapsible:hover {
+            background-color: #e9ecef;
+        }
+
+        .content {
+            display: none;
+            padding: 10px;
+            overflow: hidden;
+        }
+
+        .export-button {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+
+        .export-button:hover {
+            background-color: #218838;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+
+        th,
+        td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        th {
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Analyse complète du site</h1>
+        <button type="button"  id="exportButton" class="export-button">Exporter les résultats (CSV)</button>
+
+        <div id="globalStats" class="stats-card">
+            <h2>Statistiques globales</h2>
+            <div id="globalStatsContent"></div>
+        </div>
+
+        <div id="pagesAnalysis"></div>
+    </div>
+
+    <script src="results.js"></script>
+</body>
+
+</html>

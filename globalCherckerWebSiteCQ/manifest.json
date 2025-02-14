@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Health checker Website",
-  "version": "2.6.5",
+  "version": "3.0.0",
   "background": {
     "service_worker": "service_worker.js",
     "type": "module"
@@ -46,7 +46,11 @@
     {
       "resources": [
         "./Functions/HnOutlineValidity.js",
-        "./Functions/wordCloudEnhanced.js"
+        "./Functions/wordCloudEnhanced.js",
+        "results.html",
+        "Functions/sitemapAnalyzer.js",
+        "results.css",
+        "results.js"
       ],
       "matches": [
         "<all_urls>"
