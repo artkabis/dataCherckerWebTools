@@ -19,10 +19,24 @@ const consoleStyles = {
  */
 async function initSitemapAnalysis() {
     console.log('%c🔍 Démarrage de l\'analyse du site', consoleStyles.title);
+    // Demande de l'URL via prompt
+    const sitemapUrl = prompt("Veuillez entrer l'URL complète du sitemap.xml", "https://example.com/sitemap.xml");
+    // Vérification si l'utilisateur a annulé ou n'a pas entré d'URL
+    if (!sitemapUrl) {
+        throw new Error('URL du sitemap.xml non fournie');
+    }
+    // Validation basique de l'URL
+    try {
+        new URL(sitemapUrl);
+    } catch (e) {
+        throw new Error('URL invalide');
+    }
+
+
 
     try {
         // 1. Récupération du sitemap.xml
-        const sitemapURLs = await fetchSitemapURLs();
+        const sitemapURLs = await fetchSitemapURLs(sitemapUrl);
         console.log('📋 URLs trouvées:', sitemapURLs);
         console.log(`✨ Nombre d'URLs à analyser: ${sitemapURLs.length}`);
 
@@ -84,12 +98,12 @@ async function initSitemapAnalysis() {
  * Récupère et parse le sitemap.xml pour extraire toutes les URLs
  * Gère différents formats de sitemap
  */
-async function fetchSitemapURLs() {
+async function fetchSitemapURLs(sitemapResp) {
     console.group('🌐 Récupération du sitemap.xml');
     try {
         // Récupération du sitemap
         console.log('📡 Tentative de récupération du sitemap...');
-        const response = await fetch('https://www.huetpeinture.com/sitemap.xml');
+        const response = await fetch(sitemapResp);
         const xmlText = await response.text();
 
         console.log('📝 Contenu du sitemap récupéré, début du parsing...');
@@ -182,13 +196,13 @@ function cleanUrl(url) {
  */
 async function analyzeURL(url) {
     let tab = null;
-    console.group(`🔍 Analyse détaillée de : ${url}`);
+    console.group(`🔍 Analyse détaillée de : ${cleanUrl(url)}`);
 
     try {
         // 1. Création d'un nouvel onglet pour l'analyse
         console.log('📑 Création d\'un nouvel onglet...');
         tab = await chrome.tabs.create({
-            url: url,
+            url: cleanUrl(url),
             active: false
         });
 

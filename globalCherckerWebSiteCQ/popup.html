@@ -144,6 +144,98 @@ button#analyserBtn {
 #btnGithub{
  max-width: 100%;
 }
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+.modal-content {
+    position: relative;
+    background: white;
+    margin: 20px;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.close-modal {
+    cursor: pointer;
+    font-size: 24px;
+}
+
+.url-options .option {
+    margin-bottom: 15px;
+    padding: 10px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+}
+
+.input-container {
+    margin-top: 10px;
+    margin-left: 25px;
+}
+
+.input-container input[type="text"],
+.input-container textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-top: 5px;
+}
+
+.auto-sitemap-info {
+    margin-left: 25px;
+    padding: 5px;
+    color: #666;
+    font-style: italic;
+}
+
+small {
+    display: block;
+    color: #666;
+    margin-top: 5px;
+}
+
+.modal-footer {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.btn-primary {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
   </style>
 </head>
   <body>
@@ -169,6 +261,47 @@ button#analyserBtn {
         <a id="designModeToggle"><img alt="Design Mode" title="Activer ou desactiver le DesignMode pour corriger le texte du site avec MerciApp" src="./icons/merciAppIcon.JPG"></a>
         <a id="copyExpressionsSoprod"><img alt="Copy expression Soprod" title="Copier les expressions suivies de Soprod" src="./icons/soprod.png"></a>
         <a id="wordsCloud">Words cloud</a>
+      </div>
+      <div id="siteAnalyzerModal" class="modal" style="display: none;">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>Analyse complète du site</h3>
+            <span class="close-modal">&times;</span>
+          </div>
+          <div class="modal-body">
+            <div class="url-options">
+              <div class="option">
+                <input type="radio" name="urlMode" id="autoSitemap" value="auto" checked>
+                <label for="autoSitemap">Utiliser le sitemap par défaut</label>
+                <div class="auto-sitemap-info">
+                  <span id="defaultSitemapUrl"></span>
+                </div>
+              </div>
+              <div class="option">
+                <input type="radio" name="urlMode" id="customSitemap" value="custom">
+                <label for="customSitemap">URL personnalisée du sitemap</label>
+                <div class="input-container" data-for="customSitemap">
+                  <input type="text" id="sitemapUrl" placeholder="https://monsite.com/sitemap.xml" disabled>
+                  <small>Format : sitemap.xml, sitemap_index.xml, etc.</small>
+                </div>
+              </div>
+              <div class="option">
+                <input type="radio" name="urlMode" id="manualUrls" value="manual">
+                <label for="manualUrls">Liste d'URLs à analyser</label>
+                <div class="input-container" data-for="manualUrls">
+                  <textarea id="urlsList" rows="5"
+                    placeholder="https://monsite.com/page1&#10;https://monsite.com/page2&#10;https://monsite.com/page3"
+                    disabled></textarea>
+                  <small>Une URL par ligne</small>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button  type="button" id="startAnalysis" class="btn-primary">Lancer l'analyse</button>
+            <button type="button" class="btn-secondary close-modal">Annuler</button>
+          </div>
+        </div>
       </div>
         <p class="mt30"><span class="warning">Ouvrez la console du devTools Chrome (F12)</span> et cliquez sur le bouton pour analyser la page web en cours.</p>
       <button type="button" id="analyserBtn">Analyser</button>
