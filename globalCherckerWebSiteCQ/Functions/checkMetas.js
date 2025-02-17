@@ -18,7 +18,7 @@
     checkTitle = titleLength > 0;
 
     checkValideTitle = titleLength >= MIN_META_TITLE_CARACTERES && titleLength <= MAX_META_TITLE_CARACTERES ? true : false;
-    scoreTitle = checkValideTitle ? 2.5 : 0;
+    scoreTitle = checkValideTitle ? 5 : 0;
 
     //data title
     dataChecker.meta_check.meta[0].meta_state =
@@ -48,7 +48,7 @@
     checkDesc = descLength > 0;
 
     checkValideDesc = descLength >= MIN_META_DESC_CARACTERES && descLength <= MAX_META_DESC_CARACTERES ? true : false;
-    scoreDesc = checkValideDesc ? 2.5 : 0;
+    scoreDesc = checkValideDesc ? 5 : 0;
 
     //data desc
     dataChecker.meta_check.meta[1].meta_state =
@@ -71,7 +71,9 @@
   dataChecker.meta_check.global_score =
     scoreTitle === 0 && scoreDesc === 0
       ? 0
-      : Number((scoreTitle + scoreDesc).toFixed(2));
+      : Number(((scoreTitle + scoreDesc) / 2).toFixed(2));
+
+  console.log("########################## score meta ::::::::::::::::::::: ", dataChecker.meta_check.global_score);
   dataChecker.meta_check.meta_check_state =
     checkTitle && checkDesc ? true : false;
   let nbMeta = 0;

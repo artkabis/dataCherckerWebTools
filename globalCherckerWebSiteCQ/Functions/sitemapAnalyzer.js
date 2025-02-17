@@ -89,7 +89,7 @@ async function fetchSitemapURLs() {
     try {
         // Récupération du sitemap
         console.log('📡 Tentative de récupération du sitemap...');
-        const response = await fetch('https://www.huetpeinture.com/sitemap.xml');
+        const response = await fetch('https://www.ipno.me/sitemap.xml');
         const xmlText = await response.text();
 
         console.log('📝 Contenu du sitemap récupéré, début du parsing...');
@@ -182,13 +182,13 @@ function cleanUrl(url) {
  */
 async function analyzeURL(url) {
     let tab = null;
-    console.group(`🔍 Analyse détaillée de : ${url}`);
+    console.group(`🔍 Analyse détaillée de : ${cleanUrl(url)}`);
 
     try {
         // 1. Création d'un nouvel onglet pour l'analyse
         console.log('📑 Création d\'un nouvel onglet...');
         tab = await chrome.tabs.create({
-            url: url,
+            url: cleanUrl(url),
             active: false
         });
 

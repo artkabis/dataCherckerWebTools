@@ -38,7 +38,7 @@ dataChecker = {
         meta_txt: "mon desc magique performant et beau",
         meta_size: "6",
         meta_reco: "la reco est de de 140 à 156 caractères.",
-        meta_score: "10",
+        meta_score: "5",
         check_title: "Meta description",
       },
     ],
