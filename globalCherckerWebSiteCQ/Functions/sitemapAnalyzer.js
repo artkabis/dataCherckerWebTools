@@ -266,12 +266,45 @@ async function analyzeURL(url) {
         const results = await chrome.scripting.executeScript({
             target: { tabId: tab.id },
             function: () => {
+                const baseImageCheck = {
+                    img_check_state: false,
+                    nb_img: 0,
+                    nb_img_duplicate: [],
+                    check_title: "Images check",
+                    global_score: 5,
+                    profil: ["WEBDESIGNER"],
+                    alt_img: [],
+                    size_img: [],
+                    ratio_img: []
+                };
+
                 const pageResults = {
                     ...window.dataChecker,
                     url_analyzed: window.location.href,
                     analysis_timestamp: new Date().toISOString()
                 };
-                console.log('DataChecker pour cette page:', pageResults);
+
+                // Assure que img_check a la structure complète
+                if (pageResults.img_check) {
+                    pageResults.img_check = {
+                        ...baseImageCheck,
+                        ...pageResults.img_check,
+                        // Force les tableaux à être présents même s'ils sont vides
+                        alt_img: Array.isArray(pageResults.img_check.alt_img) ? pageResults.img_check.alt_img : [],
+                        size_img: Array.isArray(pageResults.img_check.size_img) ? pageResults.img_check.size_img : [],
+                        ratio_img: Array.isArray(pageResults.img_check.ratio_img) ? pageResults.img_check.ratio_img : [],
+                        nb_img_duplicate: Array.isArray(pageResults.img_check.nb_img_duplicate) ? pageResults.img_check.nb_img_duplicate : []
+                    };
+                } else {
+                    pageResults.img_check = baseImageCheck;
+                }
+
+                // Convertit les types de données correctement
+                pageResults.img_check.img_check_state = Boolean(pageResults.img_check.img_check_state);
+                pageResults.img_check.nb_img = Number(pageResults.img_check.nb_img) || 0;
+                pageResults.img_check.global_score = Number(pageResults.img_check.global_score) || 5;
+
+                console.log('DataChecker final pour cette page:', pageResults);
                 return pageResults;
             }
         });
