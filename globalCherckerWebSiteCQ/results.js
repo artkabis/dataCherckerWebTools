@@ -184,17 +184,43 @@ function displayIssues(analysis) {
         }
 
         // Problèmes de structure Hn
-        if (data.hn?.hn_reco?.hn) {
-            const hnIssues = data.hn.hn_reco.hn.filter(h => parseFloat(h.hn_score) < 3);
-            totalIssuesCount += hnIssues.length;
-            hnIssues.forEach(h => {
-                issues.push({
-                    url,
-                    type: 'Hn',
-                    description: `${h.hn_type} : "${h.hn_txt}"`,
-                    score: h.hn_score
+        if (data.hn) {
+            // Problèmes de longueur Hn
+            if (data.hn.hn_reco?.hn) {
+                const hnLengthIssues = data.hn.hn_reco.hn.filter(h => parseFloat(h.hn_score) < 3);
+                totalIssuesCount += hnLengthIssues.length;
+                hnLengthIssues.forEach(h => {
+                    issues.push({
+                        url,
+                        type: 'Longueur Hn',
+                        description: `${h.hn_type} : "${h.hn_txt}"`,
+                        details: {
+                            caracteres: h.hn_letters_count,
+                            recommandation: data.hn.hn_reco.hn_preco,
+                            mots: h.hn_words_count
+                        },
+                        score: h.hn_score
+                    });
                 });
-            });
+            }
+
+            // Problèmes de structure Hn
+            if (data.hn.hn_outline?.hn) {
+                const hnOutlineIssues = data.hn.hn_outline.hn.filter(h => !h.hn_validity);
+                totalIssuesCount += hnOutlineIssues.length;
+                hnOutlineIssues.forEach(h => {
+                    issues.push({
+                        url,
+                        type: 'Structure Hn',
+                        description: `${h.hn_type}`,
+                        details: {
+                            message: h.hn_validity_message,
+                            probleme: 'Structure hiérarchique non valide'
+                        },
+                        score: h.hn_validity_score
+                    });
+                });
+            }
         }
 
         // Problèmes de textes en gras
@@ -229,13 +255,40 @@ function displayIssues(analysis) {
                 <div class="issue-card ${getScoreClass(issue.score)}">
                     <h4>${issue.type} - Score: ${issue.score}/5</h4>
                     <p><strong>Page:</strong> ${issue.url}</p>
-                    <p>${issue.description}</p>
+                    <p><strong>Description:</strong> ${issue.description}</p>
+                    ${createIssueDetails(issue)}
                 </div>
             `).join('')}
         </div>
     ` : '<p>Aucun problème majeur détecté.</p>';
 
     container.innerHTML = issuesHTML;
+}
+function createIssueDetails(issue) {
+    switch (issue.type) {
+        case 'Longueur Hn':
+            return `
+                <div class="issue-details">
+                    <p><strong>Nombre de caractères:</strong> ${issue.details.caracteres}</p>
+                    <p><strong>Nombre de mots:</strong> ${issue.details.mots}</p>
+                    <p><strong>Recommandation:</strong> ${issue.details.recommandation}</p>
+                </div>
+            `;
+        case 'Structure Hn':
+            return `
+                <div class="issue-details">
+                    <p><strong>Message:</strong> ${issue.details.message}</p>
+                    <p><strong>Type de problème:</strong> ${issue.details.probleme}</p>
+                </div>
+            `;
+        // Ajouter d'autres cas selon les types d'issues
+        default:
+            return issue.details ? `
+                <div class="issue-details">
+                    <p>${JSON.stringify(issue.details)}</p>
+                </div>
+            ` : '';
+    }
 }
 
 // 1. Définition de tous les styles d'abord
@@ -269,23 +322,23 @@ const additionalStyles = `
 
     .score - card {
         padding: 15px;
-border - radius: 8px;
-margin: 10px 0;
-color: white;
+        border-radius: 8px;
+        margin: 10px 0;
+        color: white;
     }
 
     .score - good {
-    background - color: #28a745;
-}
+        background - color: #28a745;
+    }
 
     .score - warning {
-    background - color: #ffc107;
-    color: black;
-}
+        background - color: #ffc107;
+        color: black;
+    }
 
     .score - error {
-    background - color: #dc3545;
-}
+        background - color: #dc3545;
+    }
 
     .score - value {
     font - size: 24px;
@@ -368,6 +421,29 @@ th, td {
 
     .export -button:hover {
     background - color: #218838;
+}
+    .issue-details {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+}
+
+.issue-details p {
+    margin: 5px 0;
+}
+
+.issue-card {
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 8px;
+    border-left-width: 4px;
+}
+
+.issue-card h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: inherit;
 }
 `;
 
@@ -1089,9 +1165,14 @@ function createPageCard(url, data) {
             ${createLinksSection(data.link_check)}
         </div>
 
-        <button class="collapsible">Structure Hn (Score: ${data.hn?.global_score || '0'}/5)</button>
+        <button class="collapsible">Longueur Hn (Score: ${data.hn?.hn_reco?.global_score || '0'}/5)</button>
         <div class="content">
-            ${createHnSection(data.hn)}
+            ${createHnRecoSection(data.hn)}
+        </div>
+
+        <button class="collapsible">Outline Hn (Score: ${data.hn?.hn_outline?.global_score || '0'}/5)</button>
+        <div class="content">
+            ${createHnOutlineSection(data.hn)}
         </div>
 
         <button class="collapsible">Textes en gras (Score: ${data.bold_check?.global_score || '0'}/5)</button>
@@ -1129,7 +1210,7 @@ function createMetaSection(metaCheck) {
 }
 
 function createImagesSection(altCheck, imgCheck) {
-    let content = '<h4>Images et attributs Alt</h4>';
+    let content = '<h4>Attributs Alt des images</h4>';
 
     if (altCheck?.alt_img) {
         content += `
@@ -1208,8 +1289,8 @@ function createLinksSection(linkCheck) {
     `;
 }
 
-function createHnSection(hnData) {
-    if (!hnData?.hn_reco?.hn) return '<p>Pas de données Hn disponibles</p>';
+function createHnRecoSection(hnData) {
+    if (!hnData?.hn_reco?.hn) return '<p>Pas de données sur la longueur des Hn disponibles</p>';
 
     return `
         <div class="metric-group">
@@ -1219,7 +1300,7 @@ function createHnSection(hnData) {
                     <tr>
                         <th>Type</th>
                         <th>Contenu</th>
-                        <th>Nombre de mots</th>
+                        <th>Nombre de caractères</th>
                         <th>Score</th>
                     </tr>
                 </thead>
@@ -1228,8 +1309,38 @@ function createHnSection(hnData) {
                         <tr>
                             <td>${hn.hn_type}</td>
                             <td>${hn.hn_txt}</td>
-                            <td>${hn.hn_words_count}</td>
+                            <td>${hn.hn_letters_count}</td>
                             <td><span class="score ${getScoreClass(hn.hn_score)}">${hn.hn_score}/5</span></td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+// Nouvelle fonction pour l'analyse de la structure des Hn
+function createHnOutlineSection(hnData) {
+    if (!hnData?.hn_outline?.hn) return '<p>Pas de données sur la structure des Hn disponibles</p>';
+
+    return `
+        <div class="metric-group">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Validité</th>
+                        <th>Message</th>
+                        <th>Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${hnData.hn_outline.hn.map(hn => `
+                        <tr>
+                            <td>${hn.hn_type}</td>
+                            <td>${hn.hn_validity ? '✅' : '❌'}</td>
+                            <td>${hn.hn_validity_message}</td>
+                            <td><span class="score ${getScoreClass(hn.hn_validity_score)}">${hn.hn_validity_score}/5</span></td>
                         </tr>
                     `).join('')}
                 </tbody>

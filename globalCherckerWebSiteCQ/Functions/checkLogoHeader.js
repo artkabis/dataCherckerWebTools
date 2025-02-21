@@ -14,8 +14,8 @@
             console.log(`%cAucun logo n'a été détecté !!!`, 'color:red');
         }
     } else if (stackLogo === "duda") {
-        const logo = document.querySelector('.dmHeader .SOMS_logo');
-        if (logo?.length) {
+        const logo = document.querySelector('.dmHeader div[data-element-type="image"]');
+        if (logo) {
             if (logo?.querySelector('a') && logo?.querySelector('img')?.getAttribute('title')) {
                 console.log(`%cLogo renvoyant vers l'accueil avec titre définit : "${logo.querySelector('img')?.getAttribute('title')}"`, 'color:green');
             } else {
