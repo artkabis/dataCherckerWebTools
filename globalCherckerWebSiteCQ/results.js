@@ -1144,7 +1144,7 @@ function createPageCard(url, data) {
 
     return `
         <div class="page-header">
-            <h3>${url}</h3>
+            <h3><a class="headerTitleH3" href="${url}" target="_blank">${url}</a></h3>
             <div class="score-card ${getScoreClass(globalScore)}">
                 Score Global: ${globalScore}/5
             </div>

@@ -4,7 +4,7 @@
 
     if (stackLogo === "wp") {
         const logo = document.querySelector('#Top_bar .logo');
-        if (logo?.length) {
+        if (logo) {
             if (logo?.querySelectorAll('#logo img')?.length && logo?.querySelector('#logo')?.getAttribute('title')?.length > 0) {
                 console.log(`%cLogo renvoyant vers l'accueil avec titre définit : "${logo.querySelector('a').getAttribute('title')}"`, 'color:green');
             } else {
