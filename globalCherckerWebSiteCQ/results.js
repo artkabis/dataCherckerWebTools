@@ -48,6 +48,29 @@ function setupTabsManagement() {
         });
     });
 }
+function showDuplicateDetails(metas, duplicateInfo) {
+    if (!metas || !Array.isArray(metas)) return '';
+
+    const duplicates = metas.filter(meta => meta.isDuplicate);
+    if (duplicates.length === 0) return '';
+
+    return `
+        <div class="duplicate-details-section">
+            <h4>⚠️ Doublons détectés</h4>
+            ${duplicates.map(meta => `
+                <div class="duplicate-item">
+                    <p><strong>${meta.meta_type}</strong>: ${meta.meta_txt}</p>
+                    <p class="duplicate-pages">
+                        Nombre d'occurrences: ${meta.occurrences || 0}
+                        ${meta.duplicateUrls ?
+            `<br>Pages concernées: ${meta.duplicateUrls.join(', ')}` :
+            ''}
+                    </p>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
 function displayOverview(analysis) {
     try {
         if (!analysis || !analysis.results) {
@@ -55,6 +78,10 @@ function displayOverview(analysis) {
         }
 
         const stats = calculateGlobalStats(analysis.results);
+
+        const duplicateMetas = checkDuplicateMetas(analysis.results);
+        const totalDuplicates = duplicateMetas.titles.length + duplicateMetas.descriptions.length;
+
 
         // Mise à jour des summary cards
         const summaryPanel = document.querySelector('.summary-panel');
@@ -97,6 +124,13 @@ function displayOverview(analysis) {
                             ${safeNumber(stats.metaStats.averageScore)}/5
                         </div>
                         <p>Issues: ${stats.metaStats.issuesCount}</p>
+                        <p class="duplicate-alert ${totalDuplicates > 0 ? 'has-duplicates' : ''}">
+                            Doublons: ${totalDuplicates}
+                            <span class="duplicate-details">
+                                (Titres: ${duplicateMetas.titles.length}, 
+                                Descriptions: ${duplicateMetas.descriptions.length})
+                            </span>
+                        </p>
                     </div>
 
                     <div class="statistic-item">
@@ -140,6 +174,52 @@ function displayOverview(analysis) {
     }
 }
 
+function checkDuplicateMetas(results) {
+    const titleMap = new Map();
+    const descriptionMap = new Map();
+    const duplicates = {
+        titles: [],
+        descriptions: []
+    };
+
+    // First pass: collect all metas
+    Object.entries(results).forEach(([url, pageData]) => {
+        pageData.meta_check?.meta?.forEach(meta => {
+            if (meta.meta_type === 'title') {
+                const titles = titleMap.get(meta.meta_txt) || [];
+                titles.push(url);
+                titleMap.set(meta.meta_txt, titles);
+            }
+            if (meta.meta_type === 'description') {
+                const descriptions = descriptionMap.get(meta.meta_txt) || [];
+                descriptions.push(url);
+                descriptionMap.set(meta.meta_txt, descriptions);
+            }
+        });
+    });
+
+    // Second pass: identify duplicates
+    titleMap.forEach((urls, content) => {
+        if (urls.length > 1) {
+            duplicates.titles.push({
+                content: content,
+                urls: urls
+            });
+        }
+    });
+
+    descriptionMap.forEach((urls, content) => {
+        if (urls.length > 1) {
+            duplicates.descriptions.push({
+                content: content,
+                urls: urls
+            });
+        }
+    });
+
+    return duplicates;
+}
+
 // Fonction utilitaire pour déterminer la classe CSS selon le nombre de problèmes
 function getIssuesClass(issuesCount) {
     if (issuesCount === 0) return 'score-good';
@@ -153,6 +233,39 @@ function displayIssues(analysis) {
 
     let issues = [];
     let totalIssuesCount = 0;
+
+    // Check for duplicate metas
+    const duplicateMetas = checkDuplicateMetas(analysis.results);
+
+    // Add duplicate titles to issues
+    duplicateMetas.titles.forEach(duplicate => {
+        totalIssuesCount++;
+        issues.push({
+            type: 'Duplicate Meta Title',
+            description: `Same title used on ${duplicate.urls.length} pages`,
+            details: {
+                content: duplicate.content,
+                affectedPages: duplicate.urls
+            },
+            score: 0, // Consider duplicate content as a serious issue
+            urls: duplicate.urls
+        });
+    });
+
+    // Add duplicate descriptions to issues
+    duplicateMetas.descriptions.forEach(duplicate => {
+        totalIssuesCount++;
+        issues.push({
+            type: 'Duplicate Meta Description',
+            description: `Same description used on ${duplicate.urls.length} pages`,
+            details: {
+                content: duplicate.content,
+                affectedPages: duplicate.urls
+            },
+            score: 0,
+            urls: duplicate.urls
+        });
+    });
 
     Object.entries(analysis.results).forEach(([url, data]) => {
         // Problèmes de liens
@@ -266,6 +379,20 @@ function displayIssues(analysis) {
 }
 function createIssueDetails(issue) {
     switch (issue.type) {
+        case 'Duplicate Meta Title':
+        case 'Duplicate Meta Description':
+            return `
+                    <div class="issue-details">
+                        <p><strong>Duplicate Content meta:</strong></p>
+                        <div class="duplicate-content">${issue.details.content}</div>
+                        <p><strong>Page afféctée:</strong></p>
+                        <ul class="affected-pages">
+                            ${issue.details.affectedPages.map(url => `
+                                <li><a href="${url}" target="_blank">${url}</a></li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                    `;
         case 'Longueur Hn':
             return `
                 <div class="issue-details">
@@ -281,6 +408,7 @@ function createIssueDetails(issue) {
                     <p><strong>Type de problème:</strong> ${issue.details.probleme}</p>
                 </div>
             `;
+
         // Ajouter d'autres cas selon les types d'issues
         default:
             return issue.details ? `
@@ -445,6 +573,107 @@ th, td {
     margin-bottom: 10px;
     color: inherit;
 }
+     .duplicate-content {
+            padding: 10px;
+            background: #f8f9fa;
+            border-left: 3px solid #dc3545;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+
+        .affected-pages {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .affected-pages li {
+            margin: 5px 0;
+        }
+
+        .affected-pages a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .affected-pages a:hover {
+            text-decoration: underline;
+        }
+            .duplicate-alert {
+        margin-top: 8px;
+        font-size: 0.9em;
+    }
+
+    .duplicate-alert.has-duplicates {
+        color: #dc3545;
+        font-weight: 500;
+    }
+
+    .duplicate-details {
+        font-size: 0.9em;
+        color: #666;
+        display: block;
+        margin-top: 4px;
+    }
+
+    .statistic-item {
+        position: relative;
+    }
+
+    .statistic-item.has-duplicates::after {
+        content: '⚠️';
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+           .meta-scores {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .meta-score-card {
+        flex: 1;
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+
+    .meta-score-card h4 {
+        margin: 0 0 10px 0;
+        color: #333;
+    }
+
+    .duplicate-warning {
+        color: #dc3545;
+        font-weight: bold;
+    }
+
+    .unique-ok {
+        color: #28a745;
+    }
+
+    .duplicate-details-section {
+        margin-top: 20px;
+        padding: 15px;
+        background: #fff3cd;
+        border-radius: 8px;
+        border: 1px solid #ffeeba;
+    }
+
+    .duplicate-item {
+        margin: 10px 0;
+        padding: 10px;
+        background: white;
+        border-radius: 4px;
+    }
+
+    .duplicate-pages {
+        font-size: 0.9em;
+        color: #666;
+        margin-top: 5px;
+    }
 `;
 
 const tabStyles = `
@@ -584,7 +813,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 5. Affichage des données dans tous les onglets
         displayOverview(analysis);              // Vue d'ensemble
         displayGlobalStats(analysis);           // Statistiques globales
-        displayPagesAnalysis(analysis.results); // Détails par page
+        displayPagesAnalysis(analysis.results, analysis.results); // Détails par page & résultats globales
         displayIssues(analysis);               // Points d'attention
 
         // 6. Configuration des interactions
@@ -812,7 +1041,13 @@ function calculateBasicStats(results) {
 // Calcul des statistiques meta
 function calculateMetaStats(results) {
     const pages = Object.values(results);
+
+    // Vérification des doublons
+    const duplicateChecks = checkDuplicateMetas(results);
+    const totalDuplicates = duplicateChecks.titles.length + duplicateChecks.descriptions.length;
+
     return {
+        // Scores existants
         averageScore: average(pages.map(p => parseFloat(p.meta_check?.global_score) || 0)),
         totalMetas: sum(pages.map(p => parseInt(p.meta_check?.nb_meta) || 0)),
         issuesCount: pages.reduce((acc, page) => {
@@ -824,7 +1059,36 @@ function calculateMetaStats(results) {
         missingMetas: pages.filter(p =>
             !p.meta_check?.meta?.some(m => m.meta_type === "title") ||
             !p.meta_check?.meta?.some(m => m.meta_type === "description")
-        ).length
+        ).length,
+
+        // Nouveaux scores pour les doublons
+        lengthScore: average(pages.map(p =>
+            parseFloat(p.meta_check?.lengthScore) || 0
+        )),
+        uniquenessScore: totalDuplicates === 0 ? 5 : Math.max(0, 5 - totalDuplicates),
+        duplicateStats: {
+            totalDuplicates: totalDuplicates,
+            duplicateTitles: duplicateChecks.titles.length,
+            duplicateDescriptions: duplicateChecks.descriptions.length,
+            duplicateDetails: {
+                titles: duplicateChecks.titles,
+                descriptions: duplicateChecks.descriptions
+            }
+        },
+
+        // Score global recalculé
+        globalScore: function () {
+            const lengthScoreWeight = 0.5;
+            const uniquenessScoreWeight = 0.5;
+
+            const lengthScoreValue = this.averageScore;
+            const uniquenessScoreValue = this.uniquenessScore;
+
+            return (
+                (lengthScoreValue * lengthScoreWeight) +
+                (uniquenessScoreValue * uniquenessScoreWeight)
+            ).toFixed(2);
+        }
     };
 }
 
@@ -1092,14 +1356,14 @@ function calculateGlobalStats(results) {
     }
 }
 
-function displayPagesAnalysis(results) {
+function displayPagesAnalysis(results, allResults) {
     const container = document.getElementById('pagesAnalysis');
     container.innerHTML = ''; // Clear container
 
     Object.entries(results).forEach(([url, pageData]) => {
         const card = document.createElement('div');
         card.className = 'page-card';
-        card.innerHTML = createPageCard(url, pageData);
+        card.innerHTML = createPageCard(url, pageData, allResults);  // Passage de allResults
         container.appendChild(card);
     });
 }
@@ -1139,7 +1403,7 @@ function calculateGlobalScore(pageData) {
 
     return finalScore.toFixed(2);
 }
-function createPageCard(url, data) {
+function createPageCard(url, data, allResults) {
     const globalScore = calculateGlobalScore(data);
 
     return `
@@ -1152,7 +1416,7 @@ function createPageCard(url, data) {
 
         <button class="collapsible">Meta (Score: ${data.meta_check?.global_score || '0'}/5)</button>
         <div class="content">
-            ${createMetaSection(data.meta_check)}
+            ${createMetaSection(data.meta_check, allResults)}
         </div>
 
         <button class="collapsible">Images (Score: ${data.alt_img_check?.global_score || '0'}/5)</button>
@@ -1181,31 +1445,211 @@ function createPageCard(url, data) {
         </div>
     `;
 }
+// Fonction de détection des doublons à travers toutes les pages
+function checkDuplicateMetasAcrossPages(results) {
+    const titleMap = new Map();
+    const descriptionMap = new Map();
 
-function createMetaSection(metaCheck) {
+    // Première passe : collecter toutes les métas de toutes les pages
+    Object.entries(results).forEach(([url, pageData]) => {
+        pageData.meta_check?.meta?.forEach(meta => {
+            if (meta.meta_type === 'title') {
+                const urls = titleMap.get(meta.meta_txt) || new Set();
+                urls.add(url);
+                titleMap.set(meta.meta_txt, urls);
+            }
+            if (meta.meta_type === 'description') {
+                const urls = descriptionMap.get(meta.meta_txt) || new Set();
+                urls.add(url);
+                descriptionMap.set(meta.meta_txt, urls);
+            }
+        });
+    });
+
+    // Deuxième passe : marquer les doublons
+    Object.entries(results).forEach(([url, pageData]) => {
+        if (pageData.meta_check?.meta) {
+            pageData.meta_check.meta.forEach(meta => {
+                if (meta.meta_type === 'title') {
+                    const urls = titleMap.get(meta.meta_txt);
+                    meta.isDuplicate = urls.size > 1;
+                    meta.duplicateUrls = urls.size > 1 ? Array.from(urls) : [];
+                }
+                if (meta.meta_type === 'description') {
+                    const urls = descriptionMap.get(meta.meta_txt);
+                    meta.isDuplicate = urls.size > 1;
+                    meta.duplicateUrls = urls.size > 1 ? Array.from(urls) : [];
+                }
+            });
+        }
+    });
+
+    return {
+        titles: Array.from(titleMap.entries())
+            .filter(([_, urls]) => urls.size > 1)
+            .map(([content, urls]) => ({
+                content,
+                urls: Array.from(urls)
+            })),
+        descriptions: Array.from(descriptionMap.entries())
+            .filter(([_, urls]) => urls.size > 1)
+            .map(([content, urls]) => ({
+                content,
+                urls: Array.from(urls)
+            }))
+    };
+}
+
+
+// Fonction pour calculer le score de longueur des métas
+function calculateMetaLengthScore(metas) {
+    if (!metas || metas.length === 0) return 0;
+
+    const scores = metas.map(meta => {
+        // Critères de longueur pour title et description
+        if (meta.meta_type === 'title') {
+            const length = meta.meta_size;
+            if (length >= 50 && length <= 65) return 5;
+            if (length >= 40 && length < 50) return 4;
+            if (length > 65 && length <= 75) return 3;
+            if (length >= 30 && length < 40) return 2;
+            if (length > 75 && length <= 85) return 2;
+            return 0;
+        }
+        if (meta.meta_type === 'description') {
+            const length = meta.meta_size;
+            if (length >= 140 && length <= 156) return 5;
+            if (length >= 120 && length < 140) return 4;
+            if (length > 156 && length <= 165) return 3;
+            if (length >= 100 && length < 120) return 2;
+            if (length > 165 && length <= 180) return 2;
+            return 0;
+        }
+        return 0;
+    });
+
+    return average(scores);
+}
+
+// Fonction pour calculer le score de duplication des métas
+function calculateMetaDuplicateScore(metas, allResults) {
+    if (!metas || metas.length === 0) return 0;
+
+    // Structure pour stocker les doublons à travers toutes les pages
+    const globalTitleMap = new Map();
+    const globalDescriptionMap = new Map();
+
+    // Collecter toutes les métas de toutes les pages
+    Object.values(allResults).forEach(pageData => {
+        pageData.meta_check?.meta?.forEach(meta => {
+            if (meta.meta_type === 'title') {
+                const count = globalTitleMap.get(meta.meta_txt) || 0;
+                globalTitleMap.set(meta.meta_txt, count + 1);
+            }
+            if (meta.meta_type === 'description') {
+                const count = globalDescriptionMap.get(meta.meta_txt) || 0;
+                globalDescriptionMap.set(meta.meta_txt, count + 1);
+            }
+        });
+    });
+
+    // Marquer les métas dupliquées avec plus de contexte
+    metas.forEach(meta => {
+        if (meta.meta_type === 'title') {
+            const occurrences = globalTitleMap.get(meta.meta_txt) || 0;
+            meta.isDuplicate = occurrences > 1;
+            meta.occurrences = occurrences;
+        }
+        if (meta.meta_type === 'description') {
+            const occurrences = globalDescriptionMap.get(meta.meta_txt) || 0;
+            meta.isDuplicate = occurrences > 1;
+            meta.occurrences = occurrences;
+        }
+    });
+
+    // Calculer le score avec une pénalité progressive
+    const duplicateCount = metas.filter(meta => meta.isDuplicate).length;
+    const totalMetaCount = metas.length;
+
+    if (duplicateCount === 0) return 5;
+
+    // Calcul du score en fonction du pourcentage de doublons
+    const duplicatePercentage = (duplicateCount / totalMetaCount) * 100;
+
+    if (duplicatePercentage >= 1) return 0;   // 75% ou plus sont dupliqués
+
+}
+
+// Fonction utilitaire pour la moyenne
+function average(numbers) {
+    if (!numbers || numbers.length === 0) return 0;
+    return numbers.reduce((sum, num) => sum + num, 0) / numbers.length;
+}
+function createMetaSection(metaCheck, allResults) {
     if (!metaCheck?.meta) return '<p>Pas de données meta disponibles</p>';
 
+    const duplicateInfo = checkDuplicateMetasAcrossPages(allResults);
+
+    // Calcul des scores
+    const lengthScore = calculateMetaLengthScore(metaCheck.meta);
+    const uniquenessScore = metaCheck.meta.some(meta => meta.isDuplicate) ? 0 : 5;
+
     return `
-        <table>
-            <thead>
-                <tr>
-                    <th>Type</th>
-                    <th>Contenu</th>
-                    <th>Taille</th>
-                    <th>Score</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${metaCheck.meta.map(meta => `
+        <div class="meta-analysis">
+            <div class="meta-scores">
+                <div class="meta-score-card">
+                    <h4>Score Longueur</h4>
+                    <div class="score ${getScoreClass(lengthScore)}">
+                        ${lengthScore}/5
+                    </div>
+                </div>
+                <div class="meta-score-card">
+                    <h4>Score Unicité</h4>
+                    <div class="score ${getScoreClass(uniquenessScore)}">
+                        ${uniquenessScore}/5
+                    </div>
+                </div>
+            </div>
+
+            <table>
+                <thead>
                     <tr>
-                        <td>${meta.meta_type}</td>
-                        <td>${meta.meta_txt}</td>
-                        <td>${meta.meta_size}</td>
-                        <td><span class="score ${getScoreClass(meta.meta_score)}">${meta.meta_score}/5</span></td>
+                        <th>Type</th>
+                        <th>Contenu</th>
+                        <th>Taille</th>
+                        <th>État</th>
+                        <th>Score Longueur</th>
+                        <th>Score Unicité</th>
                     </tr>
-                `).join('')}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    ${metaCheck.meta.map(meta => `
+                        <tr>
+                            <td>${meta.meta_type}</td>
+                            <td>${meta.meta_txt}</td>
+                            <td>${meta.meta_size}</td>
+                            <td>
+                                ${meta.isDuplicate ?
+            `<span class="duplicate-warning">⚠️ Dupliqué (${meta.duplicateUrls.length} pages)</span>` :
+            '<span class="unique-ok">✅ Unique</span>'}
+                            </td>
+                            <td>
+                                <span class="score ${getScoreClass(meta.meta_score)}">
+                                    ${meta.meta_score}/5
+                                </span>
+                            </td>
+                            <td>
+                                <span class="score ${getScoreClass(meta.isDuplicate ? 0 : 5)}">
+                                    ${meta.isDuplicate ? '0/5' : '5/5'}
+                                </span>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+
+            ${showDuplicateDetails(metaCheck.meta, duplicateInfo)}
+        </div>
     `;
 }
 
