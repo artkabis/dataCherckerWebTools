@@ -1,6 +1,7 @@
 "use strict";
 //import {openDb,getObjectStore} from './Functions/utils.js';
 import { creatDB } from "./Functions/creatIndexDB.js";
+
 //import {checkUserSoprod} from "./Functions/checkUserSoprod.js";
 //import { checkUserIndexDB } from "./Functions/checkUserIndexDB.js";
 
@@ -83,6 +84,7 @@ const cacheResource = (url) => {
 
 // Événement d'installation ou de mise à jour de l'extension
 chrome.runtime.onInstalled.addListener(() => {
+
   // Mettez en cache chaque ressource
   for (const url of resourcesToCache) {
     cacheResource(url);
@@ -552,24 +554,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
           });
         };
 
-        // Fonction pour fermer l'onglet s'il existe et n'est pas une page Chrome ou DevTools
-        const closeTabIfExists = (tabId, callback) => {
-          isTabOpenAndNotChrome(tabId, (isOpen) => {
-            if (isOpen) {
-              chrome.tabs.remove(tabId, () => {
-                console.log("Closed existing tab with ID:", tabId);
-                callback();
-              });
-            } else {
-              console.log(
-                "Tab not found, is a Chrome page, or resetting stored tab ID"
-              );
-              chrome.storage.local.remove("popupWindowId", () => {
-                callback();
-              });
-            }
-          });
-        };
+
 
         // Fonction pour ouvrir ou remplacer la fenêtre
         const openOrReplaceWindow = () => {
@@ -602,12 +587,6 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
         // Appel de la fonction pour ouvrir ou remplacer la fenêtre
         openOrReplaceWindow();
-        // chrome.windows.create({
-        //   url: `${interfacePopupUrl}`, //?data=${encodeURIComponent(JSON.stringify(dataCheckerJSON))}
-        //   type: "popup",
-        //   width: 1000,
-        //   height: 1000,
-        // });
       }
     }
   };

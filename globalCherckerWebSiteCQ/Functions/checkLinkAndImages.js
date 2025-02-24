@@ -66,16 +66,40 @@ function initcheckerLinksAndImages() {
     const isBgImage = args[4].includes("bg");
     let bgImg = new Image();
     let fsize = "0";
+
+    // Fonction pour finaliser le traitement dans tous les cas (succès ou erreur)
+    const finalizeImgCheck = () => {
+      requestCompletedCount++;
+      dataChecker.img_check.nb_img = requestCompletedCount;
+      console.log('Image check : ', requestCompletedCount, ' / ', allUrlsImages.length);
+
+      if (requestCompletedCount >= allUrlsImages.length) {
+        ratio_scores.push(ratioScoreImg);
+        console.log("Fin du traitement du check des images size and alt");
+        checkUrlImgDuplicate();
+        const titleTxt = $('meta[property="og:title"]').attr("content") || $(' head title').text();
+        $('meta[property="og:title"], head title').text(titleTxt.replace('⟳ ', ''));
+      }
+    };
+
     if (args[1] !== !!0 && !isBas64Img) {
       args[1] = args[1].includes("?") ? args[1].split("?")[0] : args[1];
+
       try {
-        response =
-          !args[1].includes("data:image") &&
-          (await fetch(args[1], {
-            method: "GET",
-            redirect: "manual", // Permet de suivre les redirections explicitement
-            mode: "cors",
-          })); //.then(response=>requestCompletedCount++);
+        // Ajouter un timeout à la requête fetch
+        const fetchPromise = fetch(args[1], {
+          method: "GET",
+          redirect: "manual",
+          mode: "cors",
+        });
+
+        // Créer un timeout
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error("Timeout dépassé")), 10000); // Timeout de 10 secondes
+        });
+
+        // Race entre fetch et timeout
+        response = await Promise.race([fetchPromise, timeoutPromise]);
 
         if (response.redirected) {
           if (redirectCount >= 2) {
@@ -88,16 +112,23 @@ function initcheckerLinksAndImages() {
             redirectCount++;
           }
         }
-        //requestCompletedCount++;
+
         if (isBgImage) {
-          await new Promise((resolve) => {
-            bgImg.src = args[1];
-            bgImg.onload = function () {
-              args[5] = this.naturalWidth;
-              args[6] = this.naturalHeight;
-              resolve();
-            };
-          });
+          await Promise.race([
+            new Promise((resolve) => {
+              bgImg.src = args[1];
+              bgImg.onload = function () {
+                args[5] = this.naturalWidth;
+                args[6] = this.naturalHeight;
+                resolve();
+              };
+              bgImg.onerror = function () {
+                console.log("Erreur de chargement de l'image bg:", args[1]);
+                resolve(); // Résoudre quand même pour continuer le processus
+              };
+            }),
+            new Promise((resolve) => setTimeout(resolve, 5000)) // Timeout de 5s pour le chargement de l'image
+          ]);
         }
 
         fsize = response.headers.get("content-length");
@@ -196,9 +227,7 @@ function initcheckerLinksAndImages() {
                   ? 0
                   : fsize > 256000 && fsize < MAX_SIZE_BYTES_IMAGE
                     ? 2.5
-                    : 5
-                      ? response.status === "404"
-                      : 0,
+                    : 5,
               check_title: "Images size",
               image_status: response.status,
             });
@@ -235,41 +264,66 @@ function initcheckerLinksAndImages() {
             ratio_img: result.ratio,
             ratio_img_score: ratioScoreImg,
           });
+        } else {
+          console.log("Taille d'image non disponible pour:", args[1]);
+          // Ajouter une entrée par défaut pour cette image
+          dataChecker.img_check.ratio_img.push({
+            ratio_img_state: true,
+            ratio_img_src: args[1],
+            type_img: "image sans taille",
+            img_height: 0,
+            img_width: 0,
+            parent_img_height: 0,
+            parent_img_width: 0,
+            ratio_parent_img_height: 0,
+            ratio_parent_img_width: 0,
+            ratio_img: "N/A",
+            ratio_img_score: 0,
+          });
         }
       } catch (error) {
-        console.log("link : ", args[1], error);
+        console.log("Error with image:", args[1], error);
+
+        // Ajouter l'image en erreur aux tableaux de données
         dataChecker.img_check.ratio_img.push({
           ratio_img_state: true,
-          ratio_img_src: result.url,
-          type_img: "image non disponible : 404",
-          img_height: result.Imgheight,
-          img_width: result.Imgwidth,
-          parent_img_height: result.parentwidth,
-          parent_img_width: result.parentheight,
-          ratio_parent_img_height: result.ratioHeight,
-          ratio_parent_img_width: result.ratioWidth,
-          ratio_img: result.ratio,
-          ratio_img_score: ratioScoreImg,
+          ratio_img_src: args[1],
+          type_img: "image non disponible : " + (error.message || "Error"),
+          img_height: 0,
+          img_width: 0,
+          parent_img_height: 0,
+          parent_img_width: 0,
+          ratio_parent_img_height: 0,
+          ratio_parent_img_width: 0,
+          ratio_img: "N/A",
+          ratio_img_score: 0,
         });
 
-        console.log("%cNot available", "color:yellow");
-        console.log(error, error.message, "  url : " + args[1]);
-        result && console.log({ result }, result.target);
+        dataChecker.img_check.alt_img.push({
+          alt_img_state: true,
+          alt_img_src: args[1],
+          alt_img_value: "image en erreur",
+          alt_img_score: 0,
+        });
+
+        dataChecker.img_check.size_img.push({
+          size_img_state: "false",
+          size_img_src: args[1],
+          size_img: "N/A",
+          size_img_score: 0,
+          check_title: "Images size",
+          image_status: 404,
+        });
+      } finally {
+        // Assurez-vous que le finalizeImgCheck est appelé dans tous les cas
+        finalizeImgCheck();
       }
     } else {
-      console.log("url not valid : ", result.url, args[1]);
-    }
-    requestCompletedCount++;
-    dataChecker.img_check.nb_img = requestCompletedCount;
-    if (requestCompletedCount === allUrlsImages.length) {
-      ratio_scores.push(ratioScoreImg);
-      console.log(" Fin du traitement du check des images size and alt");
-      checkUrlImgDuplicate();
-      const titleTxt = $('meta[property="og:title"]').attr("content") || $(' head title').text();
-      $('meta[property="og:title"], head title').text(titleTxt.replace('⟳ ', ''));
+      console.log("URL non valide ou image base64 :", args[1]);
+      // Même pour les URL non valides, nous devons incrémenter le compteur
+      finalizeImgCheck();
     }
   };
-
   const checkUrlImgDuplicate = () => {
     console.log(
       "url duplicate length : ",
