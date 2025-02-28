@@ -102,9 +102,9 @@ class SitemapAnalyzer {
     }
 
     /**
- * Démarre l'analyse avec une liste d'URLs fournie directement
- * @param {Array<string>} urls - Liste d'URLs à analyser
- */
+     * Démarre l'analyse avec une liste d'URLs fournie directement
+     * @param {Array<string>} urls - Liste d'URLs à analyser
+     */
     async startWithUrlList(urls) {
         try {
             console.log('%c🔍 Démarrage de l\'analyse avec une liste personnalisée', consoleStyles.title);
@@ -388,50 +388,68 @@ class SitemapAnalyzer {
             console.log('⏳ Attente de l\'exécution des analyses...');
             await new Promise(resolve => setTimeout(resolve, 1000));
 
-            // 6. Récupération des résultats (dataChecker)
+            // 6. Récupération des résultats (dataChecker) avec attention particulière aux liens
             console.log('📊 Récupération des résultats...');
             const results = await chrome.scripting.executeScript({
                 target: { tabId: tab.id },
                 function: () => {
-                    const baseImageCheck = {
-                        img_check_state: false,
-                        nb_img: 0,
-                        nb_img_duplicate: [],
-                        check_title: "Images check",
-                        global_score: 5,
-                        profil: ["WEBDESIGNER"],
-                        alt_img: [],
-                        size_img: [],
-                        ratio_img: []
-                    };
+                    // Vérifier que dataChecker est accessible
+                    if (!window.dataChecker) {
+                        console.error("dataChecker n'est pas défini dans la page");
+                        return { error: true, message: "Données d'analyse non disponibles" };
+                    }
 
-                    const pageResults = {
+                    // S'assurer que les liens sont correctement récupérés
+                    if (window.dataChecker.link_check) {
+                        console.log(`Nombre de liens détectés: ${window.dataChecker.link_check.link?.length || 0}`);
+                    }
+
+                    // Analyser les liens pour déterminer leur contexte
+                    if (window.dataChecker.link_check && Array.isArray(window.dataChecker.link_check.link)) {
+                        window.dataChecker.link_check.link.forEach(link => {
+                            if (!link.link_type) {
+                                // Trouver le nœud DOM correspondant au lien
+                                const links = document.querySelectorAll('a[href]');
+                                let linkNode = null;
+
+                                for (const node of links) {
+                                    if (node.href === link.link_url ||
+                                        node.getAttribute('href') === link.link_url) {
+                                        linkNode = node;
+                                        break;
+                                    }
+                                }
+
+                                if (linkNode) {
+                                    // Déterminer le contexte du lien
+                                    link.link_type = {
+                                        isMenuLink: !!linkNode.closest('nav') ||
+                                            !!linkNode.closest('header') ||
+                                            !!linkNode.closest('menu'),
+                                        isContentLink: !!linkNode.closest('#Content') ||
+                                            !!linkNode.closest('#dm_content') ||
+                                            !!linkNode.closest('main') ||
+                                            !!linkNode.closest('article'),
+                                        isFooterLink: !!linkNode.closest('footer'),
+                                        isImageLink: !!linkNode.querySelector('img') ||
+                                            (linkNode.style.backgroundImage &&
+                                                linkNode.style.backgroundImage !== 'none'),
+                                        isCTA: linkNode.classList.contains('button') ||
+                                            linkNode.classList.contains('btn') ||
+                                            linkNode.classList.contains('cta')
+                                    };
+                                }
+                            }
+                        });
+                    }
+
+                    // Créer une copie profonde des données pour éviter les problèmes de référence
+                    const pageResults = JSON.parse(JSON.stringify({
                         ...window.dataChecker,
                         url_analyzed: window.location.href,
                         analysis_timestamp: new Date().toISOString()
-                    };
+                    }));
 
-                    // Assure que img_check a la structure complète
-                    if (pageResults.img_check) {
-                        pageResults.img_check = {
-                            ...baseImageCheck,
-                            ...pageResults.img_check,
-                            // Force les tableaux à être présents même s'ils sont vides
-                            alt_img: Array.isArray(pageResults.img_check.alt_img) ? pageResults.img_check.alt_img : [],
-                            size_img: Array.isArray(pageResults.img_check.size_img) ? pageResults.img_check.size_img : [],
-                            ratio_img: Array.isArray(pageResults.img_check.ratio_img) ? pageResults.img_check.ratio_img : [],
-                            nb_img_duplicate: Array.isArray(pageResults.img_check.nb_img_duplicate) ? pageResults.img_check.nb_img_duplicate : []
-                        };
-                    } else {
-                        pageResults.img_check = baseImageCheck;
-                    }
-
-                    // Convertit les types de données correctement
-                    pageResults.img_check.img_check_state = Boolean(pageResults.img_check.img_check_state);
-                    pageResults.img_check.nb_img = Number(pageResults.img_check.nb_img) || 0;
-                    pageResults.img_check.global_score = Number(pageResults.img_check.global_score) || 5;
-
-                    console.log('DataChecker final pour cette page:', pageResults);
                     return pageResults;
                 }
             });
@@ -442,6 +460,53 @@ class SitemapAnalyzer {
             }
 
             const pageAnalysis = results[0].result;
+
+            // Vérification supplémentaire pour les liens
+            if (!pageAnalysis.link_check || !Array.isArray(pageAnalysis.link_check.link)) {
+                console.warn(`⚠️ Aucun lien détecté ou structure de liens incorrecte pour ${url}`);
+                // Initialiser une structure vide pour éviter les erreurs
+                pageAnalysis.link_check = pageAnalysis.link_check || {
+                    link_check_state: false,
+                    nb_link: 0,
+                    check_title: "Links validities",
+                    global_score: 0,
+                    profil: ["CDP", "WEBDESIGNER"],
+                    link: []
+                };
+            } else {
+                console.log(`✅ ${pageAnalysis.link_check.link.length} liens récupérés pour ${url}`);
+
+                // Filtrer les liens pour ne garder que ceux qui sont pertinents
+                const totalLinks = pageAnalysis.link_check.link.length;
+                const originalNbLink = pageAnalysis.link_check.nb_link || totalLinks;
+
+                // Filtrer pour prioritiser les liens de contenu et exclure les liens de menu
+                const filteredLinks = pageAnalysis.link_check.link.filter(link => {
+                    console.log('>>>>>>>>>>>>>>>>< liens analysés : ', link);
+
+                    // Si le lien n'a pas d'informations de type, le conserver
+                    if (link.link_type) {
+                        console.log('>>>>lien typé : ✅ ');
+
+                        // Garder les liens de contenu
+                        const autorizedLink = !link.link_type.isMenuLink;
+                        console.log('>>>>>>>>>>>>>>>>>> autorizedLink : ', autorizedLink);
+                        //if (autorizedLink) {
+                        return link;
+                        //}
+                    }
+
+                    // Exclure les autres liens
+                    //return false;
+                });
+                console.log('::::::::::::::::::: liens filtrés :::: ', filteredLinks);
+                // Mettre à jour le tableau des liens mais conserver le nombre total
+                pageAnalysis.link_check.link = filteredLinks;
+                pageAnalysis.link_check.nb_link = originalNbLink;
+
+                console.log(`📊 Filtrage des liens: ${filteredLinks.length}/${totalLinks} liens conservés`);
+            }
+
             console.log('✅ Analyse terminée avec succès');
             console.log('📊 Résultats:', pageAnalysis);
 

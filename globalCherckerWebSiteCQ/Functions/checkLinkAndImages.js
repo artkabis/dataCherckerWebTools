@@ -791,7 +791,7 @@ function initcheckerLinksAndImages() {
 
           const isMenuLink =
             _node &&
-              (_node?.closest(".main-navigation") || _node?.closest(".menu"))
+              (_node?.closest(".main-navigation") || _node?.closest("#menu"))
               ? true
               : false;
           const isMedia = _url
@@ -881,6 +881,7 @@ function initcheckerLinksAndImages() {
           const isMenuLinkLog = isMenuLink ? " >> 🎫 Interne au menu << " : "";
           const isCTALog =
             isCTA && !isImageProductShop ? "__ 🆙 CTA detecté __" : "";
+
           const permalienLog =
             !underForm && !isMedia && !isImageProductShop && permalien
               ? " ---> 🔗 Maillage interne"
@@ -1010,8 +1011,15 @@ function initcheckerLinksAndImages() {
               .replace(",  text : ", "")
               .trim()
               .replace("!!! ALT MANQUANT !!!", ""),
-            link_score: res.ok ? 5 : 0,
-            link_msg: res.ok ? "Lien valide." : "Lien non valide.",
+            link_score: response.status === 200 ? 5 : 0,
+            link_msg: response.status === 200 ? "Lien valide." : "Lien non valide.",
+            link_type: {
+              isMenuLink,
+              permalien,
+              isImageLink,
+              isCTA,
+              isExternalLink
+            }
           });
 
           dataChecker.link_check.link_check_state = true;
