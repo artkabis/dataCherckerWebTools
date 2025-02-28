@@ -96,8 +96,11 @@ function analyzeCurrentPage() {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       var activeTab = tabs[0];
 
-      // Injecter les scripts nécessaires et analyser la page
-      injectScriptsForAnalysis(activeTab);
+      // Envoyer un message au service worker pour démarrer l'analyse
+      chrome.runtime.sendMessage({
+        action: "startCurrentPageAnalysis",
+        tabId: activeTab.id
+      });
 
       // Fermer le popup
       window.close();
@@ -209,7 +212,7 @@ function toggleCors(enable, callback) {
   });
 }
 
-function injectScriptsForAnalysis(tab) {
+async function injectScriptsForAnalysis(tab) {
   if (tab) {
     chrome.scripting.executeScript(
       {

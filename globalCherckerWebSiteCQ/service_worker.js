@@ -1,18 +1,24 @@
 "use strict";
-//import {openDb,getObjectStore} from './Functions/utils.js';
+
 import { creatDB } from "./Functions/creatIndexDB.js";
 import { SitemapAnalyzer } from "./Functions/sitemapAnalyzer.js";
+import { CONFIG, initConfig } from "./config.js";
 
-//import {checkUserSoprod} from "./Functions/checkUserSoprod.js";
-//import { checkUserIndexDB } from "./Functions/checkUserIndexDB.js";
+// Initialisation de la configuration
+let config;
 
-// Définir le nom de votre cache
-//const cacheName = "dataschecker-cache";
-//const extensionBasePath = self.registration.scope;
-// Liste des ressources à mettre en cache (URL complètes)
+// Initialisation au démarrage
+const initialize = async () => {
+  config = await initConfig();
+  console.log("Configuration initialisée:", config);
+};
+
+// Appel immédiat à l'initialisation
+initialize();
 const resourcesToCache = [
   "./popup.html",
   "./popup.js",
+  "./config.js",
   "./interface.html",
   "./service_worker.js",
   "./icons/github-mark-white.png",
@@ -210,6 +216,49 @@ const once = () => {
 };
 
 
+// Fonction d'injection de scripts pour l'analyse d'une page
+function injectScriptsForAnalysis(tabId) {
+  if (tabId) {
+    chrome.scripting.executeScript(
+      {
+        target: { tabId: tabId },
+        files: [
+          "./assets/jquery-3.6.4.min.js",
+          "./Functions/clear.js",
+          "./assets/console.image.min.js",
+          "./Functions/checkAndAddJquery.js",
+          "./Functions/settingsOptions.js",
+        ],
+      },
+      () => {
+        setTimeout(() => {
+          chrome.scripting.executeScript(
+            {
+              target: { tabId: tabId },
+              files: [
+                "./Functions/settingsWords.js",
+                "./Functions/dataCheckerSchema.js",
+                "./Functions/initLighthouse.js",
+                "./Functions/counterWords.js",
+                "./Functions/checkAltImages.js",
+                "./Functions/checkMetas.js",
+                "./Functions/checkLogoHeader.js",
+                "./Functions/checkOldRGPD.js",
+                "./Functions/checkBold.js",
+                "./Functions/checkOutlineHn.js",
+                "./Functions/checkColorContrast.js",
+                "./Functions/counterLettersHn.js",
+                "./Functions/initDataChecker.js",
+                "./Functions/checkDataBindingDuda.js",
+                "./Functions/checkLinkAndImages.js",
+              ],
+            }
+          );
+        }, 50);
+      }
+    );
+  }
+}
 
 //gestionnaire de l'analise des page du sitemap.xml
 let sitemapAnalyzer = null;
@@ -272,6 +321,12 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     sitemapAnalyzer.cancel();
     sitemapAnalyzer = null;
     sendResponse({ status: 'cancelled' });
+  }
+  if (request.action === 'startCurrentPageAnalysis') {
+    // Injecter les scripts pour analyser la page actuelle
+    injectScriptsForAnalysis(request.tabId);
+    sendResponse({ status: 'started' });
+    return true;
   }
 
   // Récupération de l'état actuel de l'analyse

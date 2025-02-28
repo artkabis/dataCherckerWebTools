@@ -11,7 +11,7 @@ export const dudaSitemap = (tab) => {
               .replaceAll("'", "")
           )
         );
-        console.log({menuJson});
+        console.log({ menuJson });
         //menuJson = decodeURIComponent(escape(menuJson));
 
         const subNavOk = menuJson.filter((t) => t.subNav.length > 0);
@@ -51,7 +51,7 @@ export const dudaSitemap = (tab) => {
         navOutDecode.push(
           finalNavOut.map((node) => {
             return {
-              title:  node.title,
+              title: node.title,
               alias: node.alias,
               path: node.path,
               inNavigation: node.inNavigation,
@@ -91,8 +91,10 @@ export const dudaSitemap = (tab) => {
         const allLinksDom = () => {
           let finalLink = [];
           links.forEach((t, i) => {
-            link = t.includes("#") ? t.split("#")[0] : t;
-            finalLink.push(`<a href="${link}">${link}</a><br>`);
+            const link = t.includes("#") ? t.split("#")[0] : t;
+            if (link !== "https://solocaldudaadmin.eu-responsivesiteeditor.com/") {
+              finalLink.push(`<a href="${link}">${link}</a><br>`);
+            }
           });
 
           return [...new Set(finalLink)];
