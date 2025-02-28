@@ -27,3 +27,40 @@ h2 {
     color: #666;
     margin-bottom: 20px;
 }
+.link-type {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    margin-right: 4px;
+}
+
+.link-type-menu {
+    background-color: #6c757d;
+    color: white;
+}
+
+.link-type-content {
+    background-color: #28a745;
+    color: white;
+}
+
+.link-type-footer {
+    background-color: #6610f2;
+    color: white;
+}
+
+.link-type-image {
+    background-color: #fd7e14;
+    color: white;
+}
+
+.link-type-cta {
+    background-color: #dc3545;
+    color: white;
+}
+
+.link-type-external {
+    background-color: #007bff;
+    color: white;
+}

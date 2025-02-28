@@ -482,22 +482,17 @@ class SitemapAnalyzer {
 
                 // Filtrer pour prioritiser les liens de contenu et exclure les liens de menu
                 const filteredLinks = pageAnalysis.link_check.link.filter(link => {
-                    console.log('>>>>>>>>>>>>>>>>< liens analysés : ', link);
+                    if (!link.link_type) return true;
 
-                    // Si le lien n'a pas d'informations de type, le conserver
-                    if (link.link_type) {
-                        console.log('>>>>lien typé : ✅ ');
+                    // Garder les liens qui ne sont pas uniquement des liens de menu
+                    // (par exemple, garder un lien qui est à la fois menu et CTA)
+                    if (link.link_type.permalien) return true;
+                    if (link.link_type.isImageLink && !link.link_type.isMenuLink) return true;
+                    if (link.link_type.isCTA && !link.link_type.isMenuLink) return true;
+                    if (link.link_type.isExternalLink) return true;
 
-                        // Garder les liens de contenu
-                        const autorizedLink = !link.link_type.isMenuLink;
-                        console.log('>>>>>>>>>>>>>>>>>> autorizedLink : ', autorizedLink);
-                        //if (autorizedLink) {
-                        return link;
-                        //}
-                    }
-
-                    // Exclure les autres liens
-                    //return false;
+                    // Exclure les liens qui sont uniquement des liens de menu
+                    return !link.link_type.isMenuLink;
                 });
                 console.log('::::::::::::::::::: liens filtrés :::: ', filteredLinks);
                 // Mettre à jour le tableau des liens mais conserver le nombre total

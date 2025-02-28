@@ -1705,7 +1705,20 @@ function createImagesSection(altCheck, imgCheck) {
 
     return content;
 }
+// Fonction pour afficher le type de lien de manière lisible
+function getLinkTypeDisplay(linkType) {
+    if (!linkType) return 'Non spécifié';
 
+    let display = '';
+    if (linkType.isMenuLink) display += '<span class="link-type link-type-menu">Menu</span>';
+    if (linkType.isContentLink) display += '<span class="link-type link-type-content">Contenu</span>';
+    if (linkType.isFooterLink) display += '<span class="link-type link-type-footer">Footer</span>';
+    if (linkType.isImageLink) display += '<span class="link-type link-type-image">Image</span>';
+    if (linkType.isCTA) display += '<span class="link-type link-type-cta">CTA</span>';
+    if (linkType.isExternalLink) display += '<span class="link-type link-type-external">Externe</span>';
+
+    return display || '<span class="link-type">Standard</span>';
+}
 function createLinksSection(linkCheck) {
     if (!linkCheck?.link) return '<p>Pas de données sur les liens disponibles</p>';
 
@@ -1716,6 +1729,7 @@ function createLinksSection(linkCheck) {
                     <th>URL</th>
                     <th>Texte</th>
                     <th>Status</th>
+                    <th>Type</th>
                     <th>Score</th>
                 </tr>
             </thead>
@@ -1725,6 +1739,7 @@ function createLinksSection(linkCheck) {
                         <td>${link.link_url || ''}</td>
                         <td>${link.link_text || ''}</td>
                         <td>${link.link_status || ''}</td>
+                        <td>${getLinkTypeDisplay(link.link_type)}</td>
                         <td><span class="score ${getScoreClass(link.link_score)}">${link.link_score || '0'}/5</span></td>
                     </tr>
                 `).join('')}

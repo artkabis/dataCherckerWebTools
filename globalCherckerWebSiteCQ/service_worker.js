@@ -367,6 +367,7 @@ async function startAnalysis(source, mode) {
     // Écouteur pour la complétion
     sitemapAnalyzer.on('complete', (results) => {
       // Sauvegarder les résultats
+      console.log('!!!!!!!!!!!!!! results : ', results);
       chrome.storage.local.set({ 'sitemapAnalysis': results });
       sitemapAnalyzer = null; // Libérer la référence
     });
