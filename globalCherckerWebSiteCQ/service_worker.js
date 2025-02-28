@@ -317,12 +317,13 @@ async function startAnalysis(source, mode) {
     });
 
     // Démarrer l'analyse selon le mode
-    if (mode === 'sitemap') {
-      // Mode sitemap classique
-      return await sitemapAnalyzer.start(source);
-    } else {
+    // Démarrer l'analyse selon le mode
+    if (mode === 'urlList' && Array.isArray(source)) {
       // Mode liste d'URLs
       return await sitemapAnalyzer.startWithUrlList(source);
+    } else {
+      // Mode sitemap classique
+      return await sitemapAnalyzer.start(source);
     }
 
   } catch (error) {

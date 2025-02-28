@@ -5,41 +5,123 @@ import { copyExpressionsSoprod } from "./Functions/copyExpressionsSoprod.js";
 import { dudaSitemap } from "./Functions/DudaSitemap.js";
 import { HnOutlineValidity } from "./Functions/HnOutlineValidity.js";
 import { downloaderWPMedia } from "./Functions/downloaderWPMedias.js";
-//import { initSitemapAnalysis } from "./Functions/sitemapAnalyzer.js";
 
+document.addEventListener('DOMContentLoaded', () => {
+  // Affichage de la version dans le popup
+  const manifest = chrome.runtime.getManifest();
+  const versionElement = document.getElementById("version");
+  versionElement.textContent = `v${manifest.version}`;
 
+  // Système d'onglets
+  setupTabs();
 
-document.querySelectorAll('input[name="analysisType"]').forEach(radio => {
-  radio.addEventListener('change', function () {
-    if (this.value === 'sitemap') {
-      document.getElementById('sitemapInput').style.display = 'block';
-      document.getElementById('urlListInput').style.display = 'none';
-    } else {
-      document.getElementById('sitemapInput').style.display = 'none';
-      document.getElementById('urlListInput').style.display = 'block';
-    }
-  });
+  // Gestion du type d'analyse multiple
+  setupAnalysisTypeToggle();
+
+  // Configuration du bouton CORS
+  setupCorsButton();
+
+  // Configuration des boutons d'analyse
+  setupAnalysisButtons();
+
+  // Configuration des outils
+  setupTools();
 });
-// Modification du gestionnaire pour le bouton d'analyse
-document.querySelector("#analyserBtn").addEventListener("click", async function () {
+
+function setupTabs() {
+  const tabButtons = document.querySelectorAll('.tab-btn');
+  const tabPanels = document.querySelectorAll('.tab-panel');
+
+  tabButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      // Désactiver tous les onglets
+      tabButtons.forEach(btn => btn.classList.remove('active'));
+      tabPanels.forEach(panel => panel.classList.remove('active'));
+
+      // Activer l'onglet cliqué
+      button.classList.add('active');
+      const tabId = button.getAttribute('data-tab');
+      document.getElementById(`${tabId}-tab`).classList.add('active');
+    });
+  });
+}
+
+function setupAnalysisTypeToggle() {
+  const radioButtons = document.querySelectorAll('input[name="analysisType"]');
+  const sitemapInput = document.getElementById('sitemapInput');
+  const urlListInput = document.getElementById('urlListInput');
+
+  radioButtons.forEach(radio => {
+    radio.addEventListener('change', () => {
+      if (radio.value === 'sitemap') {
+        sitemapInput.style.display = 'block';
+        urlListInput.style.display = 'none';
+      } else {
+        sitemapInput.style.display = 'none';
+        urlListInput.style.display = 'block';
+      }
+    });
+  });
+}
+
+function setupCorsButton() {
+  const toggleButton = document.getElementById("corsButton");
+
+  // Initialiser l'état du bouton CORS
+  chrome.storage.sync.get("corsEnabled", (result) => {
+    const corsEnabled = result.corsEnabled || false;
+    toggleButton.checked = corsEnabled;
+  });
+
+  // Écouter les changements d'état du bouton CORS
+  toggleButton.addEventListener("click", () => {
+    const corsEnabled = toggleButton.checked;
+    chrome.storage.sync.set({ corsEnabled: corsEnabled }, () => {
+      chrome.runtime.sendMessage({ corsEnabled: corsEnabled });
+    });
+  });
+}
+
+function setupAnalysisButtons() {
+  // Analyse de la page courante
+  document.getElementById("currentPageBtn").addEventListener("click", analyzeCurrentPage);
+
+  // Analyse par sitemap ou liste d'URLs
+  document.getElementById("analyserBtn").addEventListener("click", analyzeMultiplePages);
+}
+
+function analyzeCurrentPage() {
+  // Activer CORS temporairement pour l'analyse
+  toggleCors(true, () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      var activeTab = tabs[0];
+
+      // Injecter les scripts nécessaires et analyser la page
+      injectScriptsForAnalysis(activeTab);
+
+      // Fermer le popup
+      window.close();
+    });
+  });
+}
+
+function analyzeMultiplePages() {
   try {
     // Désactiver le bouton pendant l'initialisation
-    this.disabled = true;
-    this.innerHTML = '<span class="icon">⏳</span><span class="text">Initialisation...</span>';
+    const analyzeBtn = document.getElementById("analyserBtn");
+    analyzeBtn.disabled = true;
+    analyzeBtn.innerHTML = '<span class="icon">⏳</span> Initialisation...';
 
     // Déterminer le mode d'analyse sélectionné
     const analysisType = document.querySelector('input[name="analysisType"]:checked').value;
 
-    let urls = [];
-
     if (analysisType === 'sitemap') {
       // Mode sitemap.xml
-      const sitemapUrl = document.getElementById('sitemapUrlInput').value;
+      const sitemapUrl = document.getElementById('sitemapUrlInput').value.trim();
 
       if (!sitemapUrl) {
-        alert("Veuillez entrer l'URL du sitemap.xml");
-        this.disabled = false;
-        this.innerHTML = 'Analyser';
+        showNotification("Veuillez entrer l'URL du sitemap.xml", "error");
+        resetButton(analyzeBtn);
         return;
       }
 
@@ -47,34 +129,33 @@ document.querySelector("#analyserBtn").addEventListener("click", async function 
       try {
         new URL(sitemapUrl);
       } catch (e) {
-        alert("URL de sitemap invalide. Veuillez entrer une URL complète valide.");
-        this.disabled = false;
-        this.innerHTML = 'Analyser';
+        showNotification("URL de sitemap invalide. Veuillez entrer une URL complète valide.", "error");
+        resetButton(analyzeBtn);
         return;
       }
 
       // Envoyer un message au service worker pour démarrer l'analyse par sitemap
-      chrome.runtime.sendMessage(
-        { action: "startSitemapAnalysis", sitemapUrl: sitemapUrl },
-        (response) => {
-          // Le service worker a reçu la demande, le popup peut se fermer
-          window.close();
-        }
-      );
+      toggleCors(true, () => {
+        chrome.runtime.sendMessage(
+          { action: "startSitemapAnalysis", sitemapUrl: sitemapUrl },
+          () => {
+            window.close();
+          }
+        );
+      });
 
     } else {
       // Mode liste d'URLs
-      const urlList = document.getElementById('urlListTextarea').value;
+      const urlList = document.getElementById('urlListTextarea').value.trim();
 
-      if (!urlList.trim()) {
-        alert("Veuillez entrer au moins une URL à analyser");
-        this.disabled = false;
-        this.innerHTML = 'Analyser';
+      if (!urlList) {
+        showNotification("Veuillez entrer au moins une URL à analyser", "error");
+        resetButton(analyzeBtn);
         return;
       }
 
       // Parser et nettoyer les URLs
-      urls = urlList.split(',')
+      const urls = urlList.split(',')
         .map(url => url.trim())
         .filter(url => url.length > 0);
 
@@ -89,282 +170,196 @@ document.querySelector("#analyserBtn").addEventListener("click", async function 
       });
 
       if (invalidUrls.length > 0) {
-        alert(`Les URLs suivantes ne sont pas valides:\n${invalidUrls.join('\n')}`);
-        this.disabled = false;
-        this.innerHTML = 'Analyser';
+        showNotification(`Les URLs suivantes ne sont pas valides:\n${invalidUrls.join('\n')}`, "error");
+        resetButton(analyzeBtn);
         return;
       }
 
       // Envoyer un message au service worker pour démarrer l'analyse par liste d'URLs
-      chrome.runtime.sendMessage(
-        { action: "startUrlListAnalysis", urls: urls },
-        (response) => {
-          // Le service worker a reçu la demande, le popup peut se fermer
-          window.close();
-        }
-      );
+      toggleCors(true, () => {
+        chrome.runtime.sendMessage(
+          { action: "startUrlListAnalysis", urls: urls },
+          () => {
+            window.close();
+          }
+        );
+      });
     }
 
   } catch (error) {
     console.error('Erreur lors de l\'initialisation:', error);
-    alert(`Erreur: ${error.message}`);
-    this.disabled = false;
-    this.innerHTML = 'Analyser';
+    showNotification(`Erreur: ${error.message}`, "error");
+    resetButton(document.getElementById("analyserBtn"));
   }
-});
-document.querySelector("#sitemapAnalyzer").addEventListener("click", async function () {
-  try {
-    // Désactiver le bouton pendant l'initialisation
-    this.disabled = true;
-    this.innerHTML = '<span class="icon">⏳</span><span class="text">Initialisation...</span>';
+}
 
-    // Demander l'URL du sitemap
-    const sitemapUrl = prompt("Veuillez entrer l'URL complète du sitemap.xml", "https://example.com/sitemap.xml");
+function resetButton(button) {
+  button.disabled = false;
+  button.innerHTML = '<span class="icon">🔍</span> Analyser';
+}
 
-    if (!sitemapUrl) {
-      // L'utilisateur a annulé
-      this.disabled = false;
-      this.innerHTML = '<span class="icon">🌐</span><span class="text">Analyser le site</span>';
-      return;
-    }
+function toggleCors(enable, callback) {
+  chrome.storage.sync.set({ corsEnabled: enable }, () => {
+    chrome.runtime.sendMessage({ corsEnabled: enable });
 
-    // Valider l'URL
-    try {
-      new URL(sitemapUrl);
-    } catch (e) {
-      alert("URL invalide. Veuillez entrer une URL complète valide.");
-      this.disabled = false;
-      this.innerHTML = '<span class="icon">🌐</span><span class="text">Analyser le site</span>';
-      return;
-    }
+    // Attendre un peu pour s'assurer que le message est traité
+    setTimeout(() => {
+      if (callback) callback();
+    }, 100);
+  });
+}
 
-    // Envoyer un message au service worker pour démarrer l'analyse
-    chrome.runtime.sendMessage(
-      { action: "startSitemapAnalysis", sitemapUrl: sitemapUrl },
-      (response) => {
-        // Le service worker a reçu la demande, le popup peut se fermer
-        window.close();
+function injectScriptsForAnalysis(tab) {
+  if (tab) {
+    chrome.scripting.executeScript(
+      {
+        target: { tabId: tab.id },
+        files: [
+          "./assets/jquery-3.6.4.min.js",
+          "./Functions/clear.js",
+          "./assets/console.image.min.js",
+          "./Functions/checkAndAddJquery.js",
+          "./Functions/settingsOptions.js",
+        ],
+      },
+      () => {
+        setTimeout(() => {
+          chrome.scripting.executeScript(
+            {
+              target: { tabId: tab.id },
+              files: [
+                "./Functions/settingsWords.js",
+                "./Functions/dataCheckerSchema.js",
+                "./Functions/initLighthouse.js",
+                "./Functions/counterWords.js",
+                "./Functions/checkAltImages.js",
+                "./Functions/checkMetas.js",
+                "./Functions/checkLogoHeader.js",
+                "./Functions/checkOldRGPD.js",
+                "./Functions/checkBold.js",
+                "./Functions/checkOutlineHn.js",
+                "./Functions/checkColorContrast.js",
+                "./Functions/counterLettersHn.js",
+                "./Functions/initDataChecker.js",
+                "./Functions/checkDataBindingDuda.js",
+                "./Functions/checkLinkAndImages.js",
+              ],
+            }
+          );
+        }, 50);
       }
     );
-
-  } catch (error) {
-    console.error('Erreur lors de l\'initialisation:', error);
-    alert(`Erreur: ${error.message}`);
-    this.disabled = false;
-    this.innerHTML = '<span class="icon">🌐</span><span class="text">Analyser le site</span>';
   }
-});
+}
 
-
-
-//Affichage de la version dans popup via manifest.version
-document.addEventListener("DOMContentLoaded", function () {
-  // use Chrome API chrome.runtime.getManifest() for listen the version of this extension
-  const manifest = chrome.runtime.getManifest();
-  const version = manifest.version;
-  //Add version in popup.html
-  const versionDiv = document.getElementById("version");
-  console.log({ versionDiv });
-  versionDiv.innerText = "Version : " + version;
-});
-
-//listen cors toggle cors activity
-var toggleButton = document.getElementById("corsButton");
-document.addEventListener("DOMContentLoaded", function () {
-  let corsEnabled = false;
-  chrome.storage.sync.set({ corsEnabled: corsEnabled }, function () {
-    // update state of cors
-
-    toggleButton.checked = corsEnabled;
-    toggleButton.textContent = !corsEnabled ? "Désactiver" : "Activer";
-    console.log("click toggle cors : ", { corsEnabled });
-    // send message in service-worker for update state
-    chrome.runtime.sendMessage({ corsEnabled: corsEnabled });
-  });
-
-  // get actualy state of corsEnabled value
-  chrome.storage.sync.get("corsEnabled", function (result) {
-    var corsEnabled = result.corsEnabled;
-    toggleButton.checked = corsEnabled; // update state checkbox
-    toggleButton.textContent = !corsEnabled ? "Désactiver" : "Activer";
-
-    // listen event click checkbox
-    toggleButton.addEventListener("click", function () {
-      // toggle value of corsEnabled
-      corsEnabled = !corsEnabled;
-      chrome.storage.sync.set({ corsEnabled: corsEnabled }, function () {
-        // update state checkbox
-        toggleButton.checked = corsEnabled;
-        toggleButton.textContent = corsEnabled ? "Désactiver" : "Activer";
-        console.log("click toggle cors : ", { corsEnabled });
-        // send message for the update the corsEnabled in service-worker
-        chrome.runtime.sendMessage({ corsEnabled: corsEnabled });
+function setupTools() {
+  // Outil Sitemap WP
+  document.getElementById("sitemapWP").addEventListener("click", function () {
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      chrome.scripting.executeScript({
+        target: { tabId: tabs[0].id },
+        function() {
+          let sitemap = window.location.origin + "/page-sitemap.xml";
+          window.open(sitemap, "_blank", "width=900,height=600,toolbar=no");
+        },
       });
     });
   });
-});
 
-document.querySelector(".openSitemap").addEventListener("click", function () {
-  console.log("btn sitemap : ", this);
-  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    chrome.scripting.executeScript({
-      target: { tabId: tabs[0].id },
-      function() {
-        let sitemap = window.location.origin + "/page-sitemap.xml";
-        window.open(sitemap, "_blank", "width=900,height=600,toolbar=no");
-      },
-    });
-  });
-});
-
-document
-  .querySelector("#copyExpressionsSoprod")
-  .addEventListener("click", function () {
+  // Outil Copy Expressions Soprod
+  document.getElementById("copyExpressionsSoprod").addEventListener("click", function () {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       copyExpressionsSoprod(tabs[0]);
     });
   });
 
-document
-  .querySelector("#downloadMediaWP")
-  .addEventListener("click", function () {
+  // Outil Download Media WP
+  document.getElementById("downloadMediaWP").addEventListener("click", function () {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       downloaderWPMedia(tabs[0]);
     });
   });
 
-document
-  .querySelector("#openGoogleSchemaValidator")
-  .addEventListener("click", function () {
+  // Outil Google Schema Validator
+  document.getElementById("openGoogleSchemaValidator").addEventListener("click", function () {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       richResultGoole(tabs[0]);
     });
   });
-document
-  .querySelector("#designModeToggle")
-  .addEventListener("click", function () {
-    !this.classList.contains("actif")
-      ? this.classList.add("actif")
-      : this.classList.remove("actif");
+
+  // Outil Design Mode Toggle
+  const designModeBtn = document.getElementById("designModeToggle");
+  designModeBtn.addEventListener("click", function () {
+    this.classList.toggle("active");
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       toggleDesignMode(tabs[0]);
     });
   });
-document.querySelector("#linksDuda").addEventListener("click", function () {
-  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    dudaSitemap(tabs[0]);
-  });
-});
 
-document
-  .querySelector("#openHnValidity")
-  .addEventListener("click", function () {
+  // Outil Links Duda
+  document.getElementById("linksDuda").addEventListener("click", function () {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-      const activeTab = tabs[0];
-      HnOutlineValidity(activeTab);
+      dudaSitemap(tabs[0]);
     });
   });
 
-document.querySelector("#analyserBtn").addEventListener("click", function () {
-  var toggleButton = document.getElementById("corsButton");
-  toggleButton.click();
-  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    var activeTab = tabs[0];
-    var tabId = activeTab.id;
-    chrome.tabs.get(tabId, function (tab) {
-      var tabContent = tab ? tab.content : null;
-      console.log(tab, { tabContent });
-      if (tab) {
-        chrome.scripting.executeScript(
-          {
-            target: { tabId: tab.id },
-            files: [
-              "./assets/jquery-3.6.4.min.js",
-              "./Functions/clear.js",
-              "./assets/console.image.min.js",
-              "./Functions/checkAndAddJquery.js",
-              "./Functions/settingsOptions.js",
-            ],
-          },
-          () => {
-            setTimeout(() => {
-              chrome.scripting.executeScript(
-                {
-                  target: { tabId: tab.id },
-                  files: [
-                    "./Functions/settingsWords.js",
-                    "./Functions/dataCheckerSchema.js",
-                    "./Functions/initLighthouse.js",
-                    "./Functions/counterWords.js",
-                    "./Functions/checkAltImages.js",
-                    "./Functions/checkMetas.js",
-                    "./Functions/checkLogoHeader.js",
-                    "./Functions/checkOldRGPD.js",
-                    "./Functions/checkBold.js",
-                    "./Functions/checkOutlineHn.js",
-                    "./Functions/checkColorContrast.js",
-                    "./Functions/counterLettersHn.js",
-                    "./Functions/initDataChecker.js",
-                    "./Functions/checkDataBindingDuda.js",
-                    "./Functions/checkLinkAndImages.js",
-                  ],
-                },
-                () => {
-                  // Fermez la fenêtre contextuelle
-                  window.close();
-                }
-              );
-            }, 50);
-          }
-        );
-
-      }
+  // Outil Hn Validity
+  document.getElementById("openHnValidity").addEventListener("click", function () {
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      HnOutlineValidity(tabs[0]);
     });
   });
-});
-document.querySelector("#wordsCloud").addEventListener("click", function () {
-  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    var activeTab = tabs[0];
-    var tabId = activeTab.id;
-    chrome.tabs.get(tabId, function (tab) {
-      if (tab) {
-        // Exécuter les scripts dans l'ordre
-        chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          files: ["./assets/jquery-3.6.4.min.js"]
-        }).then(() => {
-          return chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            files: ["./Functions/settingsWords.js"]
-          });
-        }).then(() => {
-          return chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            files: ["./Functions/counterWords.js"]
-          });
-        }).then(() => {
-          return chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            files: ["./Functions/wordsCountLexical.js"]
-          });
-        }).then(() => {
-          // Exécuter la fonction après le chargement de tous les scripts
+
+  // Outil Words Cloud
+  document.getElementById("wordsCloud").addEventListener("click", function () {
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      var activeTab = tabs[0];
+      var tabId = activeTab.id;
+      chrome.tabs.get(tabId, function (tab) {
+        if (tab) {
+          // Exécuter les scripts dans l'ordre
           chrome.scripting.executeScript({
             target: { tabId: tab.id },
-            func: () => {
-              // On vérifie que la fonction existe bien
-              if (typeof window.wordsCloudCounter === 'function') {
-                // On l'exécute
-                window.wordsCloudCounter();
-              } else {
-                console.error("wordsCloudCounter n'est pas disponible");
+            files: ["./assets/jquery-3.6.4.min.js"]
+          }).then(() => {
+            return chrome.scripting.executeScript({
+              target: { tabId: tab.id },
+              files: ["./Functions/settingsWords.js"]
+            });
+          }).then(() => {
+            return chrome.scripting.executeScript({
+              target: { tabId: tab.id },
+              files: ["./Functions/counterWords.js"]
+            });
+          }).then(() => {
+            return chrome.scripting.executeScript({
+              target: { tabId: tab.id },
+              files: ["./Functions/wordsCountLexical.js"]
+            });
+          }).then(() => {
+            // Exécuter la fonction après le chargement de tous les scripts
+            chrome.scripting.executeScript({
+              target: { tabId: tab.id },
+              func: () => {
+                // On vérifie que la fonction existe bien
+                if (typeof window.wordsCloudCounter === 'function') {
+                  // On l'exécute
+                  window.wordsCloudCounter();
+                } else {
+                  console.error("wordsCloudCounter n'est pas disponible");
+                }
               }
-            }
+            });
+          }).catch(err => {
+            console.error('Erreur lors du chargement des scripts:', err);
           });
-        }).catch(err => {
-          console.error('Erreur lors du chargement des scripts:', err);
-        });
-      }
+        }
+      });
     });
   });
-});
+}
+
+function showNotification(message, type = "info") {
+  // On pourrait implémenter une notification toast ici
+  alert(message);
+}

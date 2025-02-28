@@ -1,466 +1,164 @@
 <!DOCTYPE html>
-<html lang="fr" xml:lang="fr" xmlns="http://www.w3.org/1999/xhtml">
+<html lang="fr">
   <head>
     <meta charset="utf-8" />
-    <title>Website health Checker</title>
-    <style>
-      .contentPopup {
-        position: relative;
-        min-width: 355px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        background: #222;
-        color: white;
-        border-radius: 15px 0;
-        padding: 35px;
-        /* top: 30px; */
-      }
-      .containerTools {
-        display: flex;
-        align-items: center;
-        justify-content: space-around;
-        width: 100%;
-        flex-wrap: wrap;
-      }
-      .containerTools a {
-        margin: 10px calc(100% / 20) 10px calc(100% / 20);
-      }
-      .containerTools a img {
-        max-width: 40px;
-      }
-
-      #sitemapWP > img,
-      #sitemapDuda > img,
-      #openHnValidity img {
-        background: white;
-      }
-      a#copyExpressionsSoprod img {
-        max-width: 50px;
-      }
-      #openGoogleSchemaValidator {
-        display: flex;
-      }
-
-      button#analyserBtn {
-        background: dodgerblue;
-        padding: 5px 25px;
-        border: none;
-        margin-top: 30px;
-        color: honeydew;
-        text-transform: uppercase;
-        border-radius: 5px;
-        font-size: 1.5em;
-        cursor: pointer;
-      }
-      #designModeToggle:not(.actif) {
-        box-shadow: inset 0em 0em 1em black;
-        border-top: solid grey 1px;
-        border-left: solid black;
-      }
-      #designModeToggle.actif {
-        box-shadow: 0 0px 3px 0px #000000;
-        border: none;
-      }
-      .slider-checkbox {
-        position: relative;
-      }
-      .slider-checkbox input {
-        margin: 0px;
-        margin-top: 1px;
-        cursor: pointer;
-        opacity: 0;
-        -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=0)";
-        filter: alpha(opacity=0);
-        -moz-opacity: 0;
-        -khtml-opacity: 0;
-        opacity: 0;
-        position: absolute;
-        z-index: 1;
-        top: 0px;
-        left: 0px;
-        background: red;
-        width: 40px;
-        height: 20px;
-      }
-      .slider-checkbox input:checked + .labelCors:before {
-        background-color: #1877c1;
-        content: "V";
-        padding-left: 6px;
-      }
-      .slider-checkbox input:checked + .labelCors:after {
-        left: 21px;
-      }
-      .slider-checkbox .labelCors {
-        position: relative;
-        padding-left: 46px;
-      }
-      .slider-checkbox .labelCors:before,
-      .slider-checkbox .labelCors:after {
-        position: absolute;
-        -webkit-border-radius: 10px;
-        -moz-border-radius: 10px;
-        border-radius: 10px;
-        transition: background-color 0.3s, left 0.3s;
-      }
-      .slider-checkbox .labelCors:before {
-        content: "X";
-        color: #fff;
-        box-sizing: border-box;
-        font-family: "FontAwesome", sans-serif;
-        padding-left: 23px;
-        font-size: 12px;
-        line-height: 20px;
-        background-color: #888;
-        left: 0px;
-        top: 0px;
-        height: 20px;
-        width: 40px;
-        -webkit-border-radius: 10px;
-        -moz-border-radius: 10px;
-        border-radius: 10px;
-      }
-      .slider-checkbox .labelCors:after {
-        content: "";
-        letter-spacing: 20px;
-        background: #fff;
-        left: 1px;
-        top: 1px;
-        height: 18px;
-        width: 18px;
-      }
-      .containerTools a {
-        cursor: pointer;
-      }
-      #downloadMediaWP img {
-        max-width: 30px;
-        height: auto;
-      }
-      .mt30 {
-        margin-top: 30px;
-      }
-      .warning {
-        color: red;
-        font-size: 1.3em;
-        font-weight: 500;
-      }
-      #btnGithub {
-        max-width: 100%;
-      }
-
-      .modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 1000;
-      }
-
-      .modal-content {
-        position: relative;
-        background: white;
-        margin: 20px;
-        padding: 20px;
-        border-radius: 8px;
-        max-width: 500px;
-        max-height: 80vh;
-        overflow-y: auto;
-      }
-
-      .modal-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-      }
-
-      .close-modal {
-        cursor: pointer;
-        font-size: 24px;
-      }
-
-      .url-options .option {
-        margin-bottom: 15px;
-        padding: 10px;
-        border: 1px solid #e0e0e0;
-        border-radius: 4px;
-      }
-
-      .input-container {
-        margin-top: 10px;
-        margin-left: 25px;
-      }
-
-      .input-container input[type="text"],
-      .input-container textarea {
-        width: 100%;
-        padding: 8px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        margin-top: 5px;
-      }
-
-      .auto-sitemap-info {
-        margin-left: 25px;
-        padding: 5px;
-        color: #666;
-        font-style: italic;
-      }
-
-      small {
-        display: block;
-        color: #666;
-        margin-top: 5px;
-      }
-
-      .modal-footer {
-        margin-top: 20px;
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-      }
-
-      .btn-primary {
-        background: #007bff;
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 4px;
-        cursor: pointer;
-      }
-
-      .btn-secondary {
-        background: #6c757d;
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 4px;
-        cursor: pointer;
-      }
-      .analysis-options {
-        width: 100%;
-        margin: 15px 0;
-      }
-
-      .option-toggle {
-        display: flex;
-        justify-content: space-around;
-        margin-bottom: 10px;
-      }
-
-      .option-toggle label {
-        display: flex;
-        align-items: center;
-        cursor: pointer;
-        color: #fff;
-      }
-
-      .input-container {
-        width: 100%;
-      }
-
-      #sitemapUrlInput {
-        width: 100%;
-        padding: 8px;
-        border-radius: 5px;
-        border: none;
-      }
-
-      #urlListTextarea {
-        width: 100%;
-        height: 80px;
-        padding: 8px;
-        border-radius: 5px;
-        border: none;
-        resize: vertical;
-      }
-    </style>
+    <title>Website Health Checker</title>
+    <link rel="stylesheet" href="./css/popup.css" />
   </head>
   <body>
-    <div class="contentPopup">
-      <span id="version"></span>
-      <h1>Website health Checker</h1>
-      <section class="slider-checkbox">
-        <input type="checkbox" id="corsButton" />
-        <label for="corsButton" class="labelCors"
-          >Activer la gestion des Cors</label
-        >
-      </section>
-      <br />
-      <span class="slider"></span>
-      <div class="containerTools">
-        <div class="analysis-options">
-          <div class="option-toggle">
-            <label>
-              <input type="radio" name="analysisType" value="sitemap" checked />
-              Analyser via sitemap.xml
-            </label>
-            <label>
-              <input type="radio" name="analysisType" value="urlList" />
-              Analyser une liste d'URLs
-            </label>
-          </div>
+    <div class="app-container">
+      <!-- Header -->
+      <header>
+        <div class="app-title">
+          <h1>Website Health Checker</h1>
+          <span class="version-badge" id="version">v3.2.0</span>
+        </div>
+        <div class="toggle-container">
+          <label class="toggle">
+            <input type="checkbox" id="corsButton" />
+            <span class="toggle-slider"></span>
+          </label>
+          <span class="toggle-label">CORS</span>
+        </div>
+      </header>
 
-          <div id="sitemapInput" class="input-container">
-            <input
-              type="text"
-              id="sitemapUrlInput"
-              placeholder="URL du sitemap.xml (ex: https://example.com/sitemap.xml)"
-            />
-          </div>
-
-          <div id="urlListInput" class="input-container" style="display: none">
-            <textarea
-              id="urlListTextarea"
-              placeholder="Liste d'URLs séparées par des virgules &#10;ex: https://example.com/page1,&#10;https://example.com/page2"
-            ></textarea>
-          </div>
+      <!-- Analysis section -->
+      <section class="analysis-section">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="single">
+            Analyse de page
+          </button>
+          <button class="tab-btn" data-tab="multi">Analyse multi-pages</button>
         </div>
 
-        <button type="button" id="analyserBtn">Analyser</button>
-        <button type="button" class="btn-action" id="sitemapAnalyzer">
-          <span class="icon">🌐</span>
-          <span class="text">Analyser tout le site</span>
-        </button>
-        <a class="openSitemap" id="sitemapWP"
-          ><img
-            alt="Sitemap du site WP"
-            title="open sitempa.xml WP"
-            src="./icons/sitemap.png"
-        /></a>
-        <a id="linksDuda"
-          ><img
-            alt="Liste des liens Duda"
-            src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAHcAAAA2CAMAAADK4/ZxAAAAeFBMVEX/ZwD/////YAD/YwD/9vL/kWL/WAD/t57/q4n/XAD/39T/3Mz/49j/5uD/sZD/qI7/wav/iVb/+/j/dTL/TwD/mXT/pX//eTn/n3r/xbD/0cH/fED/vab/7uj/6uH/hVH/lWz/zLn/axH/cin/bB3/sZb/gUr/nn9xV8clAAAC+ElEQVRYhe2Yf3eqMAyGJYFINiZXAWVMFMd03/8bXmgLFFpA77lHd3bMX7Th7VP6I4kunMfY4nFc9/5Wc08E9zbOKq4Pi3sbLx/DhSf3B3CBa7ttVtdpJrl8OgRBcDjxDVjOhOZ9RjPJpUAElhe6gUtvQvM6o3lyn9wn97dxEQGwz5XpGpsXZNOmsXCFC/WXbVxk2iXbbYGkcdGvbeVJNR5XookDjVdpBtzK8+ml2216JMYpLpfvG1l4vexeWi7IPhV2YSXfAFMT9bjARbZpCrks4nEuLbWSz+248vGPlWvRSC6eXUe3LY9xq3rLsDmuTSO4/DrsbsEDLp3MIea4Vo3g4ofRX6KNC4lliBkupDaNXGfey5bb7vEebFxU/mxN8Ve7aTNcq0adK8rz84XiOEblccnCBV86PcL6AkSbK7jN40CjuPhJMUQfEVOsPt22znQQrlRtPhRXcJUmaTRJj8tf50M9EzfzjtJxQZOLwnNoQw1ccY/ArpFc2nY7rm7U2uSinNK5O93BLNfUaHGDfccwG1eua4G3cKXGQwsXdyZ2gpv+AzexcVmGWSfzvWSZT3Dlmi35Fq6hablYyn2NqEpG3EQXC1edq7f2jFA+5GY0d66UpubKgOL1PsrKVXfCa6ZxcYbcjXQ1kwdTo4avuCBDxZdKnetxLpzl4FGdKREw77gsl895jxGR1MUW32vXdFwVDdgb57ZxcrmjuPSboCq4+6bhlWUbDfU42dfUXHWLUiIm8jYTXC3Ga4lT1BuRYzHB7WKDpqn3t8lGmyB7bV1W7ngerH4bjnDH8yAHFoeda0nVTT0JuemBUY2IG2b6HeWO1Tl1ajlow+rc0ToH1lp/Ps3VarTsUy5UoHIarZrDWvo9bqU5NRp80+eKe7WxeXKZ4VZJlHdpGCYLhu+wtqQ9dlwmYVhUjqNwhDjQFJ1GuZjLIgy/dwSRlESLMe6ircFVeY5jDlvdbmjqftHsSX7m/zlP7v/lMt7bqObm3t2tcB/5P/9D7C9haDsOOIjWsAAAAABJRU5ErkJggg=="
-            title="Afficher l'ensemble des pages de ce site."
-          />
-          Nav</a
-        >
-        <a id="openHnValidity"
-          ><img
-            alt="Vérifier la strcture de la hierachie des Hn"
-            title="Voir le outline des Hn de la page web"
-            src="./icons/HnIcon.JPG"
-        /></a>
-        <br />
-        <a id="openGoogleSchemaValidator"
-          ><img
-            alt="google icon"
-            title="check schema markup Google"
-            src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAADmUlEQVR4Ab1XA5AjQRQ9G6UrnV0627Zt27Zt27Zt27Z9FyeXiZN3v1NzW9vTmd3J6lW9cKbf6690EmlFIBDIQGzr9/vXE+8RjUSPTIP82Xq6pg27VvPCGoTz08KbiE5oBF3rIG6ge/PGWBhAGlpkAdEHzRCMeInzyEjqcHedj258gbgBM/KU1syjVbwo3aBHCPh+foe0YyMsw/vC0KI2dDVLQ1ejFAzNasI8tDekLWvh+/5VzYQOQGENOxfFfb9+wDplNHTVS0JXrUTUpGusk0aye0Ka4CPBi6cNFXbn2RPQ16vIi2igvn4luC6dVUuHWBOs4KCAtGtzOKICbXOnqKVjbqhW8yl2rrqwqUcb2Nctg/P4QThPHKLXy2Hq2ZYXXzgTCARUu4NLBetzZbHp61YQhI3tG8N9/zbU4L53C4bW9fF3+XwtnbH+f79nVA4Z++IBgri5fxcEbDZEh4Bk19qaEkUhPQt/W24Bxwd4z6SEdVSOCHHWcn6LCXEN0m7Fwr+ec/ZpJrznkwcpLcsEfZ3icJ4+hvgAaa9hBu5x+X9Qk4lH0H0wJ+D1xpeB28yAEZHgvZqFM+B71gZRoeoMu2ZeeuEVBhMz4OEMXEjJGfC/nxBnBnbc8CgNuBPUwKYr7pAGDFGm4GnrODOw97YQAZ1YhA9rcQa+Xy0Ij9+LcPFR5xcMXHnlFYtQbMPZEeLHTuRE+d2NcfjDeYSL3bc8goFfloDYhuwMxw+iT3CcT42Zh4uh+O5mQdY83BUGpxla8dcZQPPFEifeeY0j1CBqGTxskhPu20W3pjJhju3PjIDFHf0o9viAUbucwu73iPmXAKT7/2O0AZHw065Dxf3tBBP1j/bC1R/3oYa35s/odmQ3CVo5cRYNh1sI/9rIP8d5/X6+0k59vioLi2x+ciAWPNyEvW9PYd+701jxdAe6nx+HErubB78vtXkUqsz5FmHg2mufUtxDmrmVB5J5UGDb6yOCuFaW2NEZFRfeFXpfNjBL7Rj+DAqc+XKd0tE+bAOl9rTEuqdHQok/BpBK7VyYRz69cvgl6THu5iKU3NNck3ivixPxyvQhlPhvALmi+0NSmDfBF+eWV4fQ//JU1DnSA6X3tmQ7pTbthh4XJgRr4bXpI2QI4rTBQurKYiSeIo7Awi7sXIOJ1Oz0SvTGQthDnKWW83CisZ4ohSEsEdfKrRY3YAdIYis2v4m3iTqiW6ZO/mwNG6/yhNOEf6HhfzYhUKeuAAAAAElFTkSuQmCC"
-        /></a>
-        <a id="downloadMediaWP"
-          ><img
-            alt="Downloader media WP"
-            title="Télécharger les medias de la biliothèque WP"
-            src="./icons/download-WP-media.JPG"
-        /></a>
-        <a id="designModeToggle"
-          ><img
-            alt="Design Mode"
-            title="Activer ou desactiver le DesignMode pour corriger le texte du site avec MerciApp"
-            src="./icons/merciAppIcon.JPG"
-        /></a>
-        <a id="copyExpressionsSoprod"
-          ><img
-            alt="Copy expression Soprod"
-            title="Copier les expressions suivies de Soprod"
-            src="./icons/soprod.png"
-        /></a>
-        <a id="wordsCloud">Words cloud</a>
-      </div>
-      <div id="siteAnalyzerModal" class="modal" style="display: none">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h3>Analyse complète du site</h3>
-            <span class="close-modal">&times;</span>
-          </div>
-          <div class="modal-body">
-            <div class="url-options">
-              <div class="option">
+        <!-- Single page analysis panel -->
+        <div class="tab-panel active" id="single-tab">
+          <p class="info-text">Analyser la page web courante</p>
+          <button type="button" class="btn primary-btn" id="currentPageBtn">
+            <span class="icon">📊</span> Analyser cette page
+          </button>
+        </div>
+
+        <!-- Multi-page analysis panel -->
+        <div class="tab-panel" id="multi-tab">
+          <div class="input-group">
+            <div class="radio-group">
+              <label class="radio-label">
                 <input
                   type="radio"
-                  name="urlMode"
-                  id="autoSitemap"
-                  value="auto"
+                  name="analysisType"
+                  value="sitemap"
                   checked
                 />
-                <label for="autoSitemap">Utiliser le sitemap par défaut</label>
-                <div class="auto-sitemap-info">
-                  <span id="defaultSitemapUrl"></span>
-                </div>
-              </div>
-              <div class="option">
-                <input
-                  type="radio"
-                  name="urlMode"
-                  id="customSitemap"
-                  value="custom"
-                />
-                <label for="customSitemap">URL personnalisée du sitemap</label>
-                <div class="input-container" data-for="customSitemap">
-                  <input
-                    type="text"
-                    id="sitemapUrl"
-                    placeholder="https://monsite.com/sitemap.xml"
-                    disabled
-                  />
-                  <small>Format : sitemap.xml, sitemap_index.xml, etc.</small>
-                </div>
-              </div>
-              <div class="option">
-                <input
-                  type="radio"
-                  name="urlMode"
-                  id="manualUrls"
-                  value="manual"
-                />
-                <label for="manualUrls">Liste d'URLs à analyser</label>
-                <div class="input-container" data-for="manualUrls">
-                  <textarea
-                    id="urlsList"
-                    rows="5"
-                    placeholder="https://monsite.com/page1&#10;https://monsite.com/page2&#10;https://monsite.com/page3"
-                    disabled
-                  ></textarea>
-                  <small>Une URL par ligne</small>
-                </div>
-              </div>
+                <span>Sitemap XML</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="analysisType" value="urlList" />
+                <span>Liste d'URLs</span>
+              </label>
             </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" id="startAnalysis" class="btn-primary">
-              Lancer l'analyse
-            </button>
-            <button type="button" class="btn-secondary close-modal">
-              Annuler
+
+            <div id="sitemapInput" class="input-wrapper">
+              <input
+                type="text"
+                id="sitemapUrlInput"
+                placeholder="URL du sitemap.xml (ex: https://example.com/sitemap.xml)"
+              />
+            </div>
+
+            <div id="urlListInput" class="input-wrapper" style="display: none">
+              <textarea
+                id="urlListTextarea"
+                placeholder="Liste d'URLs séparées par des virgules&#10;ex: https://example.com/page1,&#10;https://example.com/page2"
+              ></textarea>
+            </div>
+
+            <button type="button" class="btn primary-btn" id="analyserBtn">
+              <span class="icon">🔍</span> Analyser
             </button>
           </div>
         </div>
-      </div>
-      <p class="mt30">
-        <span class="warning">Ouvrez la console du devTools Chrome (F12)</span>
-        et cliquez sur le bouton pour analyser la page web en cours.
-      </p>
-      <button type="button" id="analyserBtn">Analyser</button>
-      <br /><a
-        href="https://github.com/artkabis/dataCherckerWebTools"
-        id="coffeeLink"
-        target="_blank"
-        title="Ouvrir le dépot pour la MAJ du checkerTools"
-        rel="nofollow"
-        alt="Lien vers le repo github"
-      >
-        <img
-          alt="Icône Github"
-          src="/icons/github-mark-white.png"
-          height="30"
-          width="auto"
-          id="btnGithub"
-      /></a>
+      </section>
+
+      <!-- Tools section -->
+      <section class="tools-section">
+        <h2>Outils</h2>
+        <div class="tools-grid">
+          <button id="sitemapWP" class="tool-btn" title="Sitemap du site WP">
+            <span class="tool-icon">🗺️</span>
+            <span class="tool-name">Sitemap</span>
+          </button>
+
+          <button id="linksDuda" class="tool-btn" title="Liste des liens Duda">
+            <span class="tool-icon">🔗</span>
+            <span class="tool-name">Liens</span>
+          </button>
+
+          <button
+            id="openHnValidity"
+            class="tool-btn"
+            title="Vérifier la structure des Hn"
+          >
+            <span class="tool-icon">📑</span>
+            <span class="tool-name">Hn</span>
+          </button>
+
+          <button
+            id="openGoogleSchemaValidator"
+            class="tool-btn"
+            title="Validation Schema"
+          >
+            <span class="tool-icon">🔍</span>
+            <span class="tool-name">Schema</span>
+          </button>
+
+          <button
+            id="downloadMediaWP"
+            class="tool-btn"
+            title="Télécharger médias WP"
+          >
+            <span class="tool-icon">📥</span>
+            <span class="tool-name">Médias</span>
+          </button>
+
+          <button id="designModeToggle" class="tool-btn" title="Mode édition">
+            <span class="tool-icon">✏️</span>
+            <span class="tool-name">Édition</span>
+          </button>
+
+          <button
+            id="copyExpressionsSoprod"
+            class="tool-btn"
+            title="Copier expressions Soprod"
+          >
+            <span class="tool-icon">📋</span>
+            <span class="tool-name">Soprod</span>
+          </button>
+
+          <button id="wordsCloud" class="tool-btn" title="Nuage de mots">
+            <span class="tool-icon">☁️</span>
+            <span class="tool-name">Mots</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Info section -->
+      <footer>
+        <p class="console-info">
+          <span class="icon">⚠️</span> Ouvrez la console (F12) pour voir les
+          résultats détaillés
+        </p>
+        <a
+          href="https://github.com/artkabis/dataCherckerWebTools"
+          class="github-link"
+          target="_blank"
+          title="Dépôt GitHub"
+        >
+          <span class="github-icon">🐙</span>
+        </a>
+      </footer>
     </div>
+
     <script src="./assets/jquery-3.6.4.min.js"></script>
     <script type="module" src="./popup.js"></script>
   </body>
