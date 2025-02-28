@@ -797,6 +797,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 3. Récupération et validation des données
         const data = await chrome.storage.local.get('sitemapAnalysis');
         const analysis = data.sitemapAnalysis;
+        console.log('________________ data storage for analyse : ', data);
 
         if (!analysis) {
             throw new Error("Aucune donnée d'analyse trouvée");
@@ -1361,6 +1362,7 @@ function displayPagesAnalysis(results, allResults) {
     container.innerHTML = ''; // Clear container
 
     Object.entries(results).forEach(([url, pageData]) => {
+        console.log('_________________ all results url and page data : ', url, pageData);
         const card = document.createElement('div');
         card.className = 'page-card';
         card.innerHTML = createPageCard(url, pageData, allResults);  // Passage de allResults
@@ -1406,6 +1408,7 @@ function calculateGlobalScore(pageData) {
 function createPageCard(url, data, allResults) {
     const globalScore = calculateGlobalScore(data);
 
+
     return `
         <div class="page-header">
             <h3><a class="headerTitleH3" href="${url}" target="_blank">${url}</a></h3>
@@ -1426,7 +1429,7 @@ function createPageCard(url, data, allResults) {
 
         <button class="collapsible">Liens (Score: ${data.link_check?.global_score || '0'}/5)</button>
         <div class="content">
-            ${createLinksSection(data.link_check)}
+            ${createLinksSection(data.link_check, allResults)}
         </div>
 
         <button class="collapsible">Longueur Hn (Score: ${data.hn?.hn_reco?.global_score || '0'}/5)</button>
@@ -1719,8 +1722,21 @@ function getLinkTypeDisplay(linkType) {
 
     return display || '<span class="link-type">Standard</span>';
 }
-function createLinksSection(linkCheck) {
-    if (!linkCheck?.link) return '<p>Pas de données sur les liens disponibles</p>';
+function createLinksSection(linkCheck, allResults) {
+    if (!linkCheck?.link) {
+        console.warn('Pas de données sur les liens disponibles');
+        return '<p>Pas de données sur les liens disponibles</p>';
+    }
+    console.log('Données de liens reçues:', linkCheck.link);
+
+    // Vérifier si les types de liens sont correctement définis
+    const linksWithoutType = linkCheck.link.filter(link => !link.link_type);
+    linkCheck.link.map((link) => {
+        console.log('^^^^^^^^^^^^^^^^ type links : ', link.link_type);
+    });
+    if (linksWithoutType.length > 0) {
+        console.warn(`${linksWithoutType.length} liens sans type défini`);
+    }
 
     return `
         <table>
@@ -1734,12 +1750,12 @@ function createLinksSection(linkCheck) {
                 </tr>
             </thead>
             <tbody>
-                ${linkCheck.link.map(link => `
+                ${linkCheck.link.map((link, index) => `
                     <tr>
-                        <td>${link.link_url || ''}</td>
-                        <td>${link.link_text || ''}</td>
-                        <td>${link.link_status || ''}</td>
-                        <td>${getLinkTypeDisplay(link.link_type)}</td>
+                        <td>${link.link_url || 'Non défini'}</td>
+                        <td>${link.link_text || 'Non défini'}</td>
+                        <td>${link.link_status || 'Non défini'}</td>
+                        <td>${link.link_type ? getLinkTypeDisplay(link.link_type) : 'Type non défini'}</td>
                         <td><span class="score ${getScoreClass(link.link_score)}">${link.link_score || '0'}/5</span></td>
                     </tr>
                 `).join('')}

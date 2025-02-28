@@ -195,12 +195,17 @@ class SitemapAnalyzer {
     }
 
     /**
-     * Traite la file d'attente par lots
-     */
+    * Traite la file d'attente par lots
+    */
     async processQueue() {
         if (this.isProcessing || this.isPaused || this.isCancelled || this.queue.length === 0) {
             if (this.queue.length === 0 && !this.isPaused && !this.isCancelled) {
                 console.log('%c✨ Analyse terminée!', consoleStyles.success);
+
+                // Valider et réparer les données de liens avant de déclencher l'événement 'complete'
+                const validatedResults = this.validateLinkData(this.results);
+                this.results = validatedResults;
+
                 this.trigger('complete', this.results);
             }
             return;
@@ -255,6 +260,97 @@ class SitemapAnalyzer {
             total,
             percentage: total > 0 ? Math.round(((analyzed + failed) / total) * 100) : 0
         };
+    }
+    /**
+ * Valide et répare les données de liens pour s'assurer qu'elles sont complètes et correctes
+ * @param {Object} results - Les résultats d'analyse à valider
+ * @returns {Object} - Les résultats validés et réparés
+ */
+    validateLinkData(results) {
+        console.group('🔍 Validation des données de liens');
+
+        try {
+            // Si results est vide ou null, retourner les résultats tels quels
+            if (!results || !results.results) {
+                console.error('❌ Données de résultats manquantes ou invalides');
+                console.groupEnd();
+                return results;
+            }
+
+            let totalLinks = 0;
+            let repairedLinks = 0;
+
+            // Parcourir chaque page
+            Object.entries(results.results).forEach(([url, pageData]) => {
+                // Vérifier si link_check existe
+                if (!pageData.link_check) {
+                    console.warn(`⚠️ link_check manquant pour l'URL: ${url}`);
+                    pageData.link_check = {
+                        link_check_state: false,
+                        nb_link: 0,
+                        check_title: "Links validities",
+                        global_score: 0,
+                        profil: ["CDP", "WEBDESIGNER"],
+                        link: []
+                    };
+                    repairedLinks++;
+                }
+
+                // Vérifier si link_check.link est un tableau
+                if (!Array.isArray(pageData.link_check.link)) {
+                    console.warn(`⚠️ link_check.link n'est pas un tableau pour l'URL: ${url}`);
+                    pageData.link_check.link = [];
+                    repairedLinks++;
+                } else {
+                    totalLinks += pageData.link_check.link.length;
+                }
+
+                // Vérifier chaque lien dans le tableau
+                pageData.link_check.link.forEach((link, index) => {
+                    if (!link.link_url) {
+                        console.warn(`⚠️ Lien sans URL à l'index ${index} pour la page ${url}`);
+                        link.link_url = url + '#unknown-link-' + index;
+                        repairedLinks++;
+                    }
+
+                    // S'assurer que chaque lien a une propriété link_type
+                    if (!link.link_type) {
+                        console.warn(`⚠️ Lien sans type à l'index ${index} pour la page ${url}`);
+                        link.link_type = {
+                            isMenuLink: false,
+                            isContentLink: true,
+                            isFooterLink: false,
+                            isImageLink: false,
+                            isCTA: false,
+                            isExternalLink: false,
+                            permalien: true
+                        };
+                        repairedLinks++;
+                    }
+
+                    // S'assurer que chaque lien a un score
+                    if (link.link_score === undefined) {
+                        link.link_score = link.link_status === 200 ? 5 : 0;
+                        repairedLinks++;
+                    }
+
+                    // S'assurer que chaque lien a un texte
+                    if (!link.link_text) {
+                        link.link_text = 'Lien sans texte';
+                        repairedLinks++;
+                    }
+                });
+            });
+
+            console.log(`✅ Validation terminée: ${totalLinks} liens analysés, ${repairedLinks} réparations effectuées`);
+            console.groupEnd();
+            return results;
+
+        } catch (error) {
+            console.error('❌ Erreur lors de la validation des liens:', error);
+            console.groupEnd();
+            return results;
+        }
     }
 
     /**
@@ -389,6 +485,32 @@ class SitemapAnalyzer {
             await new Promise(resolve => setTimeout(resolve, 1000));
 
             // 6. Récupération des résultats (dataChecker) avec attention particulière aux liens
+            console.log('⏳ Attente de la fin de toutes les analyses (liens et images)...');
+            await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                function: () => {
+                    return new Promise(resolve => {
+                        // Si déjà terminé
+                        if (window.dataCheckerAnalysisComplete === true) {
+                            resolve();
+                            return;
+                        }
+
+                        // Sinon, attendre l'événement
+                        window.addEventListener('dataCheckerAnalysisComplete', () => {
+                            resolve();
+                        }, { once: true });
+
+                        // Timeout de sécurité pour ne pas bloquer indéfiniment
+                        setTimeout(() => {
+                            console.warn('Timeout atteint en attendant la fin de l\'analyse');
+                            resolve();
+                        }, 60000); // 60 secondes max
+                    });
+                }
+            });
+
+            // 7. Maintenant que tout est terminé, récupérer les résultats
             console.log('📊 Récupération des résultats...');
             const results = await chrome.scripting.executeScript({
                 target: { tabId: tab.id },
@@ -397,50 +519,6 @@ class SitemapAnalyzer {
                     if (!window.dataChecker) {
                         console.error("dataChecker n'est pas défini dans la page");
                         return { error: true, message: "Données d'analyse non disponibles" };
-                    }
-
-                    // S'assurer que les liens sont correctement récupérés
-                    if (window.dataChecker.link_check) {
-                        console.log(`Nombre de liens détectés: ${window.dataChecker.link_check.link?.length || 0}`);
-                    }
-
-                    // Analyser les liens pour déterminer leur contexte
-                    if (window.dataChecker.link_check && Array.isArray(window.dataChecker.link_check.link)) {
-                        window.dataChecker.link_check.link.forEach(link => {
-                            if (!link.link_type) {
-                                // Trouver le nœud DOM correspondant au lien
-                                const links = document.querySelectorAll('a[href]');
-                                let linkNode = null;
-
-                                for (const node of links) {
-                                    if (node.href === link.link_url ||
-                                        node.getAttribute('href') === link.link_url) {
-                                        linkNode = node;
-                                        break;
-                                    }
-                                }
-
-                                if (linkNode) {
-                                    // Déterminer le contexte du lien
-                                    link.link_type = {
-                                        isMenuLink: !!linkNode.closest('nav') ||
-                                            !!linkNode.closest('header') ||
-                                            !!linkNode.closest('menu'),
-                                        isContentLink: !!linkNode.closest('#Content') ||
-                                            !!linkNode.closest('#dm_content') ||
-                                            !!linkNode.closest('main') ||
-                                            !!linkNode.closest('article'),
-                                        isFooterLink: !!linkNode.closest('footer'),
-                                        isImageLink: !!linkNode.querySelector('img') ||
-                                            (linkNode.style.backgroundImage &&
-                                                linkNode.style.backgroundImage !== 'none'),
-                                        isCTA: linkNode.classList.contains('button') ||
-                                            linkNode.classList.contains('btn') ||
-                                            linkNode.classList.contains('cta')
-                                    };
-                                }
-                            }
-                        });
                     }
 
                     // Créer une copie profonde des données pour éviter les problèmes de référence
@@ -453,13 +531,9 @@ class SitemapAnalyzer {
                     return pageResults;
                 }
             });
-
-            // 7. Vérification des résultats
-            if (!results || !results[0] || !results[0].result) {
-                throw new Error('Analyse incomplète ou invalide');
-            }
-
             const pageAnalysis = results[0].result;
+
+            console.log('!!!!! pageAnalysis : >>>>>>>>>>>>>>>>>>>>>>>><', pageAnalysis);
 
             // Vérification supplémentaire pour les liens
             if (!pageAnalysis.link_check || !Array.isArray(pageAnalysis.link_check.link)) {
@@ -480,26 +554,12 @@ class SitemapAnalyzer {
                 const totalLinks = pageAnalysis.link_check.link.length;
                 const originalNbLink = pageAnalysis.link_check.nb_link || totalLinks;
 
-                // Filtrer pour prioritiser les liens de contenu et exclure les liens de menu
-                const filteredLinks = pageAnalysis.link_check.link.filter(link => {
-                    if (!link.link_type) return true;
 
-                    // Garder les liens qui ne sont pas uniquement des liens de menu
-                    // (par exemple, garder un lien qui est à la fois menu et CTA)
-                    if (link.link_type.permalien) return true;
-                    if (link.link_type.isImageLink && !link.link_type.isMenuLink) return true;
-                    if (link.link_type.isCTA && !link.link_type.isMenuLink) return true;
-                    if (link.link_type.isExternalLink) return true;
-
-                    // Exclure les liens qui sont uniquement des liens de menu
-                    return !link.link_type.isMenuLink;
-                });
-                console.log('::::::::::::::::::: liens filtrés :::: ', filteredLinks);
                 // Mettre à jour le tableau des liens mais conserver le nombre total
-                pageAnalysis.link_check.link = filteredLinks;
+                pageAnalysis.link_check.link = pageAnalysis.link_check.link;
                 pageAnalysis.link_check.nb_link = originalNbLink;
 
-                console.log(`📊 Filtrage des liens: ${filteredLinks.length}/${totalLinks} liens conservés`);
+                console.log(`📊 Filtrage des liens: ${pageAnalysis.link_check.link.length}/${totalLinks} liens conservés`);
             }
 
             console.log('✅ Analyse terminée avec succès');
@@ -546,8 +606,11 @@ class SitemapAnalyzer {
                 remainingPages: this.results.stats.totalPages - this.results.stats.analyzed - this.results.stats.failed
             });
 
+            // Valider et réparer les données de liens
+            const validatedResults = this.validateLinkData(this.results);
+
             // Sauvegarde dans le storage local de Chrome
-            await chrome.storage.local.set({ 'sitemapAnalysis': this.results });
+            await chrome.storage.local.set({ 'sitemapAnalysis': validatedResults });
             console.log('✅ Sauvegarde réussie');
 
         } catch (error) {

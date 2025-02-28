@@ -1,3 +1,5 @@
+window.dataCheckerAltAnalysisComplete = true;
+
 (($) => {
   $(".alt_tooltip").length &&
     $(".alt_tooltip").each(function () {
@@ -56,13 +58,13 @@
 
     src =
       !isDudaImage &&
-      src &&
-      src.at(0).includes("/") &&
-      src.includes("/wp-content/")
+        src &&
+        src.at(0).includes("/") &&
+        src.includes("/wp-content/")
         ? window.location.origin + "/wp-content/" + src.split("/wp-content/")[1]
         : src && !src.includes("http") && !src.at(0).includes("/")
-        ? window.location.origin + "/" + src
-        : src;
+          ? window.location.origin + "/" + src
+          : src;
     let alt;
     const excludes =
       this.getAttribute("class") !== "lb-image" ||
@@ -121,15 +123,13 @@
         5
       );
       console.log(
-        `%cTitre SVG similaire au alt du tag img : ${
-          $(this).find("title")?.text()?.length > 2
-            ? $(this).find("title").text()
-            : "ALT MANQUANT"
+        `%cTitre SVG similaire au alt du tag img : ${$(this).find("title")?.text()?.length > 2
+          ? $(this).find("title").text()
+          : "ALT MANQUANT"
         }`,
-        `${
-          $(this).find("title")?.text()?.length > 2
-            ? "color:green"
-            : "color:red"
+        `${$(this).find("title")?.text()?.length > 2
+          ? "color:green"
+          : "color:red"
         }`
       );
       $(this).before(createAltTooltip($(this).find("title").text()));
@@ -175,10 +175,9 @@
       isDudaImage
     ) {
       console.log(
-        `%cFichier SVG :  %c${
-          !this.getAttribute("alt")
-            ? this.getAttribute("data-icon-name") | $(this).find("title")
-            : this.getAttribute("alt")
+        `%cFichier SVG :  %c${!this.getAttribute("alt")
+          ? this.getAttribute("data-icon-name") | $(this).find("title")
+          : this.getAttribute("alt")
         }`,
         "color:white;",
         "color:green"
@@ -204,8 +203,8 @@
 
   dataChecker.alt_img_check.global_score = scoreTabAltImg2.length
     ? Number(
-        scoreTabAltImg2.reduce((a, b) => a + b) / scoreTabAltImg.length
-      ).toFixed(2)
+      scoreTabAltImg2.reduce((a, b) => a + b) / scoreTabAltImg.length
+    ).toFixed(2)
     : 5;
 
   console.log(
@@ -214,6 +213,8 @@
     "   score moyen des alt :",
     dataChecker.alt_img_check.global_score
   );
+  // Déclencher un événement pour signaler l'achèvement
+  window.dispatchEvent(new CustomEvent('dataCheckerAltAnalysisComplete'));
   console.log(
     "----------------------------- END Check ALT images --------------------------------------------"
   );

@@ -1,5 +1,6 @@
 MAX_SIZE_BYTES_IMAGE = currentSettings.MAX_SIZE_BYTES_IMAGE || 317435;
 MAX_RATIO_IMAGE = currentSettings.MAX_RATIO_IMAGE || 3;
+window.dataCheckerAnalysisComplete = false;
 
 function initcheckerLinksAndImages() {
   let urlsDuplicate = [],
@@ -789,11 +790,7 @@ function initcheckerLinksAndImages() {
               ? true
               : false;
 
-          const isMenuLink =
-            _node &&
-              (_node?.closest(".main-navigation") || _node?.closest("#menu"))
-              ? true
-              : false;
+          const isMenuLink = (_node?.closest('ul[role="menubar"]') || _node?.closest("#menu")) ? true : false;
           const isMedia = _url
             .split(".")
             .at(-1)
@@ -1029,17 +1026,22 @@ function initcheckerLinksAndImages() {
             maillageInterne >= 1 && maillageInterne < 4
               ? "color:green"
               : "color:red";
-          iterationsLinks === nbLinks &&
-            (console.log(
+          if (iterationsLinks === nbLinks) {
+            console.log(
               `%cVous avez ${maillageInterne} lien(s) interne(s) sur cette page (préco de 1 à 3 ) >>> `,
-              `${linksNumberPreco}`
-            ),
-              console.log(liensInternes),
-              console.log("Lien(s) externe(s) : ", liensExternes),
-              console.log(
-                "--------------------- END check validity links -----------------------------"
-              ),
-              checkerImageWP());
+              `${linksNumberPreco}`);
+
+            console.log(liensInternes);
+            console.log("Lien(s) externe(s) : ", liensExternes);
+            console.log(
+              "--------------------- END check validity links -----------------------------"
+            );
+            // Signaler que l'analyse est terminée
+            window.dataCheckerAnalysisComplete = true;
+            // Déclencher un événement pour signaler l'achèvement
+            window.dispatchEvent(new CustomEvent('dataCheckerAnalysisComplete'));
+            checkerImageWP();
+          }
         })
         .catch((error) => {
           iterationsLinks++;

@@ -367,12 +367,26 @@ async function startAnalysis(source, mode) {
     // Écouteur pour la complétion
     sitemapAnalyzer.on('complete', (results) => {
       // Sauvegarder les résultats
-      console.log('!!!!!!!!!!!!!! results : ', results);
+      console.log('Résultats complets avant sauvegarde:', results);
+
+      // Vérifiez spécifiquement les données de liens
+      let totalLinks = 0;
+      let totalPages = 0;
+
+      Object.entries(results.results).forEach(([url, data]) => {
+        totalPages++;
+        if (data.link_check && Array.isArray(data.link_check.link)) {
+          totalLinks += data.link_check.link.length;
+          console.log(`Page ${url}: ${data.link_check.link.length} liens`);
+        }
+      });
+
+      console.log(`Total: ${totalPages} pages, ${totalLinks} liens`);
+
       chrome.storage.local.set({ 'sitemapAnalysis': results });
       sitemapAnalyzer = null; // Libérer la référence
     });
 
-    // Démarrer l'analyse selon le mode
     // Démarrer l'analyse selon le mode
     if (mode === 'urlList' && Array.isArray(source)) {
       // Mode liste d'URLs
