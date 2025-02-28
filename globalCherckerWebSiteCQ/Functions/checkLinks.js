@@ -1,4 +1,6 @@
 // checkLinks.js - Module d'analyse des liens
+window.dataCheckerAnalysisComplete = false;
+
 (($) => {
     // État global de l'analyse des liens
     window.linksAnalysisState = {
@@ -736,7 +738,11 @@
 
     // Exposer une fonction pour vérifier l'état
     window.isLinksAnalysisComplete = function () {
+        window.dataCheckerAnalysisComplete = true;
+        // Déclencher un événement pour signaler l'achèvement
+        window.dispatchEvent(new CustomEvent('dataCheckerAnalysisComplete'));
         return window.linksAnalysisState.completed;
+
     };
 
     // Exposer une fonction pour obtenir les résultats
