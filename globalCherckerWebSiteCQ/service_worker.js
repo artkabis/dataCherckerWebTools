@@ -1,6 +1,7 @@
 "use strict";
 //import {openDb,getObjectStore} from './Functions/utils.js';
 import { creatDB } from "./Functions/creatIndexDB.js";
+import { SitemapAnalyzer } from "./Functions/sitemapAnalyzer.js";
 
 //import {checkUserSoprod} from "./Functions/checkUserSoprod.js";
 //import { checkUserIndexDB } from "./Functions/checkUserIndexDB.js";
@@ -207,6 +208,129 @@ const once = () => {
     toggleCorsEnabled();
   });
 };
+
+
+
+//gestionnaire de l'analise des page du sitemap.xml
+let sitemapAnalyzer = null;
+
+// Écouteur de messages pour les actions liées à l'analyse
+chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+  if (request.action === 'startSitemapAnalysis') {
+    startAnalysis(request.sitemapUrl)
+      .then(results => {
+        // Une fois l'analyse terminée, ouvrir la page de résultats
+        chrome.tabs.create({
+          url: chrome.runtime.getURL('results.html')
+        });
+      })
+      .catch(error => {
+        console.error('Erreur lors de l\'analyse :', error);
+      });
+
+    // Ouvrir immédiatement une page de suivi de progression
+    chrome.tabs.create({
+      url: chrome.runtime.getURL('analysis-progress.html')
+    });
+
+    sendResponse({ status: 'started' });
+    return true; // Indique que la réponse sera envoyée de manière asynchrone
+  }
+  if (request.action === 'startUrlListAnalysis') {
+    startAnalysis(request.urls, 'urlList')
+      .then(results => {
+        // Une fois l'analyse terminée, ouvrir la page de résultats
+        chrome.tabs.create({
+          url: chrome.runtime.getURL('results.html')
+        });
+      })
+      .catch(error => {
+        console.error('Erreur lors de l\'analyse :', error);
+      });
+
+    // Ouvrir immédiatement une page de suivi de progression
+    chrome.tabs.create({
+      url: chrome.runtime.getURL('analysis-progress.html')
+    });
+
+    sendResponse({ status: 'started' });
+    return true;
+  }
+
+  // Gestion des contrôles de l'analyse
+  if (request.action === 'pauseAnalysis' && sitemapAnalyzer) {
+    sitemapAnalyzer.pause();
+    sendResponse({ status: 'paused' });
+  }
+
+  if (request.action === 'resumeAnalysis' && sitemapAnalyzer) {
+    sitemapAnalyzer.resume();
+    sendResponse({ status: 'resumed' });
+  }
+
+  if (request.action === 'cancelAnalysis' && sitemapAnalyzer) {
+    sitemapAnalyzer.cancel();
+    sitemapAnalyzer = null;
+    sendResponse({ status: 'cancelled' });
+  }
+
+  // Récupération de l'état actuel de l'analyse
+  if (request.action === 'getAnalysisStatus') {
+    if (sitemapAnalyzer) {
+      sendResponse({
+        active: true,
+        isPaused: sitemapAnalyzer.isPaused,
+        progress: sitemapAnalyzer.getProgress()
+      });
+    } else {
+      sendResponse({ active: false });
+    }
+    return true;
+  }
+});
+
+// Fonction pour démarrer l'analyse
+async function startAnalysis(source, mode) {
+  try {
+    // Création de l'analyseur
+    sitemapAnalyzer = new SitemapAnalyzer({
+      batchSize: 3,
+      pauseBetweenBatches: 500,
+      tabTimeout: 30000,
+      maxRetries: 2
+    });
+
+    // Écouteur pour la progression
+    sitemapAnalyzer.on('progress', (progress) => {
+      // Diffuser la progression à toutes les pages d'analyse ouvertes
+      chrome.runtime.sendMessage({
+        action: 'analysisProgress',
+        progress: progress
+      });
+    });
+
+    // Écouteur pour la complétion
+    sitemapAnalyzer.on('complete', (results) => {
+      // Sauvegarder les résultats
+      chrome.storage.local.set({ 'sitemapAnalysis': results });
+      sitemapAnalyzer = null; // Libérer la référence
+    });
+
+    // Démarrer l'analyse selon le mode
+    if (mode === 'sitemap') {
+      // Mode sitemap classique
+      return await sitemapAnalyzer.start(source);
+    } else {
+      // Mode liste d'URLs
+      return await sitemapAnalyzer.startWithUrlList(source);
+    }
+
+  } catch (error) {
+    console.error('Erreur lors du démarrage de l\'analyse:', error);
+    sitemapAnalyzer = null;
+    throw error;
+  }
+}
 
 // chrome.runtime.onInstalled.addListener(once);
 // chrome.runtime.onStartup.addListener(once);

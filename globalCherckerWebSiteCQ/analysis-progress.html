@@ -1,0 +1,149 @@
+
+    <html lang="fr">
+        <head>
+            <meta charset="UTF-8"> /</meta>
+                <title>Analyse en cours - Health Checker Website</title>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        margin: 0;
+                        padding: 20px;
+                        background: #f5f5f5;
+                    }
+
+                    .container {
+                        max-width: 800px;
+                        margin: 0 auto;
+                        background: white;
+                        padding: 20px;
+                        border-radius: 8px;
+                        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                    }
+
+                    h1 {
+                        color: #0a68f1;
+                    }
+
+                    .progress-container {
+                        margin: 30px 0;
+                    }
+
+                    .progress-bar {
+                        height: 20px;
+                        background: #e0e0e0;
+                        border-radius: 10px;
+                        overflow: hidden;
+                    }
+
+                    .progress-fill {
+                        height: 100%;
+                        background: #0a68f1;
+                        transition: width 0.3s ease;
+                    }
+
+                    .info-text {
+                        margin-top: 10px;
+                        font-size: 16px;
+                    }
+
+                    .stats {
+                        display: grid;
+                        grid-template-columns: repeat(3, 1fr);
+                        gap: 15px;
+                        margin: 30px 0;
+                    }
+
+                    .stat-card {
+                        background: #f9f9f9;
+                        padding: 15px;
+                        border-radius: 8px;
+                        text-align: center;
+                    }
+
+                    .stat-value {
+                        font-size: 24px;
+                        font-weight: bold;
+                        color: #0a68f1;
+                    }
+
+                    .controls {
+                        display: flex;
+                        gap: 10px;
+                        margin: 20px 0;
+                    }
+
+                    button {
+                        padding: 10px 20px;
+                        border: none;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-weight: bold;
+                    }
+
+                    .pause-btn {
+                        background: #ffc107;
+                        color: #333;
+                    }
+
+                    .resume-btn {
+                        background: #28a745;
+                        color: white;
+                    }
+
+                    .cancel-btn {
+                        background: #dc3545;
+                        color: white;
+                    }
+
+                    .complete-msg {
+                        padding: 20px;
+                        background: #e8f5e9;
+                        border-radius: 8px;
+                        margin: 20px 0;
+                        text-align: center;
+                        color: #2e7d32;
+                        display: none;
+                    }
+                </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>Analyse du site en cours</h1>
+
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <div id="infoText" class="info-text">Initialisation de l'analyse...</div>
+                </div>
+
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-label">Pages analysées</div>
+                        <div id="analyzedCount" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Pages échouées</div>
+                        <div id="failedCount" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Total pages</div>
+                        <div id="totalCount" class="stat-value">0</div>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button id="pauseBtn" class="pause-btn">Pause</button>
+                    <button id="resumeBtn" class="resume-btn" disabled>Reprendre</button>
+                    <button id="cancelBtn" class="cancel-btn">Annuler</button>
+                </div>
+
+                <div id="completeMsg" class="complete-msg">
+                    <h2>Analyse terminée !</h2>
+                    <p>La page de résultats va s'ouvrir automatiquement.</p>
+                </div>
+            </div>
+
+            <script src="analysis-progress.js"></script>
+        </body>
+    </html>

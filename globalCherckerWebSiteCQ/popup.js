@@ -5,31 +5,153 @@ import { copyExpressionsSoprod } from "./Functions/copyExpressionsSoprod.js";
 import { dudaSitemap } from "./Functions/DudaSitemap.js";
 import { HnOutlineValidity } from "./Functions/HnOutlineValidity.js";
 import { downloaderWPMedia } from "./Functions/downloaderWPMedias.js";
-import { initSitemapAnalysis } from "./Functions/sitemapAnalyzer.js";
+//import { initSitemapAnalysis } from "./Functions/sitemapAnalyzer.js";
 
-// Ajoutez avec vos autres écouteurs d'événements
+
+
+document.querySelectorAll('input[name="analysisType"]').forEach(radio => {
+  radio.addEventListener('change', function () {
+    if (this.value === 'sitemap') {
+      document.getElementById('sitemapInput').style.display = 'block';
+      document.getElementById('urlListInput').style.display = 'none';
+    } else {
+      document.getElementById('sitemapInput').style.display = 'none';
+      document.getElementById('urlListInput').style.display = 'block';
+    }
+  });
+});
+// Modification du gestionnaire pour le bouton d'analyse
+document.querySelector("#analyserBtn").addEventListener("click", async function () {
+  try {
+    // Désactiver le bouton pendant l'initialisation
+    this.disabled = true;
+    this.innerHTML = '<span class="icon">⏳</span><span class="text">Initialisation...</span>';
+
+    // Déterminer le mode d'analyse sélectionné
+    const analysisType = document.querySelector('input[name="analysisType"]:checked').value;
+
+    let urls = [];
+
+    if (analysisType === 'sitemap') {
+      // Mode sitemap.xml
+      const sitemapUrl = document.getElementById('sitemapUrlInput').value;
+
+      if (!sitemapUrl) {
+        alert("Veuillez entrer l'URL du sitemap.xml");
+        this.disabled = false;
+        this.innerHTML = 'Analyser';
+        return;
+      }
+
+      // Valider l'URL
+      try {
+        new URL(sitemapUrl);
+      } catch (e) {
+        alert("URL de sitemap invalide. Veuillez entrer une URL complète valide.");
+        this.disabled = false;
+        this.innerHTML = 'Analyser';
+        return;
+      }
+
+      // Envoyer un message au service worker pour démarrer l'analyse par sitemap
+      chrome.runtime.sendMessage(
+        { action: "startSitemapAnalysis", sitemapUrl: sitemapUrl },
+        (response) => {
+          // Le service worker a reçu la demande, le popup peut se fermer
+          window.close();
+        }
+      );
+
+    } else {
+      // Mode liste d'URLs
+      const urlList = document.getElementById('urlListTextarea').value;
+
+      if (!urlList.trim()) {
+        alert("Veuillez entrer au moins une URL à analyser");
+        this.disabled = false;
+        this.innerHTML = 'Analyser';
+        return;
+      }
+
+      // Parser et nettoyer les URLs
+      urls = urlList.split(',')
+        .map(url => url.trim())
+        .filter(url => url.length > 0);
+
+      // Valider les URLs
+      const invalidUrls = [];
+      urls.forEach(url => {
+        try {
+          new URL(url);
+        } catch (e) {
+          invalidUrls.push(url);
+        }
+      });
+
+      if (invalidUrls.length > 0) {
+        alert(`Les URLs suivantes ne sont pas valides:\n${invalidUrls.join('\n')}`);
+        this.disabled = false;
+        this.innerHTML = 'Analyser';
+        return;
+      }
+
+      // Envoyer un message au service worker pour démarrer l'analyse par liste d'URLs
+      chrome.runtime.sendMessage(
+        { action: "startUrlListAnalysis", urls: urls },
+        (response) => {
+          // Le service worker a reçu la demande, le popup peut se fermer
+          window.close();
+        }
+      );
+    }
+
+  } catch (error) {
+    console.error('Erreur lors de l\'initialisation:', error);
+    alert(`Erreur: ${error.message}`);
+    this.disabled = false;
+    this.innerHTML = 'Analyser';
+  }
+});
 document.querySelector("#sitemapAnalyzer").addEventListener("click", async function () {
   try {
-    // Désactiver le bouton pendant l'analyse
+    // Désactiver le bouton pendant l'initialisation
     this.disabled = true;
-    this.innerHTML = '<span class="icon">⏳</span><span class="text">Analyse en cours...</span>';
+    this.innerHTML = '<span class="icon">⏳</span><span class="text">Initialisation...</span>';
 
-    // Lancer l'analyse
-    const analysis = await initSitemapAnalysis();
+    // Demander l'URL du sitemap
+    const sitemapUrl = prompt("Veuillez entrer l'URL complète du sitemap.xml", "https://example.com/sitemap.xml");
 
-    // Sauvegarder les résultats
-    await chrome.storage.local.set({ sitemapAnalysis: analysis });
+    if (!sitemapUrl) {
+      // L'utilisateur a annulé
+      this.disabled = false;
+      this.innerHTML = '<span class="icon">🌐</span><span class="text">Analyser le site</span>';
+      return;
+    }
 
-    // Ouvrir la page de résultats dans un nouvel onglet
-    await chrome.tabs.create({
-      url: chrome.runtime.getURL('results.html')
-    });
+    // Valider l'URL
+    try {
+      new URL(sitemapUrl);
+    } catch (e) {
+      alert("URL invalide. Veuillez entrer une URL complète valide.");
+      this.disabled = false;
+      this.innerHTML = '<span class="icon">🌐</span><span class="text">Analyser le site</span>';
+      return;
+    }
 
-    // Fermer le popup
-    window.close();
+    // Envoyer un message au service worker pour démarrer l'analyse
+    chrome.runtime.sendMessage(
+      { action: "startSitemapAnalysis", sitemapUrl: sitemapUrl },
+      (response) => {
+        // Le service worker a reçu la demande, le popup peut se fermer
+        window.close();
+      }
+    );
+
   } catch (error) {
-    console.error('Erreur lors de l\'analyse:', error);
-    this.innerHTML = '<span class="icon">❌</span><span class="text">Erreur</span>';
+    console.error('Erreur lors de l\'initialisation:', error);
+    alert(`Erreur: ${error.message}`);
+    this.disabled = false;
+    this.innerHTML = '<span class="icon">🌐</span><span class="text">Analyser le site</span>';
   }
 });
 

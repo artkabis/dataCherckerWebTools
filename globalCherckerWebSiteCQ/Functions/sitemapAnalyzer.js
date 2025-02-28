@@ -15,7 +15,556 @@ const consoleStyles = {
 };
 
 /**
- * Initialise et lance l'analyse complète du sitemap
+ * Classe principale pour l'analyse de sitemap
+ * Gère la file d'attente et l'état de l'analyse
+ */
+class SitemapAnalyzer {
+    constructor(options = {}) {
+        // Configuration 
+        this.config = {
+            batchSize: options.batchSize || 3, // Nombre d'URLs à traiter en parallèle
+            pauseBetweenBatches: options.pauseBetweenBatches || 500, // Pause entre les lots en ms
+            tabTimeout: options.tabTimeout || 30000, // Timeout pour l'analyse d'une page
+            maxRetries: options.maxRetries || 2, // Nombre de tentatives en cas d'échec
+            ...options
+        };
+
+        // État interne
+        this.queue = [];
+        this.results = {
+            timestamp: new Date().toISOString(),
+            urls: [],
+            results: {},
+            stats: {
+                totalPages: 0,
+                analyzed: 0,
+                failed: 0,
+                skipped: 0
+            }
+        };
+        this.isProcessing = false;
+        this.isPaused = false;
+        this.isCancelled = false;
+
+        // Callback d'événements
+        this.eventListeners = {
+            progress: [],
+            complete: [],
+            error: [],
+            pause: [],
+            resume: [],
+            cancel: []
+        };
+    }
+
+    /**
+     * Démarre l'analyse en récupérant les URLs du sitemap
+     * @param {string} sitemapUrl - URL du sitemap à analyser
+     */
+    async start(sitemapUrl) {
+        try {
+            console.log('%c🔍 Démarrage de l\'analyse du site', consoleStyles.title);
+
+            // Validation de l'URL
+            if (!sitemapUrl) {
+                throw new Error('URL du sitemap.xml non fournie');
+            }
+
+            try {
+                new URL(sitemapUrl);
+            } catch (e) {
+                throw new Error('URL invalide');
+            }
+
+            // Récupération des URLs
+            const urls = await this.fetchSitemapURLs(sitemapUrl);
+            console.log('📋 URLs trouvées:', urls);
+            console.log(`✨ Nombre d'URLs à analyser: ${urls.length}`);
+
+            // Initialisation des résultats
+            this.results.urls = urls;
+            this.results.stats.totalPages = urls.length;
+
+            // Ajout des URLs à la file d'attente
+            this.addToQueue(urls);
+
+            // Retourne une promesse qui sera résolue lorsque l'analyse sera terminée
+            return new Promise((resolve, reject) => {
+                this.on('complete', () => resolve(this.results));
+                this.on('error', (error) => reject(error));
+            });
+
+        } catch (error) {
+            console.error('%c❌ Erreur lors du démarrage de l\'analyse:', consoleStyles.error, error);
+            this.trigger('error', error);
+            throw error;
+        }
+    }
+
+    /**
+ * Démarre l'analyse avec une liste d'URLs fournie directement
+ * @param {Array<string>} urls - Liste d'URLs à analyser
+ */
+    async startWithUrlList(urls) {
+        try {
+            console.log('%c🔍 Démarrage de l\'analyse avec une liste personnalisée', consoleStyles.title);
+
+            // Validation
+            if (!urls || !Array.isArray(urls) || urls.length === 0) {
+                throw new Error('Liste d\'URLs non valide');
+            }
+
+            console.log('📋 URLs à analyser:', urls);
+            console.log(`✨ Nombre d'URLs à analyser: ${urls.length}`);
+
+            // Initialisation des résultats
+            this.results.urls = urls;
+            this.results.stats.totalPages = urls.length;
+
+            // Ajout des URLs à la file d'attente
+            this.addToQueue(urls);
+
+            // Retourne une promesse qui sera résolue lorsque l'analyse sera terminée
+            return new Promise((resolve, reject) => {
+                this.on('complete', () => resolve(this.results));
+                this.on('error', (error) => reject(error));
+            });
+
+        } catch (error) {
+            console.error('%c❌ Erreur lors du démarrage de l\'analyse:', consoleStyles.error, error);
+            this.trigger('error', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Récupère et parse le sitemap.xml pour extraire toutes les URLs
+     * Version compatible avec le service worker (sans DOMParser)
+     */
+    async fetchSitemapURLs(sitemapUrl) {
+        console.group('🌐 Récupération du sitemap.xml');
+        try {
+            // Récupération du sitemap
+            console.log('📡 Tentative de récupération du sitemap...');
+            const response = await fetch(sitemapUrl);
+            const xmlText = await response.text();
+
+            console.log('📝 Contenu du sitemap récupéré, début du parsing...');
+
+            // Utilisation de regex au lieu de DOMParser
+            const urls = [];
+
+            // Recherche de balises <loc> dans le XML (méthode compatible service worker)
+            const locRegex = /<loc>(.*?)<\/loc>/g;
+            let match;
+
+            while ((match = locRegex.exec(xmlText)) !== null) {
+                const url = match[1].trim();
+                console.log(`🔗 URL trouvée: ${url}`);
+                urls.push(url);
+            }
+
+            // Dédoublonnage des URLs
+            const uniqueUrls = [...new Set(urls)];
+
+            console.log(`✅ Extraction terminée. ${uniqueUrls.length} URLs uniques trouvées`);
+            console.groupEnd();
+
+            return uniqueUrls;
+
+        } catch (error) {
+            console.error('%c❌ Erreur lors de la récupération du sitemap:', consoleStyles.error, error);
+            console.groupEnd();
+            throw error;
+        }
+    }
+
+    /**
+     * Ajoute des URLs à la file d'attente et démarre le traitement si nécessaire
+     * @param {Array<string>} urls - Liste d'URLs à analyser
+     */
+    addToQueue(urls) {
+        // Ajoute les URLs à la file d'attente
+        this.queue.push(...urls);
+        console.log(`📥 ${urls.length} URLs ajoutées à la file d'attente. Total: ${this.queue.length}`);
+
+        // Démarre le traitement si ce n'est pas déjà en cours
+        if (!this.isProcessing && !this.isPaused && !this.isCancelled) {
+            this.processQueue();
+        }
+    }
+
+    /**
+     * Traite la file d'attente par lots
+     */
+    async processQueue() {
+        if (this.isProcessing || this.isPaused || this.isCancelled || this.queue.length === 0) {
+            if (this.queue.length === 0 && !this.isPaused && !this.isCancelled) {
+                console.log('%c✨ Analyse terminée!', consoleStyles.success);
+                this.trigger('complete', this.results);
+            }
+            return;
+        }
+
+        // Marque le traitement comme en cours
+        this.isProcessing = true;
+        console.group('📊 Traitement par lots');
+
+        try {
+            // Prélève un lot d'URLs de la file d'attente
+            const batch = this.queue.splice(0, this.config.batchSize);
+            console.log(`🔄 Traitement d'un lot de ${batch.length} URLs. Restant: ${this.queue.length}`);
+
+            // Analyse chaque URL du lot en parallèle
+            const batchPromises = batch.map(url => this.analyzeURLWithRetry(url));
+            await Promise.all(batchPromises);
+
+            // Sauvegarde progressive des résultats
+            await this.saveProgress();
+
+            // Pause entre les lots pour permettre au navigateur de respirer
+            await new Promise(resolve => setTimeout(resolve, this.config.pauseBetweenBatches));
+
+            // Continue le traitement
+            this.isProcessing = false;
+            this.processQueue();
+
+        } catch (error) {
+            console.error('❌ Erreur lors du traitement de la file d\'attente:', error);
+            this.isProcessing = false;
+            this.trigger('error', error);
+        }
+
+        console.groupEnd();
+    }
+
+    /**
+     * Renvoie la progression actuelle de l'analyse
+     * @returns {Object} Objet contenant les informations de progression
+     */
+    getProgress() {
+        const total = this.results.stats.totalPages;
+        const analyzed = this.results.stats.analyzed;
+        const failed = this.results.stats.failed;
+        const skipped = this.results.stats.skipped || 0;
+
+        return {
+            analyzed,
+            failed,
+            skipped,
+            total,
+            percentage: total > 0 ? Math.round(((analyzed + failed) / total) * 100) : 0
+        };
+    }
+
+    /**
+     * Analyse une URL avec système de réessai en cas d'échec
+     * @param {string} url - URL à analyser
+     * @returns {Object} - Résultat de l'analyse
+     */
+    async analyzeURLWithRetry(url) {
+        let attempts = 0;
+        let lastError = null;
+
+        // Essaie d'analyser l'URL plusieurs fois en cas d'échec
+        while (attempts < this.config.maxRetries) {
+            attempts++;
+            try {
+                console.log(`🔍 Analyse de ${url} (tentative ${attempts}/${this.config.maxRetries})`);
+                const result = await this.analyzeURL(url);
+                this.results.results[url] = result;
+
+                if (result.error) {
+                    this.results.stats.failed++;
+                    console.log(`❌ Échec de l'analyse pour ${url}`, result.error_message);
+                } else {
+                    this.results.stats.analyzed++;
+                    console.log(`✅ Analyse réussie pour ${url}`);
+                }
+
+                // Mise à jour de la progression
+                this.trigger('progress', this.getProgress());
+
+                return result;
+            } catch (error) {
+                lastError = error;
+                console.warn(`⚠️ Erreur lors de l'analyse de ${url} (tentative ${attempts}/${this.config.maxRetries}):`, error);
+
+                // Attendre un peu avant de réessayer
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                // Si c'est la dernière tentative, enregistrer l'erreur
+                if (attempts >= this.config.maxRetries) {
+                    this.results.stats.failed++;
+                    this.results.results[url] = {
+                        url_analyzed: url,
+                        error: true,
+                        error_message: error.message,
+                        error_timestamp: new Date().toISOString()
+                    };
+
+                    // Mise à jour de la progression
+                    this.trigger('progress', this.getProgress());
+                }
+            }
+        }
+
+        throw lastError;
+    }
+    /**
+     * Analyse une URL spécifique en injectant tous les scripts nécessaires
+     * et en récupérant les résultats
+     */
+    async analyzeURL(url) {
+        let tab = null;
+        console.group(`🔍 Analyse détaillée de : ${this.cleanUrl(url)}`);
+
+        try {
+            // 1. Création d'un nouvel onglet pour l'analyse
+            console.log('📑 Création d\'un nouvel onglet...');
+            tab = await chrome.tabs.create({
+                url: this.cleanUrl(url),
+                active: false
+            });
+
+            // 2. Attente du chargement complet de la page
+            console.log('⏳ Attente du chargement de la page...');
+            await Promise.race([
+                new Promise((resolve) => {
+                    chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
+                        if (tabId === tab.id && info.status === 'complete') {
+                            chrome.tabs.onUpdated.removeListener(listener);
+                            resolve();
+                        }
+                    });
+                }),
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Timeout pendant le chargement de la page')),
+                        this.config.tabTimeout)
+                )
+            ]);
+
+            // 3. Injection des dépendances
+            console.log('📦 Injection des dépendances...');
+            await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                files: [
+                    "./assets/jquery-3.6.4.min.js",
+                    "./Functions/clear.js",
+                    "./assets/console.image.min.js",
+                    "./Functions/checkAndAddJquery.js",
+                    "./Functions/settingsOptions.js"
+                ]
+            });
+
+            // Attente pour s'assurer que les dépendances sont chargées
+            await new Promise(resolve => setTimeout(resolve, 100));
+            console.log('✅ Dépendances chargées');
+
+            // 4. Injection des scripts d'analyse
+            console.log('🔧 Injection des scripts d\'analyse...');
+            await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                files: [
+                    "./Functions/settingsWords.js",
+                    "./Functions/dataCheckerSchema.js",
+                    "./Functions/initLighthouse.js",
+                    "./Functions/counterWords.js",
+                    "./Functions/checkAltImages.js",
+                    "./Functions/checkMetas.js",
+                    "./Functions/checkLogoHeader.js",
+                    "./Functions/checkOldRGPD.js",
+                    "./Functions/checkBold.js",
+                    "./Functions/checkOutlineHn.js",
+                    "./Functions/checkColorContrast.js",
+                    "./Functions/counterLettersHn.js",
+                    "./Functions/initDataChecker.js",
+                    "./Functions/checkDataBindingDuda.js",
+                    "./Functions/checkLinkAndImages.js"
+                ]
+            });
+
+            // 5. Attente pour l'exécution des analyses
+            console.log('⏳ Attente de l\'exécution des analyses...');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // 6. Récupération des résultats (dataChecker)
+            console.log('📊 Récupération des résultats...');
+            const results = await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                function: () => {
+                    const baseImageCheck = {
+                        img_check_state: false,
+                        nb_img: 0,
+                        nb_img_duplicate: [],
+                        check_title: "Images check",
+                        global_score: 5,
+                        profil: ["WEBDESIGNER"],
+                        alt_img: [],
+                        size_img: [],
+                        ratio_img: []
+                    };
+
+                    const pageResults = {
+                        ...window.dataChecker,
+                        url_analyzed: window.location.href,
+                        analysis_timestamp: new Date().toISOString()
+                    };
+
+                    // Assure que img_check a la structure complète
+                    if (pageResults.img_check) {
+                        pageResults.img_check = {
+                            ...baseImageCheck,
+                            ...pageResults.img_check,
+                            // Force les tableaux à être présents même s'ils sont vides
+                            alt_img: Array.isArray(pageResults.img_check.alt_img) ? pageResults.img_check.alt_img : [],
+                            size_img: Array.isArray(pageResults.img_check.size_img) ? pageResults.img_check.size_img : [],
+                            ratio_img: Array.isArray(pageResults.img_check.ratio_img) ? pageResults.img_check.ratio_img : [],
+                            nb_img_duplicate: Array.isArray(pageResults.img_check.nb_img_duplicate) ? pageResults.img_check.nb_img_duplicate : []
+                        };
+                    } else {
+                        pageResults.img_check = baseImageCheck;
+                    }
+
+                    // Convertit les types de données correctement
+                    pageResults.img_check.img_check_state = Boolean(pageResults.img_check.img_check_state);
+                    pageResults.img_check.nb_img = Number(pageResults.img_check.nb_img) || 0;
+                    pageResults.img_check.global_score = Number(pageResults.img_check.global_score) || 5;
+
+                    console.log('DataChecker final pour cette page:', pageResults);
+                    return pageResults;
+                }
+            });
+
+            // 7. Vérification des résultats
+            if (!results || !results[0] || !results[0].result) {
+                throw new Error('Analyse incomplète ou invalide');
+            }
+
+            const pageAnalysis = results[0].result;
+            console.log('✅ Analyse terminée avec succès');
+            console.log('📊 Résultats:', pageAnalysis);
+
+            // 8. Fermeture de l'onglet
+            if (tab) {
+                await chrome.tabs.remove(tab.id);
+                console.log('🚫 Onglet fermé');
+            }
+
+            console.groupEnd();
+            return pageAnalysis;
+
+        } catch (error) {
+            console.error('❌ Erreur lors de l\'analyse:', error);
+
+            // S'assurer que l'onglet est fermé en cas d'erreur
+            if (tab) {
+                try {
+                    await chrome.tabs.remove(tab.id);
+                    console.log('🚫 Onglet fermé après erreur');
+                } catch (e) {
+                    console.error('Erreur lors de la fermeture de l\'onglet:', e);
+                }
+            }
+
+            console.groupEnd();
+            throw error;
+        }
+    }
+
+    /**
+     * Sauvegarde la progression de l'analyse
+     */
+    async saveProgress() {
+        console.group('💾 Sauvegarde de la progression');
+        try {
+            // Log détaillé de la sauvegarde
+            console.log('État actuel de l\'analyse:', {
+                totalPages: this.results.stats.totalPages,
+                analyzed: this.results.stats.analyzed,
+                failed: this.results.stats.failed,
+                remainingPages: this.results.stats.totalPages - this.results.stats.analyzed - this.results.stats.failed
+            });
+
+            // Sauvegarde dans le storage local de Chrome
+            await chrome.storage.local.set({ 'sitemapAnalysis': this.results });
+            console.log('✅ Sauvegarde réussie');
+
+        } catch (error) {
+            console.error('❌ Erreur lors de la sauvegarde:', error);
+        }
+        console.groupEnd();
+    }
+
+    /**
+     * Nettoie une URL (supprime les espaces, etc.)
+     * @param {string} url - L'URL à nettoyer
+     * @returns {string} - L'URL nettoyée
+     */
+    cleanUrl(url) {
+        return url.trim()
+            .replace(/\s+/g, '') // Supprime les espaces
+            .replace(/\/+$/, ''); // Supprime les slashes de fin
+    }
+
+    /**
+     * Met en pause l'analyse
+     */
+    pause() {
+        if (!this.isPaused) {
+            this.isPaused = true;
+            console.log('⏸️ Analyse mise en pause');
+            this.trigger('pause');
+        }
+    }
+
+    /**
+     * Reprend l'analyse
+     */
+    resume() {
+        if (this.isPaused) {
+            this.isPaused = false;
+            console.log('▶️ Reprise de l\'analyse');
+            this.trigger('resume');
+            this.processQueue();
+        }
+    }
+
+    /**
+     * Annule l'analyse en cours
+     */
+    cancel() {
+        this.isCancelled = true;
+        this.queue = []; // Vide la file d'attente
+        console.log('🛑 Analyse annulée');
+        this.trigger('cancel');
+    }
+
+    /**
+     * Ajoute un écouteur d'événement
+     * @param {string} event - Nom de l'événement
+     * @param {Function} callback - Fonction à appeler
+     */
+    on(event, callback) {
+        if (this.eventListeners[event]) {
+            this.eventListeners[event].push(callback);
+        }
+    }
+
+    /**
+     * Déclenche un événement
+     * @param {string} event - Nom de l'événement
+     * @param {*} data - Données à passer aux écouteurs
+     */
+    trigger(event, data) {
+        if (this.eventListeners[event]) {
+            this.eventListeners[event].forEach(callback => callback(data));
+        }
+    }
+}
+
+/**
+ * Fonction d'initialisation pour le démarrage direct
  */
 async function initSitemapAnalysis() {
     console.log('%c🔍 Démarrage de l\'analyse du site', consoleStyles.title);
@@ -32,350 +581,38 @@ async function initSitemapAnalysis() {
         throw new Error('URL invalide');
     }
 
-
-
     try {
-        // 1. Récupération du sitemap.xml
-        const sitemapURLs = await fetchSitemapURLs(sitemapUrl);
-        console.log('📋 URLs trouvées:', sitemapURLs);
-        console.log(`✨ Nombre d'URLs à analyser: ${sitemapURLs.length}`);
-
-        // 2. Initialisation du stockage des résultats
-        const analysisResults = {
-            timestamp: new Date().toISOString(),
-            urls: sitemapURLs,
-            results: {},
-            stats: {
-                totalPages: sitemapURLs.length,
-                analyzed: 0,
-                failed: 0
-            }
-        };
-
-        console.group('📊 Progression de l\'analyse');
-
-        // 3. Analyse séquentielle de chaque URL
-        for (const url of sitemapURLs) {
-            try {
-                console.log(`🔍 Analyse en cours: ${url} (${analysisResults.stats.analyzed + 1}/${sitemapURLs.length})`);
-                const pageResult = await analyzeURL(url);
-
-                if (pageResult.error) {
-                    analysisResults.stats.failed++;
-                    console.log(`❌ Échec de l'analyse pour ${url}`, pageResult.error_message);
-                } else {
-                    analysisResults.stats.analyzed++;
-                    console.log(`✅ Analyse réussie pour ${url}`);
-                }
-
-                analysisResults.results[url] = pageResult;
-
-                // Sauvegarde progressive des résultats
-                await saveProgress(analysisResults);
-
-            } catch (error) {
-                console.error(`❌ Erreur lors de l'analyse de ${url}:`, error);
-                analysisResults.stats.failed++;
-                analysisResults.results[url] = {
-                    error: true,
-                    error_message: error.message,
-                    error_timestamp: new Date().toISOString()
-                };
-            }
-        }
-
-        console.groupEnd();
-        console.log('%c✨ Analyse terminée!', consoleStyles.success);
-        return analysisResults;
-
-    } catch (error) {
-        console.error('%c❌ Erreur lors de l\'analyse du sitemap:', consoleStyles.error, error);
-        throw error;
-    }
-}
-
-/**
- * Récupère et parse le sitemap.xml pour extraire toutes les URLs
- * Gère différents formats de sitemap
- */
-async function fetchSitemapURLs(sitemapResp) {
-    console.group('🌐 Récupération du sitemap.xml');
-    try {
-        // Récupération du sitemap
-        console.log('📡 Tentative de récupération du sitemap...');
-        const response = await fetch(sitemapResp);
-        const xmlText = await response.text();
-
-        console.log('📝 Contenu du sitemap récupéré, début du parsing...');
-
-        // Parse du XML
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-
-        // Vérifie si le parsing a réussi
-        const parserError = xmlDoc.querySelector('parsererror');
-        if (parserError) {
-            throw new Error('Erreur de parsing XML: ' + parserError.textContent);
-        }
-
-        // Extraction des URLs en gérant différents formats de sitemap
-        console.log('🔍 Recherche des URLs dans le sitemap...');
-
-        // Tableau pour stocker toutes les URLs trouvées
-        let urls = [];
-
-        // Cherche les balises <loc> directes
-        const locNodes = xmlDoc.getElementsByTagName('loc');
-        if (locNodes.length > 0) {
-            console.log(`📍 Trouvé ${locNodes.length} balises <loc> directes`);
-        }
-
-        // Cherche les balises <url> (format sitemap standard)
-        const urlNodes = xmlDoc.getElementsByTagName('url');
-        if (urlNodes.length > 0) {
-            console.log(`📍 Trouvé ${urlNodes.length} balises <url>`);
-        }
-
-        // Combine les résultats des deux méthodes
-        urls = [
-            ...Array.from(locNodes),
-            ...Array.from(urlNodes).map(url => url.getElementsByTagName('loc')[0])
-        ]
-            .filter(node => node) // Filtre les nodes null/undefined
-            .map(node => {
-                const url = node.textContent.trim();
-                console.log(`🔗 URL trouvée: ${url}`);
-                return url;
-            })
-            .filter(url => url && url.length > 0); // Filtre les URLs vides
-
-        // Dédoublonnage des URLs
-        urls = [...new Set(urls)];
-
-        console.log(`✅ Extraction terminée. ${urls.length} URLs uniques trouvées`);
-        console.groupEnd();
-
-        return urls;
-
-    } catch (error) {
-        console.error('%c❌ Erreur lors de la récupération du sitemap:', consoleStyles.error, error);
-        console.groupEnd();
-        throw error;
-    }
-}
-
-/**
- * Vérifie si une URL est valide
- * @param {string} url - L'URL à vérifier
- * @returns {boolean} - true si l'URL est valide
- */
-function isValidUrl(url) {
-    try {
-        new URL(url);
-        return true;
-    } catch (e) {
-        console.warn(`⚠️ URL invalide détectée: ${url}`);
-        return false;
-    }
-}
-
-/**
- * Nettoie une URL (supprime les espaces, etc.)
- * @param {string} url - L'URL à nettoyer
- * @returns {string} - L'URL nettoyée
- */
-function cleanUrl(url) {
-    return url.trim()
-        .replace(/\s+/g, '') // Supprime les espaces
-        .replace(/\/+$/, ''); // Supprime les slashes de fin
-}
-
-/**
- * Analyse une URL spécifique en injectant tous les scripts nécessaires
- * et en récupérant les résultats
- */
-async function analyzeURL(url) {
-    let tab = null;
-    console.group(`🔍 Analyse détaillée de : ${cleanUrl(url)}`);
-
-    try {
-        // 1. Création d'un nouvel onglet pour l'analyse
-        console.log('📑 Création d\'un nouvel onglet...');
-        tab = await chrome.tabs.create({
-            url: cleanUrl(url),
-            active: false
+        // Création de l'analyseur avec options
+        const analyzer = new SitemapAnalyzer({
+            batchSize: 3,                   // Nombre d'URLs à analyser en parallèle
+            pauseBetweenBatches: 500,       // Pause entre les lots (ms)
+            tabTimeout: 30000,              // Timeout pour l'analyse d'une page (ms)
+            maxRetries: 2                   // Nombre de tentatives en cas d'échec
         });
 
-        // 2. Attente du chargement complet de la page
-        console.log('⏳ Attente du chargement de la page...');
-        await new Promise((resolve) => {
-            chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
-                if (tabId === tab.id && info.status === 'complete') {
-                    chrome.tabs.onUpdated.removeListener(listener);
-                    resolve();
-                }
-            });
+        // Écouteurs d'événements pour la mise à jour de l'interface
+        analyzer.on('progress', (progress) => {
+            updateProgressUI(progress.analyzed, progress.total);
+            console.log(`Progression: ${progress.percentage}%`);
         });
 
-        // 3. Injection des dépendances
-        console.log('📦 Injection des dépendances...');
-        await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            files: [
-                "./assets/jquery-3.6.4.min.js",
-                "./Functions/clear.js",
-                "./assets/console.image.min.js",
-                "./Functions/checkAndAddJquery.js",
-                "./Functions/settingsOptions.js"
-            ]
+        // Démarrage de l'analyse
+        const results = await analyzer.start(sitemapUrl);
+
+        // Traitement des résultats
+        await chrome.storage.local.set({ 'sitemapAnalysis': results });
+
+        // Affichage des résultats
+        await chrome.tabs.create({
+            url: chrome.runtime.getURL('results.html')
         });
 
-        // Attente pour s'assurer que les dépendances sont chargées
-        await new Promise(resolve => setTimeout(resolve, 100));
-        console.log('✅ Dépendances chargées');
-
-        // 4. Injection des scripts d'analyse
-        console.log('🔧 Injection des scripts d\'analyse...');
-        await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            files: [
-                "./Functions/settingsWords.js",
-                "./Functions/dataCheckerSchema.js",
-                "./Functions/initLighthouse.js",
-                "./Functions/counterWords.js",
-                "./Functions/checkAltImages.js",
-                "./Functions/checkMetas.js",
-                "./Functions/checkLogoHeader.js",
-                "./Functions/checkOldRGPD.js",
-                "./Functions/checkBold.js",
-                "./Functions/checkOutlineHn.js",
-                "./Functions/checkColorContrast.js",
-                "./Functions/counterLettersHn.js",
-                "./Functions/initDataChecker.js",
-                "./Functions/checkDataBindingDuda.js",
-                "./Functions/checkLinkAndImages.js"
-            ]
-        });
-
-        // 5. Attente pour l'exécution des analyses
-        console.log('⏳ Attente de l\'exécution des analyses...');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // 6. Récupération des résultats (dataChecker)
-        console.log('📊 Récupération des résultats...');
-        const results = await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            function: () => {
-                const baseImageCheck = {
-                    img_check_state: false,
-                    nb_img: 0,
-                    nb_img_duplicate: [],
-                    check_title: "Images check",
-                    global_score: 5,
-                    profil: ["WEBDESIGNER"],
-                    alt_img: [],
-                    size_img: [],
-                    ratio_img: []
-                };
-
-                const pageResults = {
-                    ...window.dataChecker,
-                    url_analyzed: window.location.href,
-                    analysis_timestamp: new Date().toISOString()
-                };
-
-                // Assure que img_check a la structure complète
-                if (pageResults.img_check) {
-                    pageResults.img_check = {
-                        ...baseImageCheck,
-                        ...pageResults.img_check,
-                        // Force les tableaux à être présents même s'ils sont vides
-                        alt_img: Array.isArray(pageResults.img_check.alt_img) ? pageResults.img_check.alt_img : [],
-                        size_img: Array.isArray(pageResults.img_check.size_img) ? pageResults.img_check.size_img : [],
-                        ratio_img: Array.isArray(pageResults.img_check.ratio_img) ? pageResults.img_check.ratio_img : [],
-                        nb_img_duplicate: Array.isArray(pageResults.img_check.nb_img_duplicate) ? pageResults.img_check.nb_img_duplicate : []
-                    };
-                } else {
-                    pageResults.img_check = baseImageCheck;
-                }
-
-                // Convertit les types de données correctement
-                pageResults.img_check.img_check_state = Boolean(pageResults.img_check.img_check_state);
-                pageResults.img_check.nb_img = Number(pageResults.img_check.nb_img) || 0;
-                pageResults.img_check.global_score = Number(pageResults.img_check.global_score) || 5;
-
-                console.log('DataChecker final pour cette page:', pageResults);
-                return pageResults;
-            }
-        });
-
-        // 7. Vérification des résultats
-        if (!results || !results[0] || !results[0].result) {
-            throw new Error('Analyse incomplète ou invalide');
-        }
-
-        const pageAnalysis = results[0].result;
-        console.log('✅ Analyse terminée avec succès');
-        console.log('📊 Résultats:', pageAnalysis);
-
-        // 8. Fermeture de l'onglet
-        if (tab) {
-            await chrome.tabs.remove(tab.id);
-            console.log('🚫 Onglet fermé');
-        }
-
-        console.groupEnd();
-        return pageAnalysis;
+        return results;
 
     } catch (error) {
         console.error('❌ Erreur lors de l\'analyse:', error);
-
-        // S'assurer que l'onglet est fermé en cas d'erreur
-        if (tab) {
-            try {
-                await chrome.tabs.remove(tab.id);
-                console.log('🚫 Onglet fermé après erreur');
-            } catch (e) {
-                console.error('Erreur lors de la fermeture de l\'onglet:', e);
-            }
-        }
-
-        console.groupEnd();
-        return {
-            url_analyzed: url,
-            error: true,
-            error_message: error.message,
-            error_timestamp: new Date().toISOString()
-        };
+        throw error;
     }
-}
-
-/**
- * Sauvegarde la progression de l'analyse
- * @param {Object} results - Les résultats à sauvegarder
- */
-async function saveProgress(results) {
-    console.group('💾 Sauvegarde de la progression');
-    try {
-        // Log détaillé de la sauvegarde
-        console.log('État actuel de l\'analyse:', {
-            totalPages: results.stats.totalPages,
-            analyzed: results.stats.analyzed,
-            failed: results.stats.failed,
-            remainingPages: results.stats.totalPages - results.stats.analyzed
-        });
-
-        // Sauvegarde dans le storage local de Chrome
-        await chrome.storage.local.set({ 'sitemapAnalysis': results });
-        console.log('✅ Sauvegarde réussie');
-
-        // Mise à jour de l'interface utilisateur
-        updateProgressUI(results.stats.analyzed, results.stats.totalPages);
-
-    } catch (error) {
-        console.error('❌ Erreur lors de la sauvegarde:', error);
-    }
-    console.groupEnd();
 }
 
 /**
@@ -465,30 +702,10 @@ function formatResults(results) {
 
 // Export des fonctions nécessaires
 export {
+    SitemapAnalyzer,
     initSitemapAnalysis,
     updateProgressUI,
     formatResults,
-    validateResults
+    validateResults,
+    consoleStyles
 };
-
-// Constantes et configurations
-const CONFIG = {
-    TIMEOUT: 30000, // 30 secondes timeout pour les analyses
-    DELAY_BETWEEN_PAGES: 1000, // 1 seconde entre chaque analyse
-    MAX_RETRIES: 3, // Nombre maximum de tentatives par page
-    DEBUG_MODE: true // Active les logs détaillés
-};
-
-// Écouteur d'événements pour le debug mode
-if (CONFIG.DEBUG_MODE) {
-    console.log('%c🔍 Mode debug activé pour l\'analyseur de sitemap', consoleStyles.title);
-    window.addEventListener('error', (event) => {
-        console.error('🐛 Erreur détectée:', {
-            message: event.message,
-            filename: event.filename,
-            lineno: event.lineno,
-            colno: event.colno,
-            error: event.error
-        });
-    });
-}
