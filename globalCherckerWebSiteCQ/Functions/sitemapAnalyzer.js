@@ -22,9 +22,9 @@ class SitemapAnalyzer {
     constructor(options = {}) {
         // Configuration 
         this.config = {
-            batchSize: options.batchSize || 3, // Nombre d'URLs à traiter en parallèle
+            batchSize: options.batchSize || 4, // Nombre d'URLs à traiter en parallèle
             pauseBetweenBatches: options.pauseBetweenBatches || 500, // Pause entre les lots en ms
-            tabTimeout: options.tabTimeout || 30000, // Timeout pour l'analyse d'une page
+            tabTimeout: options.tabTimeout || 5000, // Timeout pour l'analyse d'une page
             maxRetries: options.maxRetries || 2, // Nombre de tentatives en cas d'échec
             ...options
         };
@@ -323,7 +323,7 @@ class SitemapAnalyzer {
                             isImageLink: false,
                             isCTA: false,
                             isExternalLink: false,
-                            permalien: true
+                            permalien: false,
                         };
                         repairedLinks++;
                     }
@@ -447,9 +447,11 @@ class SitemapAnalyzer {
                 files: [
                     "./assets/jquery-3.6.4.min.js",
                     "./Functions/clear.js",
-                    "./assets/console.image.min.js",
+                    // "./assets/console.image.min.js",
                     "./Functions/checkAndAddJquery.js",
-                    "./Functions/settingsOptions.js"
+                    "./Functions/dataCheckerSchema.js",
+                    "./Functions/settingsOptions.js",
+                    "./Functions/settingsWords.js"
                 ]
             });
 
@@ -462,20 +464,15 @@ class SitemapAnalyzer {
             await chrome.scripting.executeScript({
                 target: { tabId: tab.id },
                 files: [
-                    "./Functions/settingsWords.js",
-                    "./Functions/dataCheckerSchema.js",
-                    "./Functions/initLighthouse.js",
-                    "./Functions/counterWords.js",
                     "./Functions/checkAltImages.js",
                     "./Functions/checkMetas.js",
-                    "./Functions/checkLogoHeader.js",
-                    "./Functions/checkOldRGPD.js",
                     "./Functions/checkBold.js",
                     "./Functions/checkOutlineHn.js",
-                    "./Functions/checkColorContrast.js",
                     "./Functions/counterLettersHn.js",
+                    //"./Functions/checkLinks.js",
                     "./Functions/initDataChecker.js",
-                    "./Functions/checkDataBindingDuda.js",
+
+                    //"./Functions/checkDataBindingDuda.js",
                     "./Functions/checkLinkAndImages.js"
                 ]
             });
@@ -485,27 +482,35 @@ class SitemapAnalyzer {
             await new Promise(resolve => setTimeout(resolve, 1000));
 
             // 6. Récupération des résultats (dataChecker) avec attention particulière aux liens
-            console.log('⏳ Attente de la fin de toutes les analyses (liens et images)...');
+            // 6. Attente pour l'exécution des analyses de liens
+            console.log(`⏳ Attente de la fin de l'analyse des liens...`);
+
+            // Injecter un script qui attendra explicitement la fin de l'analyse des liens
             await chrome.scripting.executeScript({
                 target: { tabId: tab.id },
                 function: () => {
                     return new Promise(resolve => {
-                        // Si déjà terminé
+                        // Si l'analyse est déjà terminée
                         if (window.dataCheckerAnalysisComplete === true) {
-                            resolve();
+                            resolve({ status: 'complete', linksChecked: window.linksAnalysisState?.processedLinks || 0 });
                             return;
                         }
 
-                        // Sinon, attendre l'événement
-                        window.addEventListener('dataCheckerAnalysisComplete', () => {
-                            resolve();
-                        }, { once: true });
-
-                        // Timeout de sécurité pour ne pas bloquer indéfiniment
-                        setTimeout(() => {
-                            console.warn('Timeout atteint en attendant la fin de l\'analyse');
-                            resolve();
+                        // Configurer un timeout de sécurité
+                        const timeout = setTimeout(() => {
+                            console.warn(`⚠️ Timeout atteint en attendant l'analyse des liens`);
+                            resolve({ status: 'timeout', linksChecked: window.linksAnalysisState?.processedLinks || 0 });
                         }, 60000); // 60 secondes max
+
+                        // Écouter l'événement de fin d'analyse
+                        window.addEventListener('dataCheckerAnalysisComplete', () => {
+                            clearTimeout(timeout);
+                            resolve({
+                                status: 'complete',
+                                linksChecked: window.linksAnalysisState?.processedLinks || 0,
+                                totalLinks: window.linksAnalysisState?.totalLinks || 0
+                            });
+                        }, { once: true });
                     });
                 }
             });
@@ -707,7 +712,7 @@ async function initSitemapAnalysis() {
     try {
         // Création de l'analyseur avec options
         const analyzer = new SitemapAnalyzer({
-            batchSize: 3,                   // Nombre d'URLs à analyser en parallèle
+            batchSize: 4,                   // Nombre d'URLs à analyser en parallèle
             pauseBetweenBatches: 500,       // Pause entre les lots (ms)
             tabTimeout: 30000,              // Timeout pour l'analyse d'une page (ms)
             maxRetries: 2                   // Nombre de tentatives en cas d'échec

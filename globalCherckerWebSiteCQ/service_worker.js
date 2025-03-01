@@ -342,11 +342,45 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     }
     return true;
   }
+
+  // Écouteur pour l'analyse des liens
+  if (request.action === 'linksAnalysisComplete') {
+    console.log('Message reçu: analyse des liens terminée', request.detail);
+
+    // Stocker l'information que l'analyse des liens est terminée
+    chrome.storage.local.set({ 'linksAnalysisComplete': true });
+
+    // Stocker les résultats détaillés de l'analyse des liens
+    chrome.storage.local.set({ 'linksAnalysisResults': request.detail });
+
+    // Vérifier si toutes les analyses sont terminées
+    checkAllAnalysesComplete();
+
+    sendResponse({ status: 'success' });
+    return true;
+  }
+
+  // Répondre aux demandes de statut d'analyse
+  if (request.action === 'getLinksAnalysisStatus') {
+    chrome.storage.local.get(['linksAnalysisComplete', 'linksAnalysisResults'], (data) => {
+      sendResponse({
+        complete: data.linksAnalysisComplete || false,
+        results: data.linksAnalysisResults || null
+      });
+    });
+    return true;
+  }
 });
 
 // Fonction pour démarrer l'analyse
 async function startAnalysis(source, mode) {
   try {
+    // Réinitialiser les états d'analyse
+    chrome.storage.local.set({
+      'linksAnalysisComplete': false
+      // 'imagesAnalysisComplete': false (commenté comme demandé)
+    });
+
     // Création de l'analyseur
     sitemapAnalyzer = new SitemapAnalyzer({
       batchSize: 3,
@@ -362,6 +396,20 @@ async function startAnalysis(source, mode) {
         action: 'analysisProgress',
         progress: progress
       });
+    });
+
+    // Écouteur pour le statut d'analyse des liens
+    sitemapAnalyzer.on('linksAnalysisStatus', (status) => {
+      // Diffuser le statut d'analyse des liens
+      chrome.runtime.sendMessage({
+        action: 'linksAnalysisStatus',
+        status: status
+      });
+
+      // Si l'analyse des liens est terminée, mémoriser l'état
+      if (status.completed) {
+        chrome.storage.local.set({ 'linksAnalysisComplete': true });
+      }
     });
 
     // Écouteur pour la complétion
@@ -384,6 +432,13 @@ async function startAnalysis(source, mode) {
       console.log(`Total: ${totalPages} pages, ${totalLinks} liens`);
 
       chrome.storage.local.set({ 'sitemapAnalysis': results });
+
+      // Marquer l'analyse comme terminée
+      // chrome.storage.local.set({ 'imagesAnalysisComplete': true }); (commenté comme demandé)
+
+      // Vérifier si toutes les analyses sont terminées
+      checkAllAnalysesComplete(results);
+
       sitemapAnalyzer = null; // Libérer la référence
     });
 
@@ -403,8 +458,173 @@ async function startAnalysis(source, mode) {
   }
 }
 
-// chrome.runtime.onInstalled.addListener(once);
-// chrome.runtime.onStartup.addListener(once);
+// Fonction pour vérifier si toutes les analyses sont terminées
+function checkAllAnalysesComplete(results) {
+  chrome.storage.local.get(['linksAnalysisComplete'], (data) => {
+    // Pour l'instant, nous vérifions uniquement l'analyse des liens
+    // Ajoutez 'imagesAnalysisComplete' ici plus tard quand vous réactiverez l'analyse des images
+    const allComplete = (data.linksAnalysisComplete) ||
+      (results && results.analysisComplete === true);
+
+    if (allComplete) {
+      console.log('Toutes les analyses sont terminées');
+
+      // Récupérer et combiner les résultats des analyses
+      chrome.storage.local.get(['sitemapAnalysis', 'linksAnalysisResults'], (results) => {
+        // Enrichir les résultats d'analyse du site avec les résultats des liens
+        if (results.sitemapAnalysis && results.linksAnalysisResults) {
+          console.log('Enrichissement des résultats avec les données de liens');
+          // Vous pouvez implémenter la logique de fusion des résultats ici
+        }
+
+        // Notification de fin de toutes les analyses
+        chrome.runtime.sendMessage({
+          action: 'allAnalysesComplete',
+          results: results.sitemapAnalysis
+        });
+      });
+
+      // Réinitialiser les états pour les futures analyses
+      chrome.storage.local.set({
+        'linksAnalysisComplete': false
+        // 'imagesAnalysisComplete': false (commenté comme demandé)
+      });
+    }
+  });
+}
+
+// Fonction pour analyser une URL avec le module checkLinks.js
+async function analyzeURLWithLinks(url) {
+  let tab = null;
+  console.group(`🔍 Analyse des liens pour: ${url}`);
+
+  try {
+    // Création d'un nouvel onglet pour l'analyse
+    tab = await chrome.tabs.create({
+      url: url,
+      active: false
+    });
+
+    // Attente du chargement complet de la page
+    await new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error('Timeout: chargement de la page trop long'));
+      }, 30000); // 30s de timeout
+
+      chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
+        if (tabId === tab.id && info.status === 'complete') {
+          chrome.tabs.onUpdated.removeListener(listener);
+          clearTimeout(timeoutId);
+          resolve();
+        }
+      });
+    });
+
+    console.log('Page chargée, injection du module checkLinks.js');
+
+    // Injection des dépendances nécessaires
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: [
+        "./assets/jquery-3.6.4.min.js",
+        "./Functions/checkAndAddJquery.js",
+        "./Functions/settingsOptions.js"
+      ]
+    });
+
+    // Petit délai pour s'assurer que jQuery est bien chargé
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Injection du module checkLinks.js
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ["./Functions/checkLinks.js"]
+    });
+
+    console.log('Module checkLinks.js injecté, démarrage de l\'analyse');
+
+    // Démarrer l'analyse des liens
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      function: () => {
+        // Vérifier que le module est chargé
+        if (typeof window.startLinksAnalysis === 'function') {
+          console.log('Démarrage de l\'analyse des liens');
+          window.startLinksAnalysis();
+
+          // Créer un écouteur d'événement pour la fin de l'analyse
+          window.addEventListener('linksAnalysisComplete', (event) => {
+            console.log('Analyse des liens terminée, envoi des résultats au service worker');
+            chrome.runtime.sendMessage({
+              action: 'linksAnalysisComplete',
+              detail: event.detail
+            });
+          });
+        } else {
+          console.error('Module checkLinks.js non trouvé ou non initialisé');
+        }
+      }
+    });
+
+    // Attendre que l'analyse des liens soit terminée
+    await waitForLinksAnalysisComplete(tab.id);
+
+    // Fermeture de l'onglet
+    if (tab) {
+      await chrome.tabs.remove(tab.id);
+      console.log('Onglet fermé après analyse des liens');
+    }
+
+    console.groupEnd();
+    return { url, status: 'analyzed' };
+
+  } catch (error) {
+    console.error('Erreur lors de l\'analyse des liens:', error);
+    if (tab) {
+      try {
+        await chrome.tabs.remove(tab.id);
+      } catch (e) {
+        console.error('Erreur lors de la fermeture de l\'onglet:', e);
+      }
+    }
+    console.groupEnd();
+    throw error;
+  }
+}
+
+// Fonction pour attendre que l'analyse des liens soit terminée
+function waitForLinksAnalysisComplete(tabId) {
+  return new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error('Timeout: l\'analyse des liens a pris trop de temps'));
+    }, 60000); // 60 secondes de timeout
+
+    function checkStatus() {
+      chrome.scripting.executeScript({
+        target: { tabId },
+        function: () => {
+          return window.isLinksAnalysisComplete ? window.isLinksAnalysisComplete() : false;
+        }
+      })
+        .then(result => {
+          if (result[0].result === true) {
+            clearTimeout(timeoutId);
+            resolve();
+          } else {
+            // Vérifier à nouveau après un court délai
+            setTimeout(checkStatus, 1000);
+          }
+        })
+        .catch(error => {
+          clearTimeout(timeoutId);
+          reject(error);
+        });
+    }
+
+    // Démarrer la vérification
+    checkStatus();
+  });
+}
 let user_soprod;
 /****** check all tab and remove interface*/
 let allTabs = [];
