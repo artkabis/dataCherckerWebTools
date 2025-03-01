@@ -24,7 +24,7 @@ class SitemapAnalyzer {
         this.config = {
             batchSize: options.batchSize || 4, // Nombre d'URLs à traiter en parallèle
             pauseBetweenBatches: options.pauseBetweenBatches || 500, // Pause entre les lots en ms
-            tabTimeout: options.tabTimeout || 5000, // Timeout pour l'analyse d'une page
+            tabTimeout: options.tabTimeout || 60000, // Timeout pour l'analyse d'une page
             maxRetries: options.maxRetries || 2, // Nombre de tentatives en cas d'échec
             ...options
         };

@@ -1,4 +1,4 @@
-// checkLinks.js - Module d'analyse des liens
+// checkLinks.js - Module d'analyse des liens avec amélioration des performances
 window.dataCheckerAnalysisComplete = false;
 
 (($) => {
@@ -8,14 +8,27 @@ window.dataCheckerAnalysisComplete = false;
         completed: false,
         results: [],
         totalLinks: 0,
-        processedLinks: 0
+        processedLinks: 0,
+        startTime: null,
+        endTime: null,
+        duration: null
     };
 
     // Fonction principale exportée
     window.startLinksAnalysis = function () {
         console.log("----------------------------- Start Check validity links -----------------------------");
-        window.linksAnalysisState.inProgress = true;
-        window.linksAnalysisState.completed = false;
+
+        // Initialiser l'état de l'analyse
+        window.linksAnalysisState = {
+            inProgress: true,
+            completed: false,
+            results: [],
+            totalLinks: 0,
+            processedLinks: 0,
+            startTime: Date.now(),
+            endTime: null,
+            duration: null
+        };
 
         let urlsDuplicate = [],
             requestInitiatedCount = 0,
@@ -23,16 +36,26 @@ window.dataCheckerAnalysisComplete = false;
             imagesForAnalyseImg = [],
             imagesForAnalyseBG = [];
 
-        //reset datachecker nodes
-        dataChecker.link_check.link = [];
+        // Reset datachecker nodes
+        if (typeof dataChecker !== 'undefined' && dataChecker.link_check) {
+            dataChecker.link_check.link = [];
+        } else if (typeof dataChecker === 'undefined') {
+            window.dataChecker = {
+                link_check: {
+                    link: [],
+                    link_check_state: false
+                }
+            };
+        }
+
         let scoreCheckLink = [];
 
         const trierUrlsRepetees = (items) => {
             const occurences = {};
             items.forEach((item) => {
                 const isValidUrl =
-                    item.url.includes("/uploads/") ||
-                    item.url.includes("le-de.cdn-website");
+                    item.url && (item.url.includes("/uploads/") ||
+                        item.url.includes("le-de.cdn-website"));
                 if (isValidUrl) {
                     occurences[item.url] = occurences[item.url]
                         ? occurences[item.url] + 1
@@ -54,6 +77,7 @@ window.dataCheckerAnalysisComplete = false;
         let timeout = 30000;
         let cmp_url = 0;
         let urlsScanned = [];
+
         const verifExcludesUrls = (url) => {
             return (
                 url !== undefined &&
@@ -67,13 +91,16 @@ window.dataCheckerAnalysisComplete = false;
                 !url?.includes("mappy") &&
                 !url?.includes("bloctel.gouv.fr") &&
                 !url?.includes("sominfraprdstb001.blob.core.windows.net") &&
-                url?.at(0) !== "?"
+                url?.charAt(0) !== "?"
             );
         };
 
         const isElementVisible = (el) => {
-            const rects = el?.getClientRects();
-            for (let i = 0; i < rects?.length; i++) {
+            if (!el) return false;
+            const rects = el.getClientRects();
+            if (!rects || rects.length === 0) return false;
+
+            for (let i = 0; i < rects.length; i++) {
                 const rect = rects[i];
                 if (
                     rect.top >= 0 &&
@@ -97,21 +124,27 @@ window.dataCheckerAnalysisComplete = false;
             : $("#dm a[href]");
         linksStack = linksStack?.length ? linksStack : $("body a");
         let linksStackFilter = [];
+
         linksStack.each(function (i, t) {
             const href =
                 t.nodeName !== "RS-LAYER"
-                    ? $(this)?.attr("href")
-                    : $(this)?.attr("data-actions")?.split("url:")[1]?.replaceAll(";", "");
-            verifExcludesUrls(href) &&
+                    ? $(this).attr("href")
+                    : $(this).attr("data-actions")?.split("url:")[1]?.replaceAll(";", "");
+            if (
+                verifExcludesUrls(href) &&
                 !href?.includes("linkedin.") &&
-                (href?.includes("https:") || (href.at(0) === "/" && href.length > 0)) &&
-                !href?.includes("tel:") &&
+                (href?.includes("https:") || (href?.charAt(0) === "/" && href.length > 0)) &&
+                !href?.includes("tel:")
+            ) {
                 linksStackFilter.push({ target: t, href: href });
-            (href?.includes("http:") ||
+            } else if (
+                href?.includes("http:") ||
                 href?.includes("linkedin.") ||
                 href?.includes("tel:") ||
-                !verifExcludesUrls(href)) &&
+                !verifExcludesUrls(href)
+            ) {
                 warningLinks.push({ target: t, url: href });
+            }
         });
 
         const nbLinks = linksStackFilter?.length;
@@ -119,68 +152,73 @@ window.dataCheckerAnalysisComplete = false;
 
         window.linksAnalysisState.totalLinks = nbLinks;
 
+        // Si aucun lien, terminer immédiatement
+        if (nbLinks === 0) {
+            finalizeAnalysis(0, [], [], []);
+            return;
+        }
         //Vérification des numéros de téléphone
         const checkValidityPhoneNumber = (t, url) => {
-            checkPhoneNumber = new RegExp(
-                /^(?:(?:\+|00)33|0)\s*[1-9](?:\d{2}){4}$/
-            )?.test(url?.replaceAll(" ", "")?.split("tel:")[1]);
+            if (!url) return;
 
-            url?.includes("tel:") &&
-                (checkPhoneNumber
-                    ? console.log(
-                        `%cNuméro de téléphone detécté :${url} - Validité : OK`,
-                        "color:green"
-                    )
-                    : console.log(
-                        `%cNuméro de téléphone detécté :${url} - Validité : KO`,
-                        "color:red"
-                    ));
+            let checkPhoneNumber = false;
+            if (url.includes("tel:")) {
+                const phoneNumber = url.replaceAll(" ", "").split("tel:")[1];
+                checkPhoneNumber = new RegExp(
+                    /^(?:(?:\+|00)33|0)\s*[1-9](?:\d{2}){4}$/
+                ).test(phoneNumber);
+
+                console.log(
+                    `%cNuméro de téléphone detécté :${url} - Validité : ${checkPhoneNumber ? "OK" : "KO"}`,
+                    `color:${checkPhoneNumber ? "green" : "red"}`
+                );
+            }
+
+            if (!t) return;
 
             const dudaPhone =
-                t &&
-                    t?.getAttribute("class") &&
-                    t?.getAttribute("class")?.includes("dmCall")
-                    ? t?.getAttribute("phone")
+                t.getAttribute &&
+                    t.getAttribute("class") &&
+                    t.getAttribute("class").includes("dmCall")
+                    ? t.getAttribute("phone")
                     : false;
-            checkDudaPhoneNumber =
-                dudaPhone &&
-                new RegExp(/^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/)?.test(
-                    dudaPhone.replaceAll(" ", "")
-                );
+
             if (dudaPhone) {
                 console.log(
                     "--------------------- Start check validity phone -----------------------------"
                 );
-                checkDudaPhoneNumber
-                    ? console.log(
-                        `%cNuméro de téléphone detécté :${dudaPhone} - Validité : OK`,
-                        "color:green"
-                    )
-                    : console.log(
-                        `%cNuméro de téléphone detécté :${dudaPhone} - Validité : KO`,
-                        "color:red"
-                    );
+
+                const checkDudaPhoneNumber = new RegExp(
+                    /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/
+                ).test(dudaPhone.replaceAll(" ", ""));
+
+                console.log(
+                    `%cNuméro de téléphone detécté :${dudaPhone} - Validité : ${checkDudaPhoneNumber ? "OK" : "KO"}`,
+                    `color:${checkDudaPhoneNumber ? "green" : "red"}`
+                );
+
                 console.log(
                     "--------------------- End check validity phone -----------------------------"
                 );
             }
         };
-        warningLinks.forEach(function (t, i) {
-            checkValidityPhoneNumber(t.target, t.url);
+
+        warningLinks.forEach(function (t) {
+            if (t && t.target && t.url) {
+                checkValidityPhoneNumber(t.target, t.url);
+            }
         });
-        const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+        const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
         //Check phone number in slider rev
-        const SliderRevPhone =
-            $('rs-layer[data-actions*="url:tel:"]') &&
-            $('rs-layer[data-actions*="url:tel:"]')[0];
-        SliderRevPhone &&
-            checkValidityPhoneNumber(
-                SliderRevPhone,
-                SliderRevPhone?.getAttribute("data-actions")
-                    ?.split("url:")[1]
-                    ?.split(" ;")[0]
-            );
+        const SliderRevPhone = $('rs-layer[data-actions*="url:tel:"]')[0];
+        if (SliderRevPhone) {
+            const phoneUrl = SliderRevPhone.getAttribute("data-actions")
+                ?.split("url:")[1]
+                ?.split(" ;")[0];
+            checkValidityPhoneNumber(SliderRevPhone, phoneUrl);
+        }
 
         let iterationsLinks = 0;
         let maillageInterne = 0;
@@ -188,18 +226,24 @@ window.dataCheckerAnalysisComplete = false;
             liensExternes = [];
         const styleLinkError =
             "border: 3px double red!important;outline: 5px solid #bb0000!important;outline-offset: 5px;!important";
+
         const check = (_url, _txt, _node) => {
+            if (!_url || !_node) {
+                console.error("Erreur: URL ou nœud manquant dans check()");
+                return Promise.resolve({ status: null, document: null });
+            }
+
             cmp_url++;
-            _txt = _txt.trim();
+            _txt = _txt ? _txt.trim() : "";
             const response = {
                 status: null,
                 document: null,
             };
-            return new Promise((resolve, reject) => {
 
+            return new Promise((resolve) => {
                 let fetchTimeout = null;
                 const startDoubleSlash = /^\/\//;
-                _url = _url?.match(startDoubleSlash) !== null ? "https:" + _url : _url;
+                _url = _url.match(startDoubleSlash) !== null ? "https:" + _url : _url;
 
                 fetch(_url, {
                     method: "GET",
@@ -208,168 +252,211 @@ window.dataCheckerAnalysisComplete = false;
                     }
                 })
                     .then(async (res) => {
-                        iterationsLinks === 0 &&
-                            (console.log(
+                        if (iterationsLinks === 0) {
+                            console.log(
                                 "--------------------- Start check validity links -----------------------------"
-                            ),
-                                //Message d'alerte pour les liens http: et linkedin et tel: qui ne peuvent être envoyé dans la requête
+                            );
 
-                                warningLinks.forEach((t, i) => {
-                                    const url = t.url;
-                                    const target = t.target;
-                                    let isLinkedin = url.includes("linkedin") ? "Linkedin" : "";
-                                    const isNotSecure = url.includes("http:");
-                                    let isNotsecureMsg = isNotSecure
-                                        ? "ATTENTION VOTRE LIEN EST EN HTTP ET DONC NON SECURISE : AJOUTER HTTPS"
-                                        : "";
+                            //Message d'alerte pour les liens http: et linkedin et tel: qui ne peuvent être envoyé dans la requête
+                            warningLinks.forEach((t) => {
+                                if (!t || !t.url || !t.target) return;
 
-                                    verifExcludesUrls(url) &&
-                                        (!url.includes("tel:") && isLinkedin && !isNotSecure) &&
-                                        console.log(
-                                            `%c Vérifier le lien  ${isLinkedin}: 
-              ${url} manuellement >>>`,
-                                            `color:${isNotSecure ? "red" : "orange"}`
-                                        );
-                                    (isNotSecure) &&
-                                        (target.style.cssText = styleLinkError),
-                                        target.setAttribute(
-                                            "title",
-                                            isNotsecureMsg
-                                        );
-                                }));
+                                const url = t.url;
+                                const target = t.target;
+                                let isLinkedin = url.includes("linkedin") ? "Linkedin" : "";
+                                const isNotSecure = url.includes("http:");
+                                let isNotsecureMsg = isNotSecure
+                                    ? "ATTENTION VOTRE LIEN EST EN HTTP ET DONC NON SECURISE : AJOUTER HTTPS"
+                                    : "";
+
+                                if (verifExcludesUrls(url) && (!url.includes("tel:") && isLinkedin && !isNotSecure)) {
+                                    console.log(
+                                        `%c Vérifier le lien  ${isLinkedin}: ${url} manuellement >>>`,
+                                        `color:${isNotSecure ? "red" : "orange"}`
+                                    );
+                                }
+
+                                if (isNotSecure) {
+                                    target.style.cssText = styleLinkError;
+                                    target.setAttribute("title", isNotsecureMsg);
+                                }
+                            });
+                        }
+
                         clearTimeout(fetchTimeout);
                         response.status = res.status;
                         response.document = res.responseText;
-                        isLinkedin = res.status === 999;
-                        txtLinkedin = isLinkedin ? "Lien Linkedin : " : "";
+                        let isLinkedin = res.status === 999;
+                        let txtLinkedin = isLinkedin ? "Lien Linkedin : " : "";
 
                         const isCTA =
                             (_node &&
-                                ((_node.style.padding && parseInt(_node?.style?.padding) >= 5) ||
-                                    (_node.style.width && parseInt(_node?.style?.width) >= 15) ||
-                                    (_node.style.height &&
-                                        parseInt(_node?.style?.height) >= 15))) ||
+                                ((_node.style && _node.style.padding && parseInt(_node.style.padding) >= 5) ||
+                                    (_node.style && _node.style.width && parseInt(_node.style.width) >= 15) ||
+                                    (_node.style && _node.style.height &&
+                                        parseInt(_node.style.height) >= 15))) ||
                             _node.clientHeight >= 10 ||
                             _node.clientWidth >= 10 ||
-                            (_node.getAttribute("class")
+                            (_node.getAttribute && _node.getAttribute("class")
                                 ? (_node.getAttribute("class").includes("dmButtonLink") ||
-                                    _node.getAttribute("class").includes("vc_btn3") || _node.getAttribute("class").toLowerCase().includes("button") || _node.getAttribute("class").toLowerCase().includes("boutton"))
+                                    _node.getAttribute("class").includes("vc_btn3") ||
+                                    _node.getAttribute("class").toLowerCase().includes("button") ||
+                                    _node.getAttribute("class").toLowerCase().includes("boutton"))
                                 : false);
+
                         const inContent =
-                            _node.closest("#Content") || _node.closest(".dmContent")
+                            _node.closest && (_node.closest("#Content") || _node.closest(".dmContent"))
                                 ? true
                                 : false;
+
                         const imageWidget = (inContent) => {
-                            if (inContent && !isCTA) {
-                                for (
-                                    let i = 0;
-                                    i < _node.closest(".dmRespCol")?.children?.length;
-                                    i++
-                                ) {
-                                    const childElement = _node.closest(".dmRespCol")?.children[i];
-                                    return childElement?.classList?.contains("imageWidget")
-                                        ? true
-                                        : false;
+                            if (inContent && !isCTA && _node.closest && _node.closest(".dmRespCol")) {
+                                const respCol = _node.closest(".dmRespCol");
+                                if (respCol && respCol.children) {
+                                    for (let i = 0; i < respCol.children.length; i++) {
+                                        const childElement = respCol.children[i];
+                                        if (childElement && childElement.classList &&
+                                            childElement.classList.contains("imageWidget")) {
+                                            return true;
+                                        }
+                                    }
                                 }
                             }
+                            return false;
                         };
 
                         const isImageWidget = imageWidget(inContent);
-                        const isImageProductShop = _node.closest(".ec-store") ? true : false;
-                        const isExternalLink =
-                            _url.includes("http") &&
-                                !new URL(_url).href.includes(window.location.origin)
-                                ? true
-                                : false;
+                        const isImageProductShop = _node.closest && _node.closest(".ec-store") ? true : false;
+
+                        let isExternalLink = false;
+                        try {
+                            isExternalLink = _url.includes("http") &&
+                                !new URL(_url).href.includes(window.location.origin);
+                        } catch (e) {
+                            console.error("Erreur lors de la création de l'URL:", e);
+                        }
+
                         const isImageLink =
                             _node &&
-                                (_node.closest(".image-container") ||
+                                (_node.closest && _node.closest(".image-container") ||
                                     isImageWidget === true ||
-                                    _node?.getAttribute("class")?.includes("caption-button") ||
-                                    _node.querySelector("img") ||
-                                    (_node?.style?.backgroundImage && !isImageProductShop))
+                                    (_node.getAttribute && _node.getAttribute("class") &&
+                                        _node.getAttribute("class").includes("caption-button")) ||
+                                    _node.querySelector && _node.querySelector("img") ||
+                                    (_node.style && _node.style.backgroundImage && !isImageProductShop))
                                 ? true
                                 : false;
 
                         const isMenuLink =
-                            _node &&
-                                (_node?.closest(".main-navigation") || _node?.closest("#menu"))
+                            _node && _node.closest &&
+                                (_node.closest(".main-navigation") || _node.closest("#menu"))
                                 ? true
                                 : false;
+
                         const isMedia = _url
                             .split(".")
-                            .at(-1)
+                            .pop()
                             .toLowerCase()
                             .match(/png|jpe?g|jpg|mp3|mp4|gif|pdf|mov|webp/);
-                        const underForm = _node && _node.closest("form");
+
+                        const underForm = _node && _node.closest && _node.closest("form");
 
                         const isDudaPrepub =
-                            window.location.origin.includes("solocaldudaadmin");
-                        const dudaPrepub =
-                            isDudaPrepub &&
-                                typeof window.location.pathname === "string" &&
-                                window.location.pathname.split("/")[3]
-                                ? window.location.pathname.split("/")[3].replaceAll("/", "")
-                                : "/";
+                            window.location.origin && window.location.origin.includes("solocaldudaadmin");
 
-                        let underPathLink;
-                        if (isDudaPrepub) {
-                            underPathLink =
-                                typeof new URL(_url).pathname === "string" &&
-                                new URL(_url).pathname.split("/")[3] === dudaPrepub;
-                        } else {
-                            underPathLink =
-                                _url?.includes(window.location.pathname).length > 0
-                                    ? _url?.includes(window.location.pathname?.replaceAll("/", ""))
-                                    : "/";
+                        let dudaPrepub = "/";
+                        if (isDudaPrepub &&
+                            typeof window.location.pathname === "string" &&
+                            window.location.pathname.split("/")[3]) {
+                            dudaPrepub = window.location.pathname.split("/")[3].replaceAll("/", "");
+                        }
+
+                        let underPathLink = false;
+                        try {
+                            if (isDudaPrepub) {
+                                underPathLink =
+                                    typeof new URL(_url).pathname === "string" &&
+                                    new URL(_url).pathname.split("/")[3] === dudaPrepub;
+                            } else {
+                                underPathLink = window.location.pathname &&
+                                    _url.includes(window.location.pathname) &&
+                                    _url.includes(window.location.pathname.replaceAll("/", ""));
+                            }
+                        } catch (e) {
+                            console.error("Erreur lors de la vérification underPathLink:", e);
                         }
                         const isSamePageLink = (link) => {
-                            const currentPageUrl = window.location.href;
-                            const linkUrl = new URL(link, window.location.origin).href;
-                            if (linkUrl === currentPageUrl) {
-                                return true;
+                            try {
+                                const currentPageUrl = window.location.href;
+                                const linkUrl = new URL(link, window.location.origin).href;
+
+                                if (linkUrl === currentPageUrl) {
+                                    return true;
+                                }
+
+                                if (linkUrl.startsWith(currentPageUrl + "#")) {
+                                    return true;
+                                }
+
+                                return false;
+                            } catch (e) {
+                                console.error("Erreur dans isSamePageLink:", e);
+                                return false;
                             }
-                            if (linkUrl.startsWith(currentPageUrl + "#")) {
-                                return true;
-                            }
-                            return false;
                         };
-                        (_node.closest("#dm_content") || _node.closest("#Content")) &&
+
+                        // Vérification des liens qui pointent vers la même page
+                        if ((_node.closest && (_node.closest("#dm_content") || _node.closest("#Content"))) &&
                             !isExternalLink &&
                             !isMenuLink &&
-                            isSamePageLink(_url) &&
-                            !_url.includes("#") &&
-                            (console.log(
+                            _url && isSamePageLink(_url) &&
+                            !_url.includes("#")) {
+
+                            console.log(
                                 `%cAttention, vous utilisez un lien qui redirige vers la même page : ${_url} - ${underPathLink}`,
                                 "color:red"
-                            ),
-                                console.log(_node),
+                            );
+                            console.log(_node);
+
+                            if (_node.setAttribute) {
                                 _node.setAttribute(
                                     "title",
                                     "Votre lien redirige vers la page en cours"
-                                ),
-                                (_node.style.cssText = styleLinkError));
+                                );
+                            }
+
+                            if (_node.style) {
+                                _node.style.cssText = styleLinkError;
+                            }
+                        }
 
                         const permalien =
                             !isExternalLink &&
-                                !isMenuLink &&
-                                !isCTA &&
-                                !isImageLink &&
-                                !isImageProductShop &&
-                                inContent &&
-                                !(_url.includes("openstreetmap") || _url.includes("mapbox"))
-                                ? true
-                                : false;
-                        const cleanUrl =
-                            _url.includes("solocaldudaadmin") || _url.includes("pagesjaune.fr")
-                                ? new URL(_url).pathname
-                                : _url;
-                        !underForm &&
-                            !isMedia &&
+                            !isMenuLink &&
+                            !isCTA &&
+                            !isImageLink &&
                             !isImageProductShop &&
-                            permalien &&
-                            (liensInternes.push(cleanUrl), maillageInterne++);
-                        isExternalLink && liensExternes.push(_url);
+                            inContent &&
+                            !(_url.includes("openstreetmap") || _url.includes("mapbox"));
+
+                        let cleanUrl = _url;
+                        try {
+                            if (_url.includes("solocaldudaadmin") || _url.includes("pagesjaune.fr")) {
+                                cleanUrl = new URL(_url).pathname;
+                            }
+                        } catch (e) {
+                            console.error("Erreur lors du nettoyage de l'URL:", e);
+                        }
+
+                        if (!underForm && !isMedia && !isImageProductShop && permalien) {
+                            liensInternes.push(cleanUrl);
+                            maillageInterne++;
+                        }
+
+                        if (isExternalLink) {
+                            liensExternes.push(_url);
+                        }
+
                         const txtMediaLog = " --_ 🖼️ CTA avec image _--";
                         const isImageLinkLog =
                             !isMedia && isImageLink && !isImageProductShop
@@ -423,8 +510,15 @@ window.dataCheckerAnalysisComplete = false;
                                 `color: ${isElementVisible(_node) ? "green" : "orange"}`
                             );
                             console.log(_node);
-                            _node.setAttribute("title", "Erreur : " + response.status);
-                            _node.style.cssText = styleLinkError;
+
+                            if (_node.setAttribute) {
+                                _node.setAttribute("title", "Erreur : " + response.status);
+                            }
+
+                            if (_node.style) {
+                                _node.style.cssText = styleLinkError;
+                            }
+
                             scoreCheckLink.push(0);
                         } else if (!isLinkedin && !res.ok && res.status === 400 && _url.includes('facebook')) {
                             console.log(
@@ -442,8 +536,15 @@ window.dataCheckerAnalysisComplete = false;
                                 `color: ${isElementVisible(_node) ? "green" : "orange"}`
                             );
                             console.log(_node);
-                            _node.setAttribute("title", "Erreur : " + response.status);
-                            _node.style.cssText = styleLinkError;
+
+                            if (_node.setAttribute) {
+                                _node.setAttribute("title", "Erreur : " + response.status);
+                            }
+
+                            if (_node.style) {
+                                _node.style.cssText = styleLinkError;
+                            }
+
                             scoreCheckLink.push(5);
                         } else if (res.status === 301 || res.type === "opaqueredirect") {
                             console.log(
@@ -484,8 +585,9 @@ window.dataCheckerAnalysisComplete = false;
                                 `color: ${isElementVisible(_node) ? "green" : "orange"}`
                             );
                         }
-                        _node.closest("#dm") &&
-                            _url.includes("site-privilege.pagesjaunes") &&
+
+                        // Vérifications supplémentaires pour les sites Duda
+                        if (_node.closest && _node.closest("#dm") && _url.includes("site-privilege.pagesjaunes")) {
                             console.log(
                                 "%cAttention lien prépup WP présent dans Duda : " +
                                 _url +
@@ -493,11 +595,11 @@ window.dataCheckerAnalysisComplete = false;
                                 _node,
                                 "color:red;"
                             );
-                        _node?.closest("#dm") &&
-                            !window.location.href.includes(
-                                "solocaldudaadmin.eu-responsivesiteeditor"
-                            ) &&
-                            _url?.includes("eu-responsivesiteeditor.com") &&
+                        }
+
+                        if (_node && _node.closest && _node.closest("#dm") &&
+                            window.location.href && !window.location.href.includes("solocaldudaadmin.eu-responsivesiteeditor") &&
+                            _url && _url.includes("eu-responsivesiteeditor.com")) {
                             console.log(
                                 "%cAttention lien prépup Duda présent dans le site en ligne : " +
                                 _url +
@@ -505,88 +607,69 @@ window.dataCheckerAnalysisComplete = false;
                                 _node,
                                 "color:red;"
                             );
-                        dataChecker.link_check.link.push({
-                            link_state: true,
-                            link_status: response.status,
-                            link_url: _url,
-                            link_text: _txt
-                                .replace(",  text : ", "")
-                                .trim()
-                                .replace("!!! ALT MANQUANT !!!", ""),
-                            link_score: response.status === 200 ? 5 : 0,
-                            link_msg: response.status === 200 ? "Lien valide." : "Lien non valide.",
-                            link_type: {
-                                isMenuLink,
-                                permalien,
-                                isImageLink,
-                                isCTA,
-                                isExternalLink
-                            }
-                        });
+                        }
 
-                        dataChecker.link_check.link_check_state = true;
+                        // Ajout des données au dataChecker
+                        if (typeof dataChecker !== 'undefined' && dataChecker.link_check) {
+                            dataChecker.link_check.link.push({
+                                link_state: true,
+                                link_status: response.status,
+                                link_url: _url,
+                                link_text: _txt
+                                    .replace(",  text : ", "")
+                                    .trim()
+                                    .replace("!!! ALT MANQUANT !!!", ""),
+                                link_score: response.status === 200 ? 5 : 0,
+                                link_msg: response.status === 200 ? "Lien valide." : "Lien non valide.",
+                                link_type: {
+                                    isMenuLink,
+                                    permalien,
+                                    isImageLink,
+                                    isCTA,
+                                    isExternalLink
+                                }
+                            });
+
+                            dataChecker.link_check.link_check_state = true;
+                        }
+
                         iterationsLinks++;
                         window.linksAnalysisState.processedLinks = iterationsLinks;
 
                         console.log("Link checked : ", iterationsLinks + "/" + nbLinks);
-                        const linksNumberPreco =
-                            maillageInterne >= 1 && maillageInterne < 4
-                                ? "color:green"
-                                : "color:red";
 
-                        if (iterationsLinks === nbLinks) {
-                            console.log(
-                                `%cVous avez ${maillageInterne} lien(s) interne(s) sur cette page (préco de 1 à 3 ) >>> `,
-                                `${linksNumberPreco}`
-                            );
-                            console.log(liensInternes);
-                            console.log("Lien(s) externe(s) : ", liensExternes);
-                            console.log(
-                                "--------------------- END check validity links -----------------------------"
-                            );
-
-                            // Signaler la fin de l'analyse des liens
-                            window.linksAnalysisState.inProgress = false;
-                            window.linksAnalysisState.completed = true;
-                            window.linksAnalysisState.results = dataChecker.link_check;
-
-                            // Déclencher l'événement de fin d'analyse des liens
-                            window.dispatchEvent(new CustomEvent('linksAnalysisComplete', {
-                                detail: {
-                                    maillageInterne,
-                                    liensInternes,
-                                    liensExternes,
-                                    scoreCheckLink
-                                }
-                            }));
-
-                            // Vérifier si toutes les analyses sont terminées
-                            if (typeof window.checkAllAnalysesComplete === 'function') {
-                                window.checkAllAnalysesComplete();
-                            }
+                        // Vérifier si c'était le dernier lien
+                        if (window.linksAnalysisState.processedLinks >= window.linksAnalysisState.totalLinks) {
+                            finalizeAnalysis(maillageInterne, liensInternes, liensExternes, scoreCheckLink);
                         }
                     })
                     .catch((error) => {
                         iterationsLinks++;
                         window.linksAnalysisState.processedLinks = iterationsLinks;
 
-                        _node.style.cssText = styleLinkError;
-                        // const msgStatus =
-                        //   response.status === null ? "insecure resource" : response.status;
-                        dataChecker.link_check.link_check_state = true;
-                        _node.setAttribute("title", "Erreur : " + error);
-                        dataChecker.link_check.link.push({
-                            link_state: true,
-                            link_status: response.status,
-                            link_url: _url,
-                            link_text: _txt
-                                .replace(",  text : ", "")
-                                .trim()
-                                ?.replace("!!! ALT MANQUANT !!!", ""),
-                            link_score: 0,
-                            link_msg:
-                                "Imposssible de traiter le lien, veillez vérifier celui-ci manuellement.",
-                        });
+                        if (_node && _node.style) {
+                            _node.style.cssText = styleLinkError;
+                        }
+
+                        if (_node && _node.setAttribute) {
+                            _node.setAttribute("title", "Erreur : " + error);
+                        }
+
+                        if (typeof dataChecker !== 'undefined' && dataChecker.link_check) {
+                            dataChecker.link_check.link_check_state = true;
+                            dataChecker.link_check.link.push({
+                                link_state: true,
+                                link_status: response.status,
+                                link_url: _url,
+                                link_text: _txt
+                                    .replace(",  text : ", "")
+                                    .trim()
+                                    ?.replace("!!! ALT MANQUANT !!!", ""),
+                                link_score: 0,
+                                link_msg:
+                                    "Imposssible de traiter le lien, veillez vérifier celui-ci manuellement.",
+                            });
+                        }
 
                         resolve(response);
                         console.log(
@@ -598,36 +681,9 @@ window.dataCheckerAnalysisComplete = false;
                             error
                         );
 
-                        if (iterationsLinks === nbLinks) {
-                            console.log(
-                                "Vous avez ",
-                                maillageInterne,
-                                "lien(s) interne(s) sur cette page >>>  "
-                            );
-                            console.log({ liensInternes });
-                            console.log(
-                                "--------------------- END check validity links -----------------------------"
-                            );
-
-                            // Signaler la fin de l'analyse des liens
-                            window.linksAnalysisState.inProgress = false;
-                            window.linksAnalysisState.completed = true;
-                            window.linksAnalysisState.results = dataChecker.link_check;
-
-                            // Déclencher l'événement de fin d'analyse des liens
-                            window.dispatchEvent(new CustomEvent('linksAnalysisComplete', {
-                                detail: {
-                                    maillageInterne,
-                                    liensInternes,
-                                    liensExternes,
-                                    scoreCheckLink
-                                }
-                            }));
-
-                            // Vérifier si toutes les analyses sont terminées
-                            if (typeof window.checkAllAnalysesComplete === 'function') {
-                                window.checkAllAnalysesComplete();
-                            }
+                        // Vérifier si c'était le dernier lien même en cas d'erreur
+                        if (window.linksAnalysisState.processedLinks >= window.linksAnalysisState.totalLinks) {
+                            finalizeAnalysis(maillageInterne, liensInternes, liensExternes, scoreCheckLink);
                         }
                     });
 
@@ -637,30 +693,39 @@ window.dataCheckerAnalysisComplete = false;
                 }, (timeout += 1000));
             });
         };
-        dataChecker.link_check.nb_link = linksStack.length;
+
+        if (dataChecker && dataChecker.link_check) {
+            dataChecker.link_check.nb_link = linksStack.length;
+        }
 
         const checkLinksDuplicate = () => {
             let linksAnalyse = [];
             let linksCounts = {};
-            linksStack.each(function (t, i) {
-                href = $(this).attr("href");
-                href &&
+
+            linksStack.each(function () {
+                const href = $(this).attr("href");
+                if (href &&
                     href.length > 1 &&
                     !href.includes("bloctel.gouv.fr") &&
                     !href.includes("client.adhslx.com") &&
-                    href.at(0) !== "#" &&
+                    href.charAt(0) !== "#") {
                     linksAnalyse.push(href);
+                }
             });
+
             linksAnalyse.forEach((element) => {
                 linksCounts[element] = (linksCounts[element] || 0) + 1;
             });
+
             console.log("All links : ", linksAnalyse);
 
             const entries = Object.entries(linksCounts);
             const sortedEntries = entries.sort((a, b) => a[1] - b[1]);
+
             sortedEntries.forEach(([link, count]) => {
                 const relativLink =
-                    link.at(0) === "/" ? window.location.origin + link : link;
+                    link.charAt(0) === "/" ? window.location.origin + link : link;
+
                 if (count > 1) {
                     console.log(
                         `%c Attention, vous avez des liens dupliqués sur la page : `,
@@ -676,81 +741,226 @@ window.dataCheckerAnalysisComplete = false;
             });
         };
 
-        // Démarrer l'analyse des liens
-        const processLinks = async (linksStackFilter) => {
-            for (const t of linksStackFilter) {
-                let url = t.href;
-                const _this = t.target;
-                const $this = $(t.target);
+        // Fonction pour finaliser l'analyse (nouvelle fonction)
+        function finalizeAnalysis(maillageInterne, liensInternes, liensExternes, scoreCheckLink) {
+            if (!window.linksAnalysisState.completed) {
+                const linksNumberPreco =
+                    maillageInterne >= 1 && maillageInterne < 4
+                        ? "color:green"
+                        : "color:red";
 
-                if (url && !url.includes("tel:")) {
-                    url =
-                        url.at(0) === "/" || (url.at(0) === "?" && !url.includes("tel:"))
-                            ? window.location.origin + url
-                            : url;
+                console.log(
+                    `%cVous avez ${maillageInterne} lien(s) interne(s) sur cette page (préco de 1 à 3 ) >>> `,
+                    `${linksNumberPreco}`
+                );
 
-                    let txtContent =
-                        url &&
-                            url.at(-4) &&
-                            !url.at(-4).includes(".") &&
-                            t.target.textContent.length > 1
-                            ? ",  text : " +
-                            t.target.textContent
+                if (liensInternes && liensInternes.length) {
+                    console.log(liensInternes);
+                }
+
+                if (liensExternes && liensExternes.length) {
+                    console.log("Lien(s) externe(s) : ", liensExternes);
+                }
+
+                console.log(
+                    "--------------------- END check validity links -----------------------------"
+                );
+
+                // Mettre à jour l'état de l'analyse
+                window.linksAnalysisState.inProgress = false;
+                window.linksAnalysisState.completed = true;
+
+                if (typeof dataChecker !== 'undefined' && dataChecker.link_check) {
+                    window.linksAnalysisState.results = dataChecker.link_check;
+                }
+
+                window.linksAnalysisState.endTime = Date.now();
+                window.linksAnalysisState.duration = window.linksAnalysisState.endTime - window.linksAnalysisState.startTime;
+
+                console.log(`✅ Analyse des liens terminée en ${window.linksAnalysisState.duration / 1000}s`);
+
+                // Déclencher les événements de fin
+                window.dataCheckerAnalysisComplete = true;
+
+                const detailObj = {
+                    maillageInterne: maillageInterne || 0,
+                    liensInternes: liensInternes || [],
+                    liensExternes: liensExternes || [],
+                    scoreCheckLink: scoreCheckLink || []
+                };
+
+                try {
+                    window.dispatchEvent(new CustomEvent('linksAnalysisComplete', {
+                        detail: detailObj
+                    }));
+
+                    window.dispatchEvent(new CustomEvent('dataCheckerAnalysisComplete'));
+                } catch (e) {
+                    console.error("Erreur lors du déclenchement des événements:", e);
+                }
+
+                // Vérifier si toutes les analyses sont terminées
+                if (typeof window.checkAllAnalysesComplete === 'function') {
+                    try {
+                        window.checkAllAnalysesComplete();
+                    } catch (e) {
+                        console.error("Erreur lors de checkAllAnalysesComplete:", e);
+                    }
+                }
+            }
+        }
+
+        // Fonctions pour le traitement par lots (nouvelles fonctions)
+        async function processLinksInBatches(links, batchSize = 5) {
+            const totalBatches = Math.ceil(links.length / batchSize);
+
+            for (let i = 0; i < totalBatches; i++) {
+                const batch = links.slice(i * batchSize, (i + 1) * batchSize);
+
+                // Traiter ce lot en parallèle
+                await Promise.all(batch.map(link => processLink(link)));
+
+                // Mettre à jour la progression
+                console.log(`Progression: Lot ${i + 1}/${totalBatches} (${window.linksAnalysisState.processedLinks}/${window.linksAnalysisState.totalLinks} liens)`);
+
+                // Vérifier si nous avons terminé
+                if (window.linksAnalysisState.processedLinks >= window.linksAnalysisState.totalLinks) {
+                    break;
+                }
+
+                // Pause entre les lots pour ne pas surcharger
+                await new Promise(r => setTimeout(r, 100));
+            }
+        }
+
+        // Fonction pour traiter un seul lien
+        async function processLink(linkObj) {
+            if (!linkObj || !linkObj.href || !linkObj.target) {
+                console.error("Objet lien invalide:", linkObj);
+
+                // Incrémenter quand même pour ne pas bloquer l'analyse
+                iterationsLinks++;
+                window.linksAnalysisState.processedLinks = iterationsLinks;
+
+                if (window.linksAnalysisState.processedLinks >= window.linksAnalysisState.totalLinks) {
+                    finalizeAnalysis(maillageInterne, liensInternes, liensExternes, scoreCheckLink);
+                }
+
+                return;
+            }
+
+            let url = linkObj.href;
+            const _this = linkObj.target;
+            const $this = $(linkObj.target);
+
+            if (url && !url.includes("tel:")) {
+                url = url.charAt(0) === "/" || (url.charAt(0) === "?" && !url.includes("tel:"))
+                    ? window.location.origin + url
+                    : url;
+
+                let txtContent = "";
+
+                try {
+                    if (url &&
+                        url.charAt(url.length - 4) &&
+                        !url.charAt(url.length - 4).includes(".") &&
+                        linkObj.target.textContent &&
+                        linkObj.target.textContent.length > 1) {
+                        txtContent = ",  text : " +
+                            linkObj.target.textContent
                                 .replace(/(\r\n|\n|\r)/gm, "")
-                                ?.replace("!!! ALT MANQUANT !!!", "")
-                            : $this.find("svg") &&
-                                $this.find("svg").attr("alt")?.replace("!!! ALT MANQUANT !!!", "")
-                                ? ",  text : " +
-                                $this.find("svg").attr("alt")?.replace("!!! ALT MANQUANT !!!", "")
-                                : "";
+                                ?.replace("!!! ALT MANQUANT !!!", "");
+                    } else if ($this.find("svg").length &&
+                        $this.find("svg").attr("alt") &&
+                        $this.find("svg").attr("alt").replace) {
+                        txtContent = ",  text : " +
+                            $this.find("svg").attr("alt").replace("!!! ALT MANQUANT !!!", "");
+                    }
+                } catch (e) {
+                    console.error("Erreur lors de l'extraction du texte:", e);
+                }
 
-                    if (url && verifExcludesUrls(url)) {
-                        const delayTime = ($this.closest("dmRoot") && linksStackFilter.length > 99) ? 50 : 0;
+                if (url && verifExcludesUrls(url)) {
+                    const delayTime = ($this.closest("dmRoot").length && linksStackFilter.length > 99) ? 50 : 0;
+
+                    if (delayTime > 0) {
                         await delay(delayTime);
+                    }
 
-                        check(url, txtContent, t.target);
+                    try {
+                        await check(url, txtContent, linkObj.target);
+                    } catch (e) {
+                        console.error("Erreur lors de la vérification du lien:", e);
+                    }
 
-                        if (url.includes("linkedin")) {
-                            console.log(
-                                `%c Vérifier le lien "Linkedin" : ${txtContent} manuellement >>>`,
-                                "color:orange"
-                            );
-                            console.log(new URL(url).href, t.target);
-                            await delay(delayTime);
-                            check(new URL(url).href, txtContent, t.target);
-                        } else if (url.includes("http:")) {
-                            console.log(
-                                `%c Vérifier le lien ${txtContent} manuellement et SECURISEZ LE via "https" si ceci est possible >>>`,
-                                "color:red"
-                            );
-                            console.log(new URL(url).href, t.target);
-                            await delay(delayTime);
-                            check(new URL(url).href, txtContent, t.target);
+                    if (url.includes("linkedin")) {
+                        console.log(
+                            `%c Vérifier le lien "Linkedin" : ${txtContent} manuellement >>>`,
+                            "color:orange"
+                        );
+
+                        try {
+                            console.log(new URL(url).href, linkObj.target);
+
+                            if (delayTime > 0) {
+                                await delay(delayTime);
+                            }
+
+                            await check(new URL(url).href, txtContent, linkObj.target);
+                        } catch (e) {
+                            console.error("Erreur lors de la vérification du lien LinkedIn:", e);
+                        }
+                    } else if (url.includes("http:")) {
+                        console.log(
+                            `%c Vérifier le lien ${txtContent} manuellement et SECURISEZ LE via "https" si ceci est possible >>>`,
+                            "color:red"
+                        );
+
+                        try {
+                            console.log(new URL(url).href, linkObj.target);
+
+                            if (delayTime > 0) {
+                                await delay(delayTime);
+                            }
+
+                            await check(new URL(url).href, txtContent, linkObj.target);
+                        } catch (e) {
+                            console.error("Erreur lors de la vérification du lien HTTP:", e);
                         }
                     }
                 }
             }
-        };
+        }
 
-        // Lancer l'analyse des liens
-        processLinks(linksStackFilter);
+        // Traiter les liens par lots
+        checkLinksDuplicate();
+        processLinksInBatches(linksStackFilter);
     };
 
     // Exposer une fonction pour vérifier l'état
     window.isLinksAnalysisComplete = function () {
         window.dataCheckerAnalysisComplete = true;
         // Déclencher un événement pour signaler l'achèvement
-        window.dispatchEvent(new CustomEvent('dataCheckerAnalysisComplete'));
-        return window.linksAnalysisState.completed;
+        try {
+            window.dispatchEvent(new CustomEvent('dataCheckerAnalysisComplete'));
+        } catch (e) {
+            console.error("Erreur lors du déclenchement de dataCheckerAnalysisComplete:", e);
+        }
 
+        return window.linksAnalysisState.completed;
     };
 
     // Exposer une fonction pour obtenir les résultats
     window.getLinksAnalysisResults = function () {
-        return {
-            ...window.linksAnalysisState,
-            scoreCheckLink: dataChecker?.link_check?.link?.map(l => l.link_score) || []
-        };
+        try {
+            return {
+                ...window.linksAnalysisState,
+                scoreCheckLink: dataChecker?.link_check?.link?.map(l => l.link_score) || []
+            };
+        } catch (e) {
+            console.error("Erreur lors de la récupération des résultats:", e);
+            return window.linksAnalysisState;
+        }
     };
 
 })(jQuery);
