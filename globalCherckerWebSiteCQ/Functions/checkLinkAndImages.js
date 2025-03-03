@@ -678,6 +678,47 @@ function initcheckerLinksAndImages() {
     );
 
   nbLinks === 0 && checkerImageWP();
+
+
+  function encodeURLSimple(url, charMap = null) {
+    // Dictionnaire par défaut des caractères spéciaux
+    const defaultCharMap = {
+      // Caractères accentués français
+      'é': '%C3%A9', 'è': '%C3%A8', 'ê': '%C3%AA', 'ë': '%C3%AB',
+      'à': '%C3%A0', 'â': '%C3%A2', 'ä': '%C3%A4', 'ô': '%C3%B4',
+      'ö': '%C3%B6', 'ù': '%C3%B9', 'û': '%C3%BB', 'ü': '%C3%BC',
+      'ÿ': '%C3%BF', 'ç': '%C3%A7', 'É': '%C3%89', 'È': '%C3%88',
+      'Ê': '%C3%8A', 'Ë': '%C3%8B', 'À': '%C3%80', 'Â': '%C3%82',
+      'Ä': '%C3%84', 'Ô': '%C3%94', 'Ö': '%C3%96', 'Ù': '%C3%99',
+      'Û': '%C3%9B', 'Ü': '%C3%9C', 'Ÿ': '%C3%9F', 'Ç': '%C3%87',
+
+
+      // Caractères corrompus
+      '�': '%C3%A9', // Remplace � par é encodé
+      '%EF%BF%BD': '%C3%A9', // Version encodée de �
+    };
+
+    // Utiliser la carte fournie ou celle par défaut
+    const mappings = charMap || defaultCharMap;
+
+    // Version avec replaceAll (plus simple)
+    let encodedUrl = url;
+    for (const [char, encoded] of Object.entries(mappings)) {
+      // Échapper les caractères spéciaux pour le replaceAll
+      if (char.match(/[.*+?^${}()|[\]\\]/)) {
+        // Pour ces caractères, nous devons utiliser une regex avec échappement
+        const regex = new RegExp(char.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+        encodedUrl = encodedUrl.replace(regex, encoded);
+      } else {
+        // Pour les caractères normaux, replaceAll est suffisant
+        encodedUrl = encodedUrl.replaceAll(char, encoded);
+      }
+    }
+
+    return encodedUrl;
+  }
+
+
   let iterationsLinks = 0;
   let maillageInterne = 0;
   const liensInternes = [],
@@ -697,9 +738,9 @@ function initcheckerLinksAndImages() {
       const startDoubleSlash = /^\/\//;
       _url = _url?.match(startDoubleSlash) !== null ? "https:" + _url : _url;
       _url = _url.includes('http:') ? _url.replace('http:', 'https:') : _url;
-      _url = _url
-        .replace(/�/g, 'é')
-        .replace(/%EF%BF%BD/g, '%C3%A9'); // Remplace le � encodé (EF BF BD) par é encodé
+      _url = encodeURLSimple(_url);
+      // .replace(/�/g, 'é')
+      // .replace(/%EF%BF%BD/g, '%C3%A9'); // Remplace le � encodé (EF BF BD) par é encodé
       fetch(_url, {
         method: "GET",
         //redirect: "manual", // Permet de suivre les redirections explicitement
