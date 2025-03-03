@@ -1376,11 +1376,30 @@ function calculateGlobalScore(pageData) {
     const webdesignerScore = parseFloat(pageData.webdesigner_global_score?.global_score) || 0;
 
     // Scores de catégories
-    const metaScore = parseFloat(pageData.meta_check?.global_score) || 0;
-    const linkScore = parseFloat(pageData.link_check?.global_score) || 0;
-    const imgScore = parseFloat(pageData.alt_img_check?.global_score) || 0;
-    const hnScore = parseFloat(pageData.hn?.global_score) || 0;
-    const boldScore = parseFloat(pageData.bold_check?.global_score) || 0;
+    const extraireScores = (tableauObjets) => {
+        return tableauObjets.map(objet => objet.link_score);
+    };
+    const calculerMoyenne = (tableau) => {
+        if (tableau.length === 0) {
+            return 0;
+        }
+        const somme = tableau.reduce((acc, valeur) => acc + valeur, 0);
+        const moyenne = somme / tableau.length;
+        return Number(moyenne.toFixed(2));
+    };
+    const ArrayScoreLinks = extraireScores(pageData.link_check?.link);
+
+    const scoreLinks = calculerMoyenne(ArrayScoreLinks);
+    console.log("link Array : ", ArrayScoreLinks)
+    console.log(">>>>>>>>>>>>>>>>>>>>>>>>> score links : ", scoreLinks);
+    console.log('resulta score links des datas : ', pageData.link_check?.global_score);
+
+
+    const metaScore = Number(pageData.meta_check?.global_score) || 0;
+    const linkScore = scoreLinks || 0;
+    const imgScore = Number(pageData.alt_img_check?.global_score) || 0;
+    const hnScore = Number(pageData.hn?.global_score) || 0;
+    const boldScore = Number(pageData.bold_check?.global_score) || 0;
 
     // Calcul de la moyenne pondérée
     const scores = [
@@ -1390,16 +1409,21 @@ function calculateGlobalScore(pageData) {
         { score: hnScore, weight: 0.25 },         // 25% structure
         { score: boldScore, weight: 0.10 }        // 10% textes en gras
     ];
+    console.log("scores array links avec weight : ", scores);
 
     let totalScore = 0;
     let totalWeight = 0;
 
     scores.forEach(({ score, weight }) => {
-        if (!isNaN(score)) {
+        if (!isNaN(Number(score))) {
+            console.log("score : ", score, "avec weight : ", score * weight);
             totalScore += score * weight;
             totalWeight += weight;
         }
     });
+    if (pageData.link_check) {
+        pageData.link_check.global_score = scoreLinks;
+    }
 
     const finalScore = totalWeight > 0 ? totalScore / totalWeight : 0;
 
@@ -1407,6 +1431,7 @@ function calculateGlobalScore(pageData) {
 }
 function createPageCard(url, data, allResults) {
     const globalScore = calculateGlobalScore(data);
+    console.log("createPageCard link score : ", data.link_check?.global_score);
 
 
     return `
