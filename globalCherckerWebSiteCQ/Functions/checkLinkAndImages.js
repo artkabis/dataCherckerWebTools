@@ -697,8 +697,6 @@ function initcheckerLinksAndImages() {
       const startDoubleSlash = /^\/\//;
       _url = _url?.match(startDoubleSlash) !== null ? "https:" + _url : _url;
       _url = _url.includes('http:') ? _url.replace('http:', 'https:') : _url;
-      console.log('<<<<<<<<<<<<<>>>>>>>>>>>>><< url check : ', _url);
-
       fetch(_url, {
         method: "GET",
         //redirect: "manual", // Permet de suivre les redirections explicitement
