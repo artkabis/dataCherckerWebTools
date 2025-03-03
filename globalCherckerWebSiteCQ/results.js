@@ -756,6 +756,9 @@ const overviewStyles = `
         margin: 0 0 10px 0;
         color: #666;
     }
+    .content tbody tr td {
+        max-width: 33vw !important;
+    }
 `;
 
 const loadingStyles = `

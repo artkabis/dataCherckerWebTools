@@ -64,3 +64,6 @@ h2 {
     background-color: #007bff;
     color: white;
 }
+.content tbody tr td {
+    max-width: 33vw !important;
+}
