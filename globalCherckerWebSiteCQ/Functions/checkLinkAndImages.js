@@ -697,6 +697,9 @@ function initcheckerLinksAndImages() {
       const startDoubleSlash = /^\/\//;
       _url = _url?.match(startDoubleSlash) !== null ? "https:" + _url : _url;
       _url = _url.includes('http:') ? _url.replace('http:', 'https:') : _url;
+      _url = _url
+        .replace(/�/g, 'é')
+        .replace(/%EF%BF%BD/g, '%C3%A9'); // Remplace le � encodé (EF BF BD) par é encodé
       fetch(_url, {
         method: "GET",
         //redirect: "manual", // Permet de suivre les redirections explicitement
