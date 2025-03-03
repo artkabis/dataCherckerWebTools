@@ -23,8 +23,8 @@
 
 ## multi-pages checking
 
-- Added the ability to scan an entire website via sitemap.xml
-- Added the ability to scan pages via a comma-separated list of URLs
+- Added the ability to scan an entire website to sitemap.xml
+- Added the ability to scan pages to a comma-separated list of URLs
 
 ## Other tools:
 
