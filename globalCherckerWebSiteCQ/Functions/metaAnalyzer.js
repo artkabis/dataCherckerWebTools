@@ -59,7 +59,7 @@ export const analyzeMetas = async (tab) => {
             modal.style.cssText = `
         position: fixed;
         top: 50%;
-        left: 30%;
+        left: 45%;
         transform: translate(-50%, -50%);
         background: white;
         border-radius: 8px;
