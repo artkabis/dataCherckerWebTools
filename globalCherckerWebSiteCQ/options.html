@@ -1,108 +1,614 @@
 <!DOCTYPE html>
 <html lang="fr">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Options Health Checker Website</title>
-    <link rel="stylesheet" href="./assets/bootstrap.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Options Health Checker</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
     <style>
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-around;
-            align-items: flex-start;
+      :root {
+        --primary: #4361ee;
+        --primary-light: #4895ef;
+        --secondary: #3f37c9;
+        --success: #4cc9f0;
+        --dark: #242f40;
+        --light: #f8f9fa;
+        --danger: #ef476f;
+        --warning: #ffd166;
+        --gray-100: #f8f9fa;
+        --gray-200: #e9ecef;
+        --gray-300: #dee2e6;
+        --gray-400: #ced4da;
+        --gray-500: #adb5bd;
+        --gray-600: #6c757d;
+        --gray-700: #495057;
+        --gray-800: #343a40;
+        --gray-900: #212529;
+        --border-radius: 8px;
+        --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --transition: all 0.3s ease;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: var(--gray-100);
+        color: var(--gray-800);
+        line-height: 1.6;
+        padding: 0;
+        margin: 0;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 1rem;
+      }
+
+      header {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        color: white;
+        padding: 1.5rem 0;
+        box-shadow: var(--box-shadow);
+      }
+
+      header .container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .header-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+      }
+
+      .header-subtitle {
+        font-size: 1rem;
+        opacity: 0.8;
+        margin-top: 0.25rem;
+      }
+
+      main {
+        padding: 2rem 0;
+      }
+
+      .card {
+        background-color: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        margin-bottom: 2rem;
+        overflow: hidden;
+      }
+
+      .card-header {
+        background-color: var(--gray-200);
+        padding: 1rem;
+        border-bottom: 1px solid var(--gray-300);
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .card-body {
+        padding: 1.5rem;
+      }
+
+      .form-row {
+        display: flex;
+        flex-wrap: wrap;
+        margin: 0 -0.75rem;
+      }
+
+      .form-col {
+        flex: 1 0 300px;
+        padding: 0 0.75rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .form-group {
+        margin-bottom: 1.25rem;
+        width: 100%;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--gray-700);
+      }
+
+      .form-control {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        line-height: 1.5;
+        color: var(--gray-700);
+        background-color: var(--light);
+        background-clip: padding-box;
+        border: 1px solid var(--gray-400);
+        border-radius: var(--border-radius);
+        transition: var(--transition);
+      }
+
+      .form-control:focus {
+        color: var(--gray-700);
+        background-color: var(--light);
+        border-color: var(--primary-light);
+        outline: 0;
+        box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.25);
+      }
+
+      .form-control::placeholder {
+        color: var(--gray-500);
+        opacity: 1;
+      }
+
+      .input-group {
+        position: relative;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: stretch;
+        width: 100%;
+      }
+
+      .input-group-text {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.5;
+        color: var(--gray-700);
+        text-align: center;
+        white-space: nowrap;
+        background-color: var(--gray-200);
+        border: 1px solid var(--gray-400);
+        border-radius: var(--border-radius);
+      }
+
+      .input-group > .form-control:not(:last-child) {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+      }
+
+      .input-group > .input-group-text:not(:first-child) {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        border-left: 0;
+      }
+
+      .help-text {
+        display: block;
+        margin-top: 0.25rem;
+        font-size: 0.875rem;
+        color: var(--gray-600);
+      }
+
+      .card-footer {
+        padding: 1rem;
+        background-color: var(--gray-200);
+        border-top: 1px solid var(--gray-300);
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+      }
+
+      .btn {
+        display: inline-block;
+        font-weight: 500;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: middle;
+        user-select: none;
+        border: 1px solid transparent;
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+        line-height: 1.5;
+        border-radius: var(--border-radius);
+        transition: var(--transition);
+        cursor: pointer;
+      }
+
+      .btn-primary {
+        color: white;
+        background-color: var(--primary);
+        border-color: var(--primary);
+      }
+
+      .btn-primary:hover {
+        background-color: var(--secondary);
+        border-color: var(--secondary);
+      }
+
+      .btn-outline-secondary {
+        color: var(--gray-700);
+        background-color: transparent;
+        border-color: var(--gray-400);
+        margin-right: 1rem;
+      }
+
+      .btn-outline-secondary:hover {
+        color: var(--gray-800);
+        background-color: var(--gray-200);
+        border-color: var(--gray-500);
+      }
+
+      .btn i {
+        margin-right: 0.5rem;
+      }
+
+      .section-title {
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid var(--gray-300);
+        font-weight: 600;
+        color: var(--gray-700);
+      }
+
+      .range-slider {
+        width: 100%;
+        margin-top: 0.5rem;
+      }
+
+      .range-values {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 0.25rem;
+        font-size: 0.875rem;
+        color: var(--gray-600);
+      }
+
+      /* Responsive adjustments */
+      @media (max-width: 768px) {
+        .form-col {
+          flex: 0 0 100%;
         }
 
-        form#form-settings {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: flex-start;
-            margin-left: 1em;
+        .card-footer {
+          flex-direction: column;
         }
+
+        .btn {
+          width: 100%;
+          margin-bottom: 0.5rem;
+        }
+
+        .btn-outline-secondary {
+          margin-right: 0;
+        }
+      }
+
+      .form-section {
+        margin-bottom: 2rem;
+      }
+
+      .tooltip {
+        position: relative;
+        display: inline-block;
+        margin-left: 0.5rem;
+        color: var(--gray-500);
+      }
+
+      .tooltip .tooltip-text {
+        visibility: hidden;
+        width: 200px;
+        background-color: var(--gray-800);
+        color: white;
+        text-align: center;
+        padding: 0.5rem;
+        border-radius: var(--border-radius);
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -100px;
+        opacity: 0;
+        transition: opacity 0.3s;
+        font-size: 0.75rem;
+        font-weight: normal;
+      }
+
+      .tooltip .tooltip-text::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -5px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: var(--gray-800) transparent transparent transparent;
+      }
+
+      .tooltip:hover .tooltip-text {
+        visibility: visible;
+        opacity: 1;
+      }
+
+      /* Animations */
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .card {
+        animation: fadeIn 0.5s ease forwards;
+      }
     </style>
-</head>
+  </head>
 
-<body>
-    <h1>Options Health Checker Website</h1>
-    <br><br>
-    <form id="form-settings">
-        <div class="form-group">
-            <label for="profil-user-controller-input">Identifiant du contrôleur</label>
-            <input id="profil-user-controller-input" type="text"
-                placeholder="Entrez votre username exemple (pour le prenom : greg, et nom : nicolle) ->gnicolle" >
+  <body>
+    <header>
+      <div class="container">
+        <div>
+          <h1 class="header-title">Options Health Checker</h1>
+          <p class="header-subtitle">
+            Configurez vos paramètres de vérification SEO
+          </p>
         </div>
-        <br>
-        <div class="form-group">
-            <label for="profil-type-input">Profil contrôllé</label>
-            <input id="profil-type-input" type="text" placeholder="Entrez votre rôle (cdp, webdesigner ou all)" >
-        </div>
-        <br>
-        <div class="form-group">
-            <label for="min-meta-title-caractere-input">min meta title</label>
-            <input id="min-meta-title-caractere-input" type="text"
-                placeholder="Entrez le nombre minimum de caractère pour la meta title" >
-        </div>
-        <br>
-        <div class="form-group">
-            <label for="max-meta-title-caractere-input">max meta title</label>
-            <input id="max-meta-title-caractere-input" type="text"
-                placeholder="Entrez le nombre maximum de caractère pour la meta title" >
-        </div>
-        <br>
-        <div class="form-group">
-            <label for="min-meta-desc-caractere-input">min meta desc</label>
-            <input id="min-meta-desc-caractere-input" type="text"
-                placeholder="Entrez le nombre minimum de caractère pour la meta description" >
-        </div>
-        <br>
-        <div class="form-group">
-            <label for="max-meta-desc-caractere-input">max meta desc</label>
-            <input id="max-meta-desc-caractere-input" type="text"
-                placeholder="Entrez le nombre maximum de caractère pour la meta description" >
-        </div>
-        <br>
-        <div class="form-group">
-            <label for="min-hn-caractere-input">min hn caracters</label>
-            <input id="min-hn-caractere-input" type="text"
-                placeholder="Entrez le nombre minimum de caractères pour le hn (de H1 et H2)" >
-        </div>
-        <br>
-        <div class="form-group">
-            <label for="max-hn-caractere-input">max hn caracters</label>
-            <input id="max-hn-caractere-input" type="text"
-                placeholder="Entrez le nombre maximum de caractères pour le hn (de H1 et H2)" >
-        </div>
-        <br>
-        <div class="form-group">
-            <label for="min-bold-expression-input">min bold expression</label>
-            <input id="min-bold-expression-input" type="text"
-                placeholder="Entrez le nombre minimum d'expressions en gras" >
-        </div>
-        <br>
-        <div class="form-group">
-            <label for="max-bold-expression-input">max bold expression</label>
-            <input id="max-bold-expression-input" type="text"
-                placeholder="Entrez le nombre maximum d'expressions en gras" >
-        </div>
-        <br>
-        <div class="form-group">
-            <label for="max-size-bytes-image-input">max size bytes images</label>
-            <input id="max-size-bytes-image-input" type="text"
-                placeholder="Entrez la taille maximal (en bytes) des images" >
-        </div>
-        <br>
-        <div class="form-group">
-            <label for="max-ratio-image-input">max ratio images</label>
-            <input id="max-ratio-image-input" type="text" placeholder="Entrez le ratio maximal des images" >
-        </div>
-        <br>
-        <button type="button" class="btn btn-primary" id="default-btn">Récupérer les paramètres par défaut</button>
-    </form>
+      </div>
+    </header>
+
+    <main>
+      <div class="container">
+        <form id="form-settings">
+          <div class="card">
+            <div class="card-header">
+              <span>Profil Utilisateur</span>
+            </div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-col">
+                  <div class="form-group">
+                    <label for="profil-user-controller-input">
+                      Identifiant du contrôleur
+                      <span class="tooltip">
+                        <i class="fas fa-info-circle"></i>
+                        <span class="tooltip-text"
+                          >Format recommandé: pour le prénom "greg" et nom
+                          "nicolle" -> gnicolle</span
+                        >
+                      </span>
+                    </label>
+                    <input
+                      id="profil-user-controller-input"
+                      type="text"
+                      class="form-control"
+                      placeholder="Entrez votre username (ex: gnicolle)"
+                    />
+                  </div>
+                </div>
+                <div class="form-col">
+                  <div class="form-group">
+                    <label for="profil-type-input">Profil contrôlé</label>
+                    <select id="profil-type-input" class="form-control">
+                      <option value="" disabled selected>
+                        Sélectionnez votre rôle
+                      </option>
+                      <option value="cdp">Chef de projet</option>
+                      <option value="webdesigner">Webdesigner</option>
+                      <option value="all">Tous les rôles</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span>Paramètres SEO</span>
+            </div>
+            <div class="card-body">
+              <div class="form-section">
+                <h3 class="section-title">Meta Données</h3>
+                <div class="form-row">
+                  <div class="form-col">
+                    <div class="form-group">
+                      <label for="min-meta-title-caractere-input"
+                        >Longueur Meta Title (caractères)</label
+                      >
+                      <div class="input-group">
+                        <input
+                          id="min-meta-title-caractere-input"
+                          type="number"
+                          class="form-control"
+                          placeholder="Min"
+                          min="0"
+                          step="1"
+                        />
+                        <span class="input-group-text">à</span>
+                        <input
+                          id="max-meta-title-caractere-input"
+                          type="number"
+                          class="form-control"
+                          placeholder="Max"
+                          min="0"
+                          step="1"
+                        />
+                      </div>
+                      <span class="help-text"
+                        >Recommandation: entre 50 et 65 caractères</span
+                      >
+                    </div>
+                  </div>
+                  <div class="form-col">
+                    <div class="form-group">
+                      <label for="min-meta-desc-caractere-input"
+                        >Longueur Meta Description (caractères)</label
+                      >
+                      <div class="input-group">
+                        <input
+                          id="min-meta-desc-caractere-input"
+                          type="number"
+                          class="form-control"
+                          placeholder="Min"
+                          min="0"
+                          step="1"
+                        />
+                        <span class="input-group-text">à</span>
+                        <input
+                          id="max-meta-desc-caractere-input"
+                          type="number"
+                          class="form-control"
+                          placeholder="Max"
+                          min="0"
+                          step="1"
+                        />
+                      </div>
+                      <span class="help-text"
+                        >Recommandation: entre 140 et 156 caractères</span
+                      >
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <h3 class="section-title">Structure du contenu</h3>
+                <div class="form-row">
+                  <div class="form-col">
+                    <div class="form-group">
+                      <label for="min-hn-caractere-input"
+                        >Longueur des titres H1/H2 (caractères)</label
+                      >
+                      <div class="input-group">
+                        <input
+                          id="min-hn-caractere-input"
+                          type="number"
+                          class="form-control"
+                          placeholder="Min"
+                          min="0"
+                          step="1"
+                        />
+                        <span class="input-group-text">à</span>
+                        <input
+                          id="max-hn-caractere-input"
+                          type="number"
+                          class="form-control"
+                          placeholder="Max"
+                          min="0"
+                          step="1"
+                        />
+                      </div>
+                      <span class="help-text"
+                        >Recommandation: entre 50 et 90 caractères</span
+                      >
+                    </div>
+                  </div>
+                  <div class="form-col">
+                    <div class="form-group">
+                      <label for="min-bold-expression-input"
+                        >Nombre d'expressions en gras</label
+                      >
+                      <div class="input-group">
+                        <input
+                          id="min-bold-expression-input"
+                          type="number"
+                          class="form-control"
+                          placeholder="Min"
+                          min="0"
+                          step="1"
+                        />
+                        <span class="input-group-text">à</span>
+                        <input
+                          id="max-bold-expression-input"
+                          type="number"
+                          class="form-control"
+                          placeholder="Max"
+                          min="0"
+                          step="1"
+                        />
+                      </div>
+                      <span class="help-text"
+                        >Recommandation: entre 3 et 5 expressions</span
+                      >
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <h3 class="section-title">Optimisation des images</h3>
+                <div class="form-row">
+                  <div class="form-col">
+                    <div class="form-group">
+                      <label for="max-size-bytes-image-input">
+                        Taille maximale des images (bytes)
+                        <span class="tooltip">
+                          <i class="fas fa-info-circle"></i>
+                          <span class="tooltip-text"
+                            >Valeur recommandée: 317435 bytes (environ 310
+                            KB)</span
+                          >
+                        </span>
+                      </label>
+                      <input
+                        id="max-size-bytes-image-input"
+                        type="number"
+                        class="form-control"
+                        placeholder="Taille maximale en bytes"
+                        min="0"
+                        step="1000"
+                      />
+                    </div>
+                  </div>
+                  <div class="form-col">
+                    <div class="form-group">
+                      <label for="max-ratio-image-input">
+                        Ratio maximal des images
+                        <span class="tooltip">
+                          <i class="fas fa-info-circle"></i>
+                          <span class="tooltip-text"
+                            >Rapport largeur/hauteur maximal</span
+                          >
+                        </span>
+                      </label>
+                      <input
+                        id="max-ratio-image-input"
+                        type="number"
+                        class="form-control"
+                        placeholder="Ratio maximal"
+                        min="1"
+                        step="0.1"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="card-footer">
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                id="default-btn"
+              >
+                <i class="fas fa-undo"></i> Réinitialiser les paramètres
+              </button>
+              <button type="button" class="btn btn-primary" id="save-btn">
+                <i class="fas fa-save"></i> Enregistrer les paramètres
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </main>
 
     <script type="module" src="options.js"></script>
-    <script async src="./assets/bootstrap.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-</body>
-
+  </body>
 </html>
