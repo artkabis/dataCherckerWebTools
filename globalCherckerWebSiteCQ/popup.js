@@ -5,6 +5,7 @@ import { copyExpressionsSoprod } from "./Functions/copyExpressionsSoprod.js";
 import { dudaSitemap } from "./Functions/DudaSitemap.js";
 import { HnOutlineValidity } from "./Functions/HnOutlineValidity.js";
 import { downloaderWPMedia } from "./Functions/downloaderWPMedias.js";
+import { analyzeMetas } from "./Functions/metaAnalyzer.js";
 
 document.addEventListener('DOMContentLoaded', () => {
   // Affichage de la version dans le popup
@@ -256,6 +257,12 @@ async function injectScriptsForAnalysis(tab) {
 }
 
 function setupTools() {
+  // Outil Meta Analyzer
+  document.getElementById("metaAnalyzer").addEventListener("click", function () {
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      analyzeMetas(tabs[0]);
+    });
+  });
   // Outil Sitemap WP
   document.getElementById("sitemapWP").addEventListener("click", function () {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {

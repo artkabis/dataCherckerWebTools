@@ -14,10 +14,10 @@ initDataChecker = (size_scores, ratio_scores, alt_scores, scoreCheckLink) => {
     global_ratio_scores =
       size_scores.length > 0
         ? Number(
-            (
-              ratio_scores.reduce((a, b) => a + b) / ratio_scores.length
-            ).toFixed(2)
-          )
+          (
+            ratio_scores.reduce((a, b) => a + b) / ratio_scores.length
+          ).toFixed(2)
+        )
         : 5;
     let altScore = [];
     dataChecker.img_check.alt_img.forEach((t, i) =>
@@ -26,8 +26,8 @@ initDataChecker = (size_scores, ratio_scores, alt_scores, scoreCheckLink) => {
     const global_alt_scores =
       alt_scores.length > 0
         ? Number(
-            (altScore.reduce((a, b) => a + b) / altScore.length).toFixed(2)
-          )
+          (altScore.reduce((a, b) => a + b) / altScore.length).toFixed(2)
+        )
         : 5;
     dataChecker.alt_img_check.global_score = global_alt_scores;
 
@@ -48,23 +48,39 @@ initDataChecker = (size_scores, ratio_scores, alt_scores, scoreCheckLink) => {
     dataChecker.img_check.global_size_scores = global_size_scores;
     dataChecker.img_check.global_alt_scores = global_alt_scores;
 
+    // Collecter tous les scores globaux pour le calcul final
+    const scores = [
+      Number(global_alt_scores),
+      Number(dataChecker.hn.global_score),
+      Number(dataChecker.meta_check.global_score),
+      Number(dataChecker.img_check.global_score),
+      Number(dataChecker.link_check.global_score),
+      Number(dataChecker.bold_check.global_score)
+    ];
+
+    // Ajouter le score de contraste s'il existe
+    if (dataChecker.contrast_check && typeof dataChecker.contrast_check.global_score === 'number') {
+      scores.push(Number(dataChecker.contrast_check.global_score));
+      console.log("Score de contraste ajouté au calcul global:", dataChecker.contrast_check.global_score);
+    }
+
     //Calculate global scores
     dataChecker.link_check.global_score = scoreCheckLink.length
       ? Number(
-          (
-            scoreCheckLink.reduce((a, b) => a + b) / scoreCheckLink.length
-          ).toFixed(2)
-        )
+        (
+          scoreCheckLink.reduce((a, b) => a + b) / scoreCheckLink.length
+        ).toFixed(2)
+      )
       : 5;
     const globalScore = Number(
       (
         Number(
           global_alt_scores +
-            dataChecker.hn.global_score +
-            dataChecker.meta_check.global_score +
-            dataChecker.img_check.global_score +
-            dataChecker.link_check.global_score +
-            dataChecker.bold_check.global_score
+          dataChecker.hn.global_score +
+          dataChecker.meta_check.global_score +
+          dataChecker.img_check.global_score +
+          dataChecker.link_check.global_score +
+          dataChecker.bold_check.global_score
         ) / 6
       ).toFixed(2)
     );

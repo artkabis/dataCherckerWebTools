@@ -661,4 +661,63 @@
     console.log(
         "----------------------------- End Check contrast valitidy --------------------------------------------"
     );
+
+    // Initialisation de la section contrast_check dans dataChecker s'il n'existe pas déjà
+    if (typeof dataChecker === 'undefined') {
+        console.error("L'objet dataChecker n'est pas défini. Assurez-vous qu'il est initialisé avant d'exécuter ce script.");
+    } else if (!dataChecker.contrast_check) {
+        dataChecker.contrast_check = {
+            contrast_check_state: false,
+            nb_contrast_issues: 0,
+            check_title: "Contrast Accessibility",
+            global_score: 0,
+            profil: ["CDP", "WEBDESIGNER"],
+            contrast_issues: []
+        };
+    }
+
+    // Ajout des résultats d'analyse de contraste à dataChecker
+    if (typeof contrastWarning !== 'undefined' && contrastWarning.length > 0) {
+        // Calcul du score basé sur le nombre de problèmes et leur gravité
+        const totalElements = document.querySelectorAll('body *').length;
+        const issuesPercentage = (contrastWarning.length / totalElements) * 100;
+
+        // Score inversement proportionnel au pourcentage de problèmes (max 5, min 0)
+        let contrastScore = 5;
+        if (issuesPercentage > 0) {
+            if (issuesPercentage <= 1) contrastScore = 4;
+            else if (issuesPercentage <= 2) contrastScore = 3;
+            else if (issuesPercentage <= 5) contrastScore = 2;
+            else if (issuesPercentage <= 10) contrastScore = 1;
+            else contrastScore = 0;
+        }
+
+        // Mise à jour de dataChecker avec les données de contraste
+        dataChecker.contrast_check.contrast_check_state = true;
+        dataChecker.contrast_check.nb_contrast_issues = contrastWarning.length;
+        dataChecker.contrast_check.global_score = contrastScore;
+
+        // Transfert des problèmes de contraste dans dataChecker
+        contrastWarning.forEach(warning => {
+            const { id, infos, validation } = warning;
+
+            dataChecker.contrast_check.contrast_issues.push({
+                contrast_state: true,
+                contrast_ratio: infos.contrast,
+                text_size: infos.size,
+                foreground_color: infos.foregroundColor,
+                background_color: infos.backgroundColor,
+                is_valid_aa: validation.isValidAA,
+                is_valid_aaa: validation.isValidAAA,
+                contrast_score: validation.isValidAA ? 5 : (validation.isValidAAA ? 3 : 0)
+            });
+        });
+
+        console.log('Données de contraste intégrées dans dataChecker:', dataChecker.contrast_check);
+    } else {
+        // Aucun problème de contraste détecté
+        dataChecker.contrast_check.contrast_check_state = true;
+        dataChecker.contrast_check.global_score = 5;
+        console.log('Aucun problème de contraste détecté. Score optimal attribué.');
+    }
 })()

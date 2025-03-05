@@ -204,7 +204,8 @@ class SitemapAnalyzer {
 
                 // Valider et réparer les données de liens avant de déclencher l'événement 'complete'
                 const validatedResults = this.validateLinkData(this.results);
-                this.results = validatedResults;
+                //this.results = validatedResults;
+                this.results = this.validateImageData(validatedResults);
 
                 this.trigger('complete', this.results);
             }
@@ -340,7 +341,28 @@ class SitemapAnalyzer {
                         repairedLinks++;
                     }
                 });
+                // Après la vérification pour link_check
+                if (!pageData.img_check) {
+                    console.warn(`⚠️ Aucune donnée d'image détectée ou structure d'images incorrecte pour ${url}`);
+                    // Initialiser une structure vide pour éviter les erreurs
+                    pageData.img_check = {
+                        img_check_state: false,
+                        nb_img: 0,
+                        check_title: "Images check",
+                        global_score: 0,
+                        profil: ["WEBDESIGNER"],
+                        alt_img: [],
+                        size_img: [],
+                        ratio_img: [],
+                        global_ratio_scores: 0,
+                        global_size_scores: 0,
+                        global_alt_scores: 0
+                    };
+                } else {
+                    console.log(`✅ ${pageAnalysis.img_check.alt_img?.length || 0} images récupérées pour ${url}`);
+                }
             });
+
 
             console.log(`✅ Validation terminée: ${totalLinks} liens analysés, ${repairedLinks} réparations effectuées`);
             console.groupEnd();
@@ -348,6 +370,63 @@ class SitemapAnalyzer {
 
         } catch (error) {
             console.error('❌ Erreur lors de la validation des liens:', error);
+            console.groupEnd();
+            return results;
+        }
+    }
+    validateImageData(results) {
+        console.group('🔍 Validation des données d\'images');
+
+        try {
+            // Si results est vide ou null, retourner les résultats tels quels
+            if (!results || !results.results) {
+                console.error('❌ Données de résultats manquantes ou invalides');
+                console.groupEnd();
+                return results;
+            }
+
+            let totalImages = 0;
+            let repairedImages = 0;
+
+            // Parcourir chaque page
+            Object.entries(results.results).forEach(([url, pageData]) => {
+                // Vérifier si img_check existe
+                if (!pageData.img_check) {
+                    console.warn(`⚠️ img_check manquant pour l'URL: ${url}`);
+                    pageData.img_check = {
+                        img_check_state: false,
+                        nb_img: 0,
+                        check_title: "Images check",
+                        global_score: 0,
+                        profil: ["WEBDESIGNER"],
+                        alt_img: [],
+                        size_img: [],
+                        ratio_img: [],
+                        global_ratio_scores: 0,
+                        global_size_scores: 0,
+                        global_alt_scores: 0
+                    };
+                    repairedImages++;
+                }
+
+                // Vérifier les tableaux d'images
+                ['alt_img', 'size_img', 'ratio_img'].forEach(imgArrayType => {
+                    if (!Array.isArray(pageData.img_check[imgArrayType])) {
+                        console.warn(`⚠️ img_check.${imgArrayType} n'est pas un tableau pour l'URL: ${url}`);
+                        pageData.img_check[imgArrayType] = [];
+                        repairedImages++;
+                    } else {
+                        totalImages += pageData.img_check[imgArrayType].length;
+                    }
+                });
+            });
+
+            console.log(`✅ Validation terminée: ${totalImages} images analysées, ${repairedImages} réparations effectuées`);
+            console.groupEnd();
+            return results;
+
+        } catch (error) {
+            console.error('❌ Erreur lors de la validation des images:', error);
             console.groupEnd();
             return results;
         }
@@ -612,7 +691,8 @@ class SitemapAnalyzer {
             });
 
             // Valider et réparer les données de liens
-            const validatedResults = this.validateLinkData(this.results);
+            const validatedLinksResults = this.validateLinkData(this.results);
+            const validatedResults = this.validateImageData(validatedLinksResults);
 
             // Sauvegarde dans le storage local de Chrome
             await chrome.storage.local.set({ 'sitemapAnalysis': validatedResults });
