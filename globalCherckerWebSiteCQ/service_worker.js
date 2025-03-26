@@ -1,6 +1,6 @@
 "use strict";
 
-import { creatDB } from "./Functions/creatIndexDB.js";
+import { createDB } from "./Functions/createIndexDB.js";
 import { SitemapAnalyzer } from "./Functions/sitemapAnalyzer.js";
 import { CONFIG, initConfig } from "./config.js";
 
@@ -18,8 +18,41 @@ const db_name = "db_datas_checker";
 let cmp = 0;
 let cmpInterval = 0;
 
+
+
+const getProcessStep = async () => {
+  const result = await chrome.storage.local.get(['processStep']);
+  return result.processStep || 0;
+};
+
+const incrementProcessStep = async () => {
+  const currentStep = await getProcessStep();
+  const newStep = currentStep + 1;
+  await chrome.storage.local.set({ 'processStep': newStep });
+  console.log(`Étape de processus incrémentée: ${currentStep} -> ${newStep}`);
+  return newStep;
+};
+
+const resetProcessStep = async () => {
+  console.log("Réinitialisation de l'étape de processus");
+  await chrome.storage.local.set({ 'processStep': 0 });
+  return 0;
+};
+
+// Pour vérifier l'étape actuelle et réinitialiser si nécessaire
+const validateProcessStep = async () => {
+  const step = await getProcessStep();
+  if (step > 2) {
+    console.warn(`Étape de processus incohérente (${step}), réinitialisation forcée`);
+    return await resetProcessStep();
+  }
+  return step;
+};
+
 // Initialisation de la configuration
 const initialize = async () => {
+  // Réinitialiser l'étape du processus au démarrage
+  await resetProcessStep();
   // Initialiser la configuration
   config = await initConfig();
   console.log("Configuration initialisée:", config);
@@ -28,7 +61,7 @@ const initialize = async () => {
   setupCORSLifecycle();
 
   // Détecter les onglets Soprod au démarrage
-  detectTabsAndInterfaces();
+  await detectTabsAndInterfaces();
 };
 
 // Appel immédiat à l'initialisation
@@ -73,7 +106,7 @@ const resourcesToCache = [
   "./Functions/copyExpressionsSoprod.js",
   "./Functions/counterLettersHn.js",
   "./Functions/counterWords.js",
-  "./Functions/creatIndexDB.js",
+  "./Functions/createIndexDB.js",
   "./Functions/dataCheckerSchema.js",
   "./Functions/detectOnotherInterface.js",
   "./Functions/DudaSitemap.js",
@@ -720,10 +753,12 @@ function waitForLinksAnalysisComplete(tabId) {
 }
 
 
+
+
 // ==================== ÉCOUTEURS DE MESSAGES ET GESTION DES ÉVÉNEMENTS ====================
 
 // Écouteur principal pour les messages de l'extension
-chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+chrome.runtime.onMessage.addListener(async function (request, sender, sendResponse) {
   // === GESTION DES CORS ===
   if (corsMessageHandler(request, sender, sendResponse)) {
     return true; // Message traité par le gestionnaire CORS
@@ -859,6 +894,14 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   // === GESTION DE L'INTERFACE ===
   if (request.action === "open_interface") {
     console.log("Demande d'ouverture de l'interface reçue");
+    // Valider et réinitialiser si nécessaire
+    await validateProcessStep();
+
+    // Stocker les données reçues
+    global_data.dataChecker = request.data;
+    console.log("Data de datachecker stockée");
+
+
     console.log("launch detected soprod tab and snip username");
     detecteSoprod();
     console.log("Data de datachecker : ", request.data);
@@ -867,12 +910,13 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     global_data.dataChecker = request.data;
 
     // Vérifier si les données sont complètes
-    checkDatas();
+    checkDatas(cmp);
 
     return true;
   }
 
   // Message pour la détection d'utilisateur Soprod
+  /*
   if (request.user) {
     console.log("request user soprod : ", request.user);
     let cmpUserSoprod = 0;
@@ -885,10 +929,15 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
       global_data.user = user_soprod;
 
       // Vérifier si les données sont complètes
-      checkDatas();
+      checkDatas(cmp, user_soprod);
     }
     return true;
+  } else {
+    user_soprod = "Customer";
+    cmp === 1 && cmp++;
+    checkDatas(cmp, user_soprod);
   }
+  */
 
   // === FETCH POUR LES CONTENT SCRIPTS ===
   if (request.from === "content_script" && request.subject === "fetch") {
@@ -904,63 +953,153 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   }
 });
 
-// Fonction pour vérifier si les données sont complètes (DataChecker et User)
-const checkDatas = () => {
-  if (cmp === 2) {
-    console.log("Les deux données requises sont arrivées");
+// Dans votre service worker, modifiez la fonction checkDatas:
+const checkDatas = async (user_soprod) => {
+  // Valider et obtenir l'étape actuelle
+  const step = await validateProcessStep();
+  console.log('Check étape avant ouverture interface:', step, user_soprod);
 
-    if (global_data.dataChecker) {
-      const user = global_data.user;
-      console.log("User pour envoi vers indexDB : ", global_data.user);
-      global_data.user = global_data.user ? global_data.user : "Customer";
-      console.log("Les deux datas sont bien arrivées : ", { global_data });
+  // Vérifier si nous avons les deux données requises
+  if (step !== 2) {
+    console.log("Données incomplètes. Étape:", step);
+    return; // Sortir si les conditions ne sont pas remplies
+  }
 
-      try {
-        const dataCheckerParse = JSON.parse(global_data.dataChecker);
-        creatDB(user, db_name, dataCheckerParse);
-        console.log(
-          "CREATEDB -> lanuche with the datas :  user = ",
-          user,
-          { db_name },
-          { dataCheckerParse }
-        );
-      } catch (error) {
-        console.error("Erreur lors du parsing des données:", error);
-      }
+  console.log("Les deux données requises sont arrivées");
 
-      cmp = 0; // Réinitialiser le compteur pour la prochaine utilisation
+  if (!global_data.dataChecker) {
+    console.error("Données dataChecker manquantes");
+    await resetProcessStep(); // Réinitialiser pour permettre une nouvelle tentative
+    return;
+  }
 
-      // Ouvrir la fenêtre d'interface
-      openOrReplaceInterfaceWindow();
+  const user = user_soprod || global_data.user || "Customer";
+  console.log("User pour envoi vers indexDB:", user);
+  global_data.user = user;
+
+  try {
+    const dataCheckerParse = JSON.parse(global_data.dataChecker);
+
+    // Stocker les données dans le stockage local
+    await chrome.storage.local.set({
+      'parsedData': dataCheckerParse,
+      'currentUser': user,
+      'timestamp': Date.now()
+    });
+
+    console.log("Données sauvegardées dans le stockage local");
+
+    // Créer la base de données
+    try {
+      creatDB(user, db_name, dataCheckerParse);
+      console.log("CREATEDB -> lancé avec les données: user =", user, { db_name });
+
+      // Réinitialiser l'étape AVANT d'ouvrir l'interface
+      await resetProcessStep();
+
+      // Ouvrir l'interface avec un délai
+      setTimeout(() => {
+        openOrReplaceInterfaceWindow();
+      }, 300);
+
+    } catch (dbError) {
+      console.error("Erreur lors de la création de la BD:", dbError);
+      await resetProcessStep();
+
+      // Essayer quand même d'ouvrir l'interface
+      setTimeout(() => {
+        openOrReplaceInterfaceWindow();
+      }, 300);
     }
+
+  } catch (error) {
+    console.error("Erreur lors du parsing des données:", error);
+    await resetProcessStep();
+
+    // Essayer quand même d'ouvrir l'interface
+    setTimeout(() => {
+      openOrReplaceInterfaceWindow();
+    }, 300);
   }
 };
 
 // Fonction pour ouvrir ou remplacer la fenêtre d'interface
 const openOrReplaceInterfaceWindow = () => {
-  console.log("start open interface");
+  console.log("Démarrage de l'ouverture de l'interface");
   const interfacePopupUrl = chrome.runtime.getURL("interface.html");
 
-  // Récupérer l'ID de la fenêtre depuis le stockage local
-  getPopupWindowId((popupWindowId) => {
-    console.log("Stored popup interface ID:", popupWindowId);
+  // Stocker un flag indiquant que nous sommes en train d'ouvrir l'interface
+  chrome.storage.local.set({ 'openingInterface': true, 'openingTime': Date.now() }, () => {
+    // Récupérer l'ID de la fenêtre depuis le stockage local
+    chrome.storage.local.get(["popupWindowId"], (result) => {
+      const popupWindowId = result.popupWindowId;
 
-    // Fermer la fenêtre existante (si elle existe encore)
-    closeWindowIfExists(popupWindowId, () => {
-      // Ouvrir une nouvelle fenêtre
-      chrome.windows.create(
-        {
-          type: "popup",
-          url: interfacePopupUrl,
-          width: 1000,
-          height: 1000,
-        },
-        (window) => {
-          // Stocker le nouvel ID de fenêtre dans le stockage local
-          setPopupWindowId(window.id);
-          console.log("New popup interface ID:", window.id);
+      const createNewWindow = () => {
+        console.log("Création d'une nouvelle fenêtre d'interface");
+
+        // Ajouter une protection contre les erreurs
+        try {
+          chrome.windows.create(
+            {
+              type: "popup",
+              url: interfacePopupUrl,
+              width: 1000,
+              height: 1000,
+            },
+            (window) => {
+              if (chrome.runtime.lastError) {
+                console.error("Erreur lors de la création de la fenêtre:", chrome.runtime.lastError);
+                // Marquer que la création a échoué
+                chrome.storage.local.set({ 'openingInterface': false, 'interfaceError': chrome.runtime.lastError.message });
+                return;
+              }
+
+              if (!window || !window.id) {
+                console.error("Fenêtre créée sans ID valide");
+                chrome.storage.local.set({ 'openingInterface': false, 'interfaceError': 'Fenêtre sans ID' });
+                return;
+              }
+
+              // Stocker le nouvel ID de fenêtre
+              chrome.storage.local.set({
+                'popupWindowId': window.id,
+                'openingInterface': false,
+                'interfaceOpened': true
+              });
+              console.log("Nouvelle fenêtre d'interface créée, ID:", window.id);
+            }
+          );
+        } catch (e) {
+          console.error("Exception lors de la création de la fenêtre:", e);
+          chrome.storage.local.set({ 'openingInterface': false, 'interfaceError': e.message });
         }
-      );
+      };
+
+      // Gérer la fenêtre existante
+      if (popupWindowId) {
+        try {
+          chrome.windows.get(popupWindowId, {}, (windowInfo) => {
+            const error = chrome.runtime.lastError;
+
+            if (error || !windowInfo) {
+              console.log("Fenêtre précédente non trouvée:", error);
+              chrome.storage.local.remove("popupWindowId", createNewWindow);
+            } else {
+              // Fenêtre existante trouvée - la fermer puis en créer une nouvelle
+              chrome.windows.remove(popupWindowId, () => {
+                console.log("Fenêtre existante fermée, ID:", popupWindowId);
+                chrome.storage.local.remove("popupWindowId", createNewWindow);
+              });
+            }
+          });
+        } catch (e) {
+          console.error("Exception lors de la vérification de la fenêtre existante:", e);
+          chrome.storage.local.remove("popupWindowId", createNewWindow);
+        }
+      } else {
+        // Aucun ID de fenêtre stocké, créer directement une nouvelle fenêtre
+        createNewWindow();
+      }
     });
   });
 };
@@ -1014,177 +1153,91 @@ const closeWindowIfExists = (windowId, callback) => {
 
 // Détection des utilisateurs Soprod
 const detecteSoprod = async () => {
-  console.log("detecting soprod tab");
+  console.log("Détection des onglets Soprod en cours...");
+
+  // Vérifier d'abord le stockage
   const storageUser = await chrome.storage.sync.get("user");
 
-  console.log("All tabs : ", { allTabs });
-
-  let isSoprodTab = {
-    detected: false
-  };
-
-  let userSoprod = undefined;
-  let soprodTabsDetected = 0;
-
-  // Parcourir tous les onglets pour détecter les onglets Soprod
-  for (const tab of allTabs) {
-    if (
-      tab &&
-      tab?.url?.startsWith("http") &&
-      tab.url.includes("soprod") &&
-      !tab.url.startsWith("chrome://") &&
-      !tab.url.startsWith("chrome-extension://") &&
-      !tab.url.startsWith("chrome-devtools://")
-    ) {
-      soprodTabsDetected++; // Incrémente le compteur de tabs "soprod" détectés
-      console.log("soprod detecteSoprod");
-
-      // Exécute le script dans le tab actuel s'il existe
-      console.log("tab id soprod : ", tab.id);
-
-      if (tab?.id) {
-        console.log("_________________tab id soprod : ", tab);
-
-        try {
-          const injectionResult = await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            function: () => {
-              window["cmp"] = 0;
-              console.log("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& cmp : ", window["cmp"]);
-
-              if (window["cmp"] === 0) {
-                console.log("================================ lancement de la récupération du user dans soprod");
-                let dropUser = document.querySelector(".dropdown-user .username");
-                console.log({ dropUser });
-                const user = dropUser?.innerHTML;
-
-                if (user) {
-                  window["cmp"] += 1;
-                  return user; // Retourne le nom d'utilisateur
-                }
-              }
-
-              return null;
-            }
-          });
-
-          if (injectionResult && injectionResult[0] && injectionResult[0].result) {
-            userSoprod = injectionResult[0].result;
-            console.log("Utilisateur Soprod détecté:", userSoprod);
-
-            // Stocker l'utilisateur détecté
-            chrome.storage.sync.set({ user: userSoprod }, function () {
-              console.log("---------------------storage sync user : ", userSoprod);
-              chrome.runtime.sendMessage({ user: userSoprod });
-            });
-
-            // On a trouvé un utilisateur valide, on peut arrêter la recherche
-            if (userSoprod !== "Customer" && userSoprod !== undefined) {
-              break;
-            }
-          }
-        } catch (error) {
-          console.error("Erreur lors de l'exécution du script dans l'onglet Soprod:", error);
-        }
-      }
-    }
+  // Si un utilisateur valide est déjà stocké, l'utiliser
+  if (storageUser.user && storageUser.user.includes("@solocal.com")) {
+    console.log("Utilisateur Soprod déjà détecté dans le stockage:", storageUser.user);
+    await handleUserSoprod(storageUser.user);
+    return;
   }
 
-  // Si aucun utilisateur Soprod n'a été détecté ou s'il n'est pas valide
-  if (!userSoprod || userSoprod === "Customer" || userSoprod === undefined) {
-    console.log("Aucun utilisateur Soprod valide détecté");
+  try {
+    // Rechercher les onglets Soprod
+    const soprodTabs = await chrome.tabs.query({
+      url: "*://*.solocalms.fr/*",
+    });
 
-    // Vérifier si un utilisateur est stocké
-    console.log("get user storage : ", storageUser);
+    // Parcourir les onglets Soprod pour trouver un utilisateur
+    for (const tab of soprodTabs) {
+      if (!tab.id) continue;
 
-    if (storageUser.user) {
-      console.log(
-        "is valide user soprod : ",
-        storageUser.user,
-        "includes @solocal.com : ",
-        storageUser.user.includes("@solocal.com")
-      );
-    }
-
-    // Si aucun utilisateur valide n'est stocké, utiliser "Customer" par défaut
-    if (!storageUser.user || !storageUser.user.includes("@solocal.com")) {
-      console.log("mise en place du name par défaut !!!");
-
-      // Mettre à jour tous les onglets non-chrome avec l'utilisateur par défaut
-      for (const tab of allTabs) {
-        if (
-          tab &&
-          tab.id &&
-          tab?.url?.startsWith("http") &&
-          !tab.url.startsWith("chrome://") &&
-          !tab.url.startsWith("chrome-extension://") &&
-          !tab.url.startsWith("chrome-devtools://")
-        ) {
-          try {
-            await chrome.scripting.executeScript({
-              target: { tabId: tab.id },
-              function: () => {
-                chrome.storage.sync.set({ user: "Customer" }, function () {
-                  chrome.runtime.sendMessage({ user: "Customer" });
-                });
-              }
-            });
-          } catch (error) {
-            console.error("Erreur lors de la mise à jour de l'utilisateur par défaut:", error);
+      try {
+        const results = await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          function: () => {
+            const dropUser = document.querySelector(".dropdown-user .username");
+            return dropUser ? dropUser.innerHTML : null;
           }
+        });
+
+        if (results && results[0] && results[0].result) {
+          const userSoprod = results[0].result;
+          console.log("Utilisateur Soprod détecté:", userSoprod);
+
+          // Stocker l'utilisateur
+          await chrome.storage.sync.set({ user: userSoprod });
+          console.log("Utilisateur stocké dans storage.sync");
+
+          // Traiter l'utilisateur détecté
+          await handleUserSoprod(userSoprod);
+          return;
         }
+      } catch (error) {
+        console.error("Erreur lors de l'exécution du script dans l'onglet Soprod:", error);
       }
     }
-    // Sinon, propager l'utilisateur stocké à tous les onglets
-    else if (storageUser?.user?.includes("@solocal.com")) {
-      console.log(
-        "user detected and username includes email domain solocal.com : " +
-        storageUser.user.includes("@solocal.com"),
-        "     user : ",
-        storageUser?.user
-      );
 
-      // Mettre à jour tous les onglets non-chrome avec l'utilisateur stocké
-      chrome.windows.getCurrent({ populate: true }, async function (currentWindow) {
-        // Vérifier si la fenêtre est valide et si elle contient des onglets
-        if (currentWindow && currentWindow?.tabs) {
-          for (const tab of currentWindow.tabs) {
-            // Vérifier si l'URL commence par "http" et n'est pas de type "chrome://"
-            if (
-              tab &&
-              tab?.url &&
-              tab?.url.startsWith("http") &&
-              !tab?.url.startsWith("chrome://") &&
-              !tab?.url.startsWith("chrome-extension://") &&
-              !tab?.url.startsWith("chrome-devtools://")
-            ) {
-              try {
-                await chrome.scripting.executeScript({
-                  target: { tabId: tab.id },
-                  function: async (storedUser) => {
-                    console.log("_____________");
-                    const storageResult = await chrome.storage.sync.get("user");
-                    console.log("++", storageResult.user);
+    // Si aucun utilisateur n'a été trouvé, utiliser "Customer"
+    console.log("Aucun utilisateur Soprod détecté, utilisation de 'Customer'");
+    await chrome.storage.sync.set({ user: "Customer" });
+    await handleUserSoprod("Customer");
 
-                    chrome.storage.sync.set({ user: storageResult.user }, function () {
-                      chrome.runtime.sendMessage({
-                        user: storageResult.user,
-                      });
-                    });
-                  },
-                  args: [storageUser.user]
-                });
-              } catch (error) {
-                console.error("Erreur lors de la propagation de l'utilisateur:", error);
-              }
-            }
-          }
-        }
-      });
-    }
+  } catch (error) {
+    console.error("Erreur lors de la détection des onglets Soprod:", error);
+    await chrome.storage.sync.set({ user: "Customer" });
+    await handleUserSoprod("Customer");
   }
 };
 
+// NOUVELLE FONCTION: Pour traiter directement l'utilisateur Soprod détecté
+const handleUserSoprod = async (user) => {
+  console.log("Traitement de l'utilisateur Soprod:", user);
+
+  // Mettre à jour l'utilisateur dans les variables globales
+  user_soprod = user;
+  global_data.user = user;
+
+  // Valider et obtenir l'étape actuelle
+  let step = await validateProcessStep();
+
+  // Si l'étape est 0, on passe à 1 (utilisateur détecté)
+  // Si l'étape est 1, on passe à 2 (données complètes)
+  if (step === 0) {
+    step = await incrementProcessStep();
+    console.log("Étape incrémentée à 1 (utilisateur détecté)");
+  } else if (step === 1) {
+    step = await incrementProcessStep();
+    console.log("Étape incrémentée à 2 (données complètes)");
+  }
+
+  // Vérifier si les données sont complètes
+  await checkDatas(user);
+};
+/******
 // Suppression du CTA IA MerciApp qui est injecté sur toutes les pages web actives
 const removeMAButton = async (activeTab, tabId, url) => {
   if (!tabId) {
@@ -1290,6 +1343,8 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
   }
 });
 
+****/
+
 // ==================== FINALISATION ET CONFIGURATION ====================
 
 // Gestion des écouteurs d'événements pour le cycle de vie de l'extension
@@ -1300,7 +1355,7 @@ chrome.runtime.onStartup.addListener(() => {
   initCORSState();
 
   // Vérifier l'onglet actuel
-  checkCurrentTab();
+  //checkCurrentTab();
 
   // Réinitialiser les états d'analyse
   chrome.storage.local.set({
@@ -1313,7 +1368,7 @@ chrome.runtime.onInstalled.addListener((details) => {
   console.log(`Extension installée/mise à jour: ${details.reason}`);
 
   // Vérifier l'onglet actuel
-  checkCurrentTab();
+  //checkCurrentTab();
 
   // Réinitialiser les états d'analyse
   chrome.storage.local.set({
