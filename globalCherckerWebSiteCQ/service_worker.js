@@ -991,7 +991,7 @@ const checkDatas = async (user_soprod) => {
 
     // Créer la base de données
     try {
-      creatDB(user, db_name, dataCheckerParse);
+      createDB(user, db_name, dataCheckerParse);
       console.log("CREATEDB -> lancé avec les données: user =", user, { db_name });
 
       // Réinitialiser l'étape AVANT d'ouvrir l'interface
