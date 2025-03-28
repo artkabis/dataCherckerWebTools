@@ -1,231 +1,272 @@
-//Start meta check
-MIN_BOLD_EXPRESSION = currentSettings.MIN_BOLD_EXPRESSION || 3;
-MAX_BOLD_EXPRESSION = currentSettings.MAX_BOLD_EXPRESSION || 5;
+// Configuration
+const MIN_BOLD_EXPRESSION = (typeof currentSettings !== 'undefined' && currentSettings?.MIN_BOLD_EXPRESSION) || 3;
+const MAX_BOLD_EXPRESSION = (typeof currentSettings !== 'undefined' && currentSettings?.MAX_BOLD_EXPRESSION) || 5;
+const MIN_PARENT_WORDS = 20; // Nombre minimal de mots dans un parent pour considérer un élément en gras
 
 (($) => {
-  const isBold = (el) =>
-    el.attr("style") &&
-    (el.attr("style").includes("font-weight: bold") ||
-      el.attr("style").includes("font-weight: 700") ||
-      el.attr("style").includes("font-weight: 600") ||
-      el.attr("style").includes("font-weight: 700") ||
-      el.attr("style").includes("font-weight: 800") ||
-      el.attr("style").includes("font-weight: 900") &&
-      el[0].textContent.trim().length);
+  // Fonction améliorée pour détecter les éléments en gras
+  const isBold = (el) => {
+    if (!el || !el.length) return false;
 
-  const isMultiSpan = (el) => isBold(el) && isBold(el.children()) && el[0].textContent.trim().length ? true : false;
+    // Vérification du style font-weight
+    if (el.attr("style")) {
+      const style = el.attr("style");
+      if (style.includes("font-weight:")) {
+        const weightMatch = style.match(/font-weight:\s*(\d+|bold|bolder)/i);
+        if (weightMatch) {
+          const weight = weightMatch[1];
+          if (weight === "bold" || weight === "bolder" || parseInt(weight, 10) >= 600) {
+            return el[0].textContent.trim().length > 0;
+          }
+        }
+      }
+    }
 
+    // Vérification de la propriété computedStyle comme alternative
+    if (el[0] && window.getComputedStyle) {
+      const computedStyle = window.getComputedStyle(el[0]);
+      const fontWeight = computedStyle.getPropertyValue('font-weight');
+      if (fontWeight && (fontWeight === 'bold' || fontWeight === 'bolder' || parseInt(fontWeight, 10) >= 600)) {
+        return el[0].textContent.trim().length > 0;
+      }
+    }
 
-  const isHnClosest = (el) =>
-    el[0].tagName.toLowerCase() === "h1" ||
-    el.parents("h1").length ||
-    el[0].tagName.toLowerCase() === "h2" ||
-    el.parents("h2").length ||
-    el[0].tagName.toLowerCase() === "h3" ||
-    el.parents("h3").length ||
-    el[0].tagName.toLowerCase() === "h4" ||
-    el.parents("h4").length ||
-    el[0].tagName.toLowerCase() === "h5" ||
-    el.parents("h5").length ||
-    el[0].tagName.toLowerCase() === "h6" ||
-    el.parents("h6").length;
+    return false;
+  };
 
-  const isHnLink = (el) =>
-    el[0].tagName.toLowerCase() === "a" ||
-    el.parent()[0].tagName.toLowerCase() === "a";
+  // Vérifie si l'élément contient des spans imbriqués en gras
+  const isMultiSpan = (el) => {
+    if (!el || !el.length) return false;
+    return isBold(el) && el.children().length > 0 && isBold($(el.children()[0]));
+  };
 
+  // Vérifie si l'élément est un titre ou est contenu dans un titre
+  const isHeading = (el) => {
+    if (!el || !el.length) return false;
 
-  const strongOrBold = $(
-    "b, strong, STRONG, B"
-  );
-  strongOrBold &&
-    console.log(
-      "----------------------------- Start Check strong & bold valitidy --------------------------------------------"
-    );
-  let cmpBold = 0,
-    boldArray = [],
-    isSlideDuda = false,
-    isWP = $('#Content').length;
-  isDuda = $('#dm').length;
-  strongOrBold.each(function (i, t) {
-    let strongParent;
+    const tagName = el[0].tagName.toLowerCase();
+    if (tagName.match(/^h[1-6]$/)) return true;
+
+    // Rechercher les parents qui sont des titres
+    for (let i = 1; i <= 6; i++) {
+      if (el.parents(`h${i}`).length) return true;
+    }
+
+    return false;
+  };
+
+  // Vérifie si l'élément est un lien ou est contenu dans un lien
+  const isLink = (el) => {
+    if (!el || !el.length) return false;
+    return el[0].tagName.toLowerCase() === "a" || el.parents("a").length > 0;
+  };
+
+  // Trouve le parent significatif d'un élément
+  const findSignificantParent = (el) => {
+    if (!el || !el.length) return $();
+
+    const isDuda = $('#dm').length > 0;
+    const isWP = $('#Content').length > 0;
+
     if (isDuda) {
-      strongParent = $(this).closest(".dmNewParagraph") ? $(this).closest(".dmNewParagraph") : $(this).closest(".dmRespCol");
-    } else if (isWP && $(this).closest('.wpb_text_column').length) {
-      strongParent = $(this).closest('.wpb_text_column');
-    } else if (isWP && $(this).closest('.wpb_toggle_content').length) {
-      strongParent = $(this).closest('.wpb_toggle_content');
-    } else if ((!isDuda && !isWP)) {
-      strongParent = $(this).parent().parent().parent();
-    } else {
-      strongParent = $(this).parent().parent().parent();
+      const dmPara = el.closest(".dmNewParagraph");
+      return dmPara.length ? dmPara : el.closest(".dmRespCol");
+    } else if (isWP) {
+      const textColumn = el.closest('.wpb_text_column');
+      if (textColumn.length) return textColumn;
+
+      const toggleContent = el.closest('.wpb_toggle_content');
+      if (toggleContent.length) return toggleContent;
     }
 
-    const nbWordsParent = (strongParent[0]) ? strongParent[0].textContent.trim().split(' ').length : 0;
+    // Essayons de trouver un parent paragraphe
+    const paragraph = el.closest('p');
+    if (paragraph.length) return paragraph;
 
-    testStack = isWP
-    isSlideDuda = (isDuda && $(this).closest(".slide-inner").length) ? true : false;
-    isContentDataBinding = (isDuda && ("div[data-binding*='']") && $(this).find("div[data-binding*='']").length) ? true : false;
+    // Fallback: remonter de 3 niveaux comme dans le code original
+    return el.parent().parent().parent();
+  };
 
-    if (t.textContent.length > 1 && t.textContent !== " " && !isHnClosest($(this)) && !isHnLink($(this)) && nbWordsParent >= 20 && !isSlideDuda && !isContentDataBinding) {
-      cmpBold++;
-      boldArray.push({
-        target: t,
-        text: t.textContent,
-        nbWords: t.textContent.includes(" ")
-          ? t.textContent.split(" ").length
-          : 1,
-        nbWordsParent: nbWordsParent
-      });
-    }
-  });
+  // Compte le nombre de mots dans un élément
+  const countWords = (element) => {
+    if (!element || !element.length) return 0;
+    const text = element[0].textContent.trim();
+    return text.split(/\s+/).filter(word => word.length > 0).length;
+  };
 
+  // Collecte tous les éléments en gras
+  const collectBoldElements = () => {
+    const boldElements = [];
+    const isDuda = $('#dm').length > 0;
+    const isWP = $('#Content').length > 0;
 
-  $("#dm_content span").each(function (t) {
-    const isDuda = $(this).closest('#dm');
-    isSlide = $(this).closest(".slide-inner");
-    isContentDataBinding = (isDuda && $(this).find("div[data-binding]").length) ? true : false;
+    // Collecte à partir des balises strong et b
+    $("b, strong, STRONG, B").each(function () {
+      const $this = $(this);
+      if ($this[0].textContent.trim().length <= 1) return;
 
+      const parent = findSignificantParent($this);
+      const parentWordCount = countWords(parent);
 
-    let target = isMultiSpan($(this)) ? $(this).children() : $(this);
-    const innerMultiSpan = isMultiSpan($(this))
-    const duplicateBoldSpan =
-      isMultiSpan($(this)) &&
-      $(this)[0]
-        .textContent.trim()
-        .includes($(this).children()[0].textContent.trim());
-    innerMultiSpan &&
-      !isHnClosest($(this)) &&
-      console.log(
-        { target },
-        "  isBold : ",
-        isBold(target),
-        { innerMultiSpan },
-        { duplicateBoldSpan },
-        "   text content",
-        target[0].textContent,
-        " text length",
-        $(this)[0].textContent.trim().length,
-        " parent dmpara nb words : ",
-        $(this).parents(".dmNewParagraph")
-          ? $(this).parents(".dmNewParagraph")[0].textContent.split(" ").length
-          : $(this).parent().parent().parent()[0].textContent.split(" ")
-      );
+      // Vérification des conditions pour exclure les éléments
+      const isSlideDuda = isDuda && $this.closest(".slide-inner").length > 0;
+      const isContentDataBinding = isDuda && $this.find("div[data-binding]").length > 0;
+      const isFooter = $this.closest("#Footer").length > 0;
 
-    //isBold(target) && console.log(isBold(target),target,target[0].textContent);
-    isBold(target) &&
-      !isHnClosest($(this)) &&
-      !isContentDataBinding &&
-      target[0].textContent !== "\n" &&
-      target[0].textContent !== "" &&
-      target[0].textContent.length > 1 &&
-      !duplicateBoldSpan &&
-      (boldArray.push({
-        target: target[0], // Modification : Ajouter [0] pour obtenir l'élément DOM
-        text: target[0].textContent.trim(),
-        nbWords: target[0].textContent.trim().split(" ").length,
-        nbWordsParent: target.parents(".dmNewParagraph").length
-          ? target.parents(".dmNewParagraph")[0].textContent.split(" ").length
-          : target.parent().parent().parent()[0].textContent.split(" "),
-      }),
-        cmpBold++);
-    duplicateBoldSpan && cmpBold--;
+      if (!isHeading($this) && !isLink($this) &&
+        parentWordCount >= MIN_PARENT_WORDS &&
+        !isSlideDuda && !isContentDataBinding && !isFooter) {
 
-  }); console.log({ boldArray });
-
-  // Créer un nouveau tableau pour stocker les éléments uniques
-  const objSansDoublons = [];
-
-  // Parcourir l'array initial boldArray
-  $.each(boldArray, function (i, t) {
-    const $isMultiSpan = isMultiSpan($(this));
-    const element = boldArray[i];
-    const { target, text, nbWords, nbWordsParent } = element;
-    // Vérifier si les propriétés "text" et "nbWords" sont identiques
-    const isDuplicate = objSansDoublons.some(
-      (item) => item.text === text && item.nbWords === nbWords
-    );
-
-    if (
-      text.length > 2 &&
-      !target.closest(".slide-inner") &&
-      !target.closest("#Footer") &&
-      nbWordsParent >= 25
-    ) {
-      !$isMultiSpan && objSansDoublons.push({
-        target,
-        texte_duplique: isDuplicate,
-        text,
-        nbWords,
-        nbWordsParent,
-      });
-    }
-  });
-  console.log({ objSansDoublons })
-  dataChecker.bold_check.bold_txt = [];
-  dataChecker.bold_check.bold_check_state =
-    objSansDoublons.length === 0 || objSansDoublons === undefined
-      ? false
-      : true;
-  // dataChecker.bold_check.bold_check_state;
-  const isBoldValid =
-    objSansDoublons.length >= MIN_BOLD_EXPRESSION && objSansDoublons.length <= MAX_BOLD_EXPRESSION;
-  !isBoldValid
-    ? console.log(
-      `%c Attention le nombre déléments mis en gras ne respect pas le standard (${MIN_BOLD_EXPRESSION} à ${MAX_BOLD_EXPRESSION} expressions), ici >>> ${objSansDoublons.length}`,
-      "color:red"
-    )
-    : console.log(
-      `%c Le nombre déléments mis en gras respect le standard (${MIN_BOLD_EXPRESSION} à ${MAX_BOLD_EXPRESSION} expressions), ici >>> ${objSansDoublons.length}`,
-      "color:green"
-    ),
-    console.log(objSansDoublons);
-
-  objSansDoublons.map((t) => {
-    dataChecker.bold_check.bold_check_state = true;
-    dataChecker.bold_check.bold_txt.push({
-      bold_txt_state: true,
-      bold_txt: t.text,
-      bold_nb_words: t.nbWords,
+        boldElements.push({
+          target: $this[0],
+          text: $this[0].textContent.trim(),
+          nbWords: $this[0].textContent.trim().split(/\s+/).filter(Boolean).length,
+          nbWordsParent: parentWordCount
+        });
+      }
     });
 
-    dataChecker.bold_check.nb_bold =
-      objSansDoublons.length && objSansDoublons.length;
-    //(isBoldValid) && objSansDoublons.length ? 5 : 0;
-  });
+    // Si nous sommes sur Duda, collecte aussi les spans avec style en gras
+    if (isDuda) {
+      $("#dm_content span").each(function () {
+        const $this = $(this);
+        const isSlide = $this.closest(".slide-inner").length > 0;
+        const isContentDataBinding = $this.find("div[data-binding]").length > 0;
+        const isFooter = $this.closest("#Footer").length > 0;
 
-  if (!objSansDoublons || objSansDoublons.length === 0) {
+        // Gère les spans imbriqués
+        const isMultiSpanned = isMultiSpan($this);
+        const target = isMultiSpanned ? $this.children().first() : $this;
+
+        // Évite les doublons pour les multi-spans
+        const duplicateBoldSpan = isMultiSpanned &&
+          $this[0].textContent.trim().includes(target[0].textContent.trim());
+
+        const parent = findSignificantParent($this);
+        const parentWordCount = countWords(parent);
+
+        if (isBold(target) &&
+          !isHeading($this) &&
+          !isContentDataBinding &&
+          !isSlide &&
+          !isFooter &&
+          target[0].textContent.trim().length > 1 &&
+          !duplicateBoldSpan &&
+          parentWordCount >= MIN_PARENT_WORDS) {
+
+          boldElements.push({
+            target: target[0],
+            text: target[0].textContent.trim(),
+            nbWords: target[0].textContent.trim().split(/\s+/).filter(Boolean).length,
+            nbWordsParent: parentWordCount
+          });
+        }
+      });
+    }
+
+    return boldElements;
+  };
+
+  // Filtre les éléments en gras pour éliminer les doublons
+  const filterUniqueBoldElements = (boldArray) => {
+    const uniqueElements = [];
+    const textSeen = new Set();
+
+    boldArray.forEach(element => {
+      const { target, text, nbWords, nbWordsParent } = element;
+
+      // Utilise une combinaison du texte et du nombre de mots comme clé unique
+      const uniqueKey = `${text}_${nbWords}`;
+
+      if (text.length > 2 &&
+        !$(target).closest(".slide-inner").length &&
+        !$(target).closest("#Footer").length &&
+        nbWordsParent >= MIN_PARENT_WORDS &&
+        !textSeen.has(uniqueKey)) {
+
+        textSeen.add(uniqueKey);
+        uniqueElements.push({
+          target,
+          text,
+          nbWords,
+          nbWordsParent
+        });
+      }
+    });
+
+    return uniqueElements;
+  };
+
+  // Calcule le score en fonction du nombre d'éléments en gras
+  const calculateBoldScore = (count) => {
+    if (count === 0) return 0;
+    if (count === 1) return 1;
+    if (count === 2) return 4;
+    if (count >= MIN_BOLD_EXPRESSION && count <= MAX_BOLD_EXPRESSION) return 5;
+    if (count === 6) return 4;
+    if (count === 7) return 3;
+    if (count === 8) return 2;
+    if (count === 9 || count === 10) return 1;
+    return 0; // Pour count < 1 ou count > 10
+  };
+
+  // Fonction principale
+  const analyzeAndReportBoldElements = () => {
+    console.log("----------------------------- Start Check strong & bold validity --------------------------------------------");
+
+    // Collecte et traitement des éléments en gras
+    const allBoldElements = collectBoldElements();
+    const uniqueBoldElements = filterUniqueBoldElements(allBoldElements);
+
+    // Mise à jour de l'objet dataChecker
     dataChecker.bold_check.bold_txt = [];
-  }
-  let scroreBold = 0;
-  let nbBold = dataChecker.bold_check.bold_txt.length
-    ? dataChecker.bold_check.bold_txt.length
-    : 0;
-  if (nbBold === 0) {
-    scroreBold = 0;
-  } else if (nbBold === 1) {
-    scroreBold = 1;
-  } else if (nbBold === 2) {
-    scroreBold = 4;
-  } else if (nbBold === 6) {
-    scroreBold = 4;
-  } else if (nbBold === 7) {
-    scroreBold = 3;
-  } else if (nbBold === 8) {
-    scroreBold = 2;
-  } else if (nbBold === 9) {
-    scroreBold = 1;
-  } else if (nbBold === 10) {
-    scroreBold = 1;
-  } else if (nbBold < 1 && nbBold > 10) {
-    scroreBold = 0;
-  } else if (nbBold >= MIN_BOLD_EXPRESSION && nbBold <= MAX_BOLD_EXPRESSION) {
-    scroreBold = 5;
-  }
-  dataChecker.bold_check.global_score = scroreBold ? scroreBold : 0;
-  console.log({ nbBold }, { scroreBold });
-  cmpBold > 0 &&
-    console.log(
-      "----------------------------- End Check strong & bold valitidy --------------------------------------------"
-    );
+    dataChecker.bold_check.bold_check_state = uniqueBoldElements.length > 0;
+
+    const isBoldValid = uniqueBoldElements.length >= MIN_BOLD_EXPRESSION &&
+      uniqueBoldElements.length <= MAX_BOLD_EXPRESSION;
+
+    // Affichage du résultat
+    if (!isBoldValid) {
+      console.log(
+        `%c Attention le nombre d'éléments mis en gras ne respecte pas le standard (${MIN_BOLD_EXPRESSION} à ${MAX_BOLD_EXPRESSION} expressions), ici >>> ${uniqueBoldElements.length}`,
+        "color:red"
+      );
+    } else {
+      console.log(
+        `%c Le nombre d'éléments mis en gras respecte le standard (${MIN_BOLD_EXPRESSION} à ${MAX_BOLD_EXPRESSION} expressions), ici >>> ${uniqueBoldElements.length}`,
+        "color:green"
+      );
+    }
+
+    console.log(uniqueBoldElements);
+
+    // Mise à jour des données pour chaque élément en gras
+    uniqueBoldElements.forEach(element => {
+      dataChecker.bold_check.bold_txt.push({
+        bold_txt_state: true,
+        bold_txt: element.text,
+        bold_nb_words: element.nbWords
+      });
+    });
+
+    // Mise à jour du nombre total d'éléments en gras
+    dataChecker.bold_check.nb_bold = uniqueBoldElements.length;
+
+    // Calcul du score global
+    const score = calculateBoldScore(uniqueBoldElements.length);
+    dataChecker.bold_check.global_score = score;
+
+    console.log({ "Nombre d'éléments en gras": uniqueBoldElements.length }, { "Score": score });
+    console.log("----------------------------- End Check strong & bold validity --------------------------------------------");
+
+    return {
+      elements: uniqueBoldElements,
+      score: score,
+      isValid: isBoldValid
+    };
+  };
+
+  // Exécution de l'analyse
+  analyzeAndReportBoldElements();
+
 })(jQuery);
