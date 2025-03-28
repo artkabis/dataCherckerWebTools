@@ -1,81 +1,131 @@
+javascript: (() => {
+    // Constantes pour les couleurs et styles
+    const COLORS = {
+        valid: 'green',
+        invalid: 'orange',
+        textColor: 'white'
+    };
 
-javascript:(()=>{
-    const isHeadingValid = (currentHn, previousHn) =>{
+    // Fonction pour vérifier la validité d'un heading par rapport au précédent
+    const isHeadingValid = (currentHn, previousHn) => {
+        if (!previousHn) return true; // Premier heading toujours valide
+
         const currentHnIndex = parseInt(currentHn.charAt(1));
         const previousHnIndex = parseInt(previousHn.charAt(1));
-    
-        if (currentHn === previousHn) {
-        return false;
-        }
-    
-        if (currentHnIndex !== previousHnIndex + 1) {
-        return false; 
-        }
-    
-        return true; 
+
+        return currentHn !== previousHn && currentHnIndex === previousHnIndex + 1;
     };
+
+    // Fonction pour vérifier les H1 dupliqués
     const hasDuplicateH1 = () => {
-    const h1Tags = document.querySelectorAll('h1');
-    const h1Texts = Array.from(h1Tags).map((h1) => h1.innerText.toLowerCase());
-    const uniqueH1Texts = new Set(h1Texts);
-    
-    return h1Texts.length >1;
+        const h1Tags = document.querySelectorAll('h1');
+        return h1Tags.length > 1;
     };
+
+    // Fonction pour générer le style d'un heading
     const getHeadingStyle = (isValid, currentHnIndex, parentStyle) => {
-        const backgroundColor = isValid ? parentStyle.backgroundColor : 'orange';
+        const backgroundColor = isValid ? parentStyle.backgroundColor : COLORS.invalid;
         const margin = currentHnIndex * 50;
-    
-        return `margin-left: ${margin}px; color: green; display: flex; align-items: center; background-color: ${backgroundColor};`;
+
+        return `margin-left: ${margin}px; color: ${COLORS.valid}; display: flex; align-items: center; background-color: ${backgroundColor};`;
     };
-    
-    const getSpanStyle = (parentStyle, isValid, isMissingHeading) => {
-        let backgroundColor = (isMissingHeading) ?  'orange' : isValid ? 'green' : 'green';
-        return `color: white; background: ${backgroundColor}; text-transform: uppercase; padding: 5px 20px;`;
+
+    // Fonction pour générer le style d'un span
+    const getSpanStyle = (isValid, isMissingHeading) => {
+        const backgroundColor = isMissingHeading ? COLORS.invalid : COLORS.valid;
+        return `color: ${COLORS.textColor}; background: ${backgroundColor}; text-transform: uppercase; padding: 5px 20px;`;
     };
-    
-    let hnTagArray = [],
-        hnTagContentArray = [];
-    document.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(function (t, i) {
-        hnTagArray.push(t.tagName.toLowerCase());
-        hnTagContentArray.push(t.innerText);
-    });
-    
-    let structure = '', 
-        previousHn = null;
-    
-    hnTagArray.forEach(function (currentHn, index) {
-        const currentHnContent = hnTagContentArray[index];
+
+    // Fonction pour générer le HTML d'un heading
+    const createHeadingHTML = (tagName, content, isValid, isMissingHeading, isDuplicate, hnIndex, parentStyle) => {
+        const headingStyle = getHeadingStyle(isValid, hnIndex, parentStyle);
+        const spanStyle = getSpanStyle(isValid, isMissingHeading);
+        const className = isDuplicate ? 'duplicate' : isMissingHeading ? 'missing' : '';
+
+        let prefix = '';
+        if (isDuplicate) {
+            prefix = '<span style="' + spanStyle + '">Warning: Duplicate H1</span> - ';
+        } else {
+            prefix = '<span style="' + spanStyle + '">' + tagName + '</span> - ';
+        }
+
+        return `<${tagName} class="${className}" style="${headingStyle}">${prefix}${content}</${tagName}><br>`;
+    };
+
+    // Collecter tous les headings
+    const headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6'));
+    const hasMultipleH1 = hasDuplicateH1();
+
+    // Générer la structure HTML
+    let structure = '';
+    let previousHn = null;
+
+    headings.forEach((heading, index) => {
+        const currentHn = heading.tagName.toLowerCase();
+        const currentHnContent = heading.innerText;
         const currentHnIndex = parseInt(currentHn.charAt(1));
-        const parentStyle = window.getComputedStyle(document.querySelector(currentHn));
-    
-        if (index > 0) {
+        const parentStyle = window.getComputedStyle(heading);
         const isValid = isHeadingValid(currentHn, previousHn);
-    
-        if (!isValid) {
+
+        // Ajouter les headings manquants si nécessaire
+        if (previousHn && !isValid && currentHnIndex > parseInt(previousHn.charAt(1)) + 1) {
             const missingHeadingsCount = currentHnIndex - (parseInt(previousHn.charAt(1)) + 1);
-    
+
             for (let i = 1; i <= missingHeadingsCount; i++) {
-            const missingHnIndex = parseInt(previousHn.charAt(1)) + i;
-            const missingHn = `h${missingHnIndex}`;
-            const missingHnContent = `Missing Heading - ${missingHn}`;
-            const missingHeadingStyle = getHeadingStyle(false, missingHnIndex, parentStyle);
-            structure += `<${missingHn} class="missing" style="${missingHeadingStyle}"><span style="${getSpanStyle(parentStyle, false, true)}">${missingHn}</span> - ${missingHnContent}</${missingHn}><br>`;
-                
+                const missingHnIndex = parseInt(previousHn.charAt(1)) + i;
+                const missingHn = `h${missingHnIndex}`;
+                const missingHnContent = `Missing Heading - ${missingHn}`;
+
+                structure += createHeadingHTML(
+                    missingHn,
+                    missingHnContent,
+                    false,
+                    true,
+                    false,
+                    missingHnIndex,
+                    parentStyle
+                );
             }
-        };
-            if (currentHn === 'h1' && hasDuplicateH1()) {
-                structure += `<${currentHn} class="duplicate" style="${getHeadingStyle(false, currentHnIndex, parentStyle)}"><span style="${getSpanStyle(parentStyle, false, false)}">Warning: Duplicate H1</span> - ${currentHnContent}</${currentHn}><br>`;
-            }
-        };
-    
-        const headingStyle = getHeadingStyle(true, currentHnIndex, parentStyle);
-        structure += `<${currentHn} style="${headingStyle}"><span style="${getSpanStyle(parentStyle, true, false)}">${currentHn}</span> - ${currentHnContent}</${currentHn}><br>`;
+        }
+
+        // Vérifier si c'est un H1 dupliqué
+        const isDuplicate = currentHn === 'h1' && hasMultipleH1 && index > 0;
+
+        // Ajouter le heading actuel
+        structure += createHeadingHTML(
+            currentHn,
+            currentHnContent,
+            !isDuplicate,
+            false,
+            isDuplicate,
+            currentHnIndex,
+            parentStyle
+        );
+
         previousHn = currentHn;
     });
-    console.log({structure});
+
+    // Afficher les résultats
     const newWindow = window.open('', '_blank');
-    newWindow.document.write('<html><head><title>Structure corrigée</title>');
-    newWindow.document.write('<style>.missing {background-color: white!important;color: orange!important;}.noMissingHeading { background-color:green }.duplicate { background-color: orange }</style>');
-    newWindow.document.write(`</head><body>${structure}<body></html>`);
+    newWindow.document.write(`
+    <html>
+      <head>
+        <title>Structure corrigée</title>
+        <style>
+          .missing {
+            background-color: white !important;
+            color: ${COLORS.invalid} !important;
+          }
+          .noMissingHeading { 
+            background-color: ${COLORS.valid}; 
+          }
+          .duplicate { 
+            background-color: ${COLORS.invalid}; 
+          }
+        </style>
+      </head>
+      <body>${structure}</body>
+    </html>
+  `);
     newWindow.document.close();
 })();
