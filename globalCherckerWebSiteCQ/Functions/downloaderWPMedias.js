@@ -9,9 +9,10 @@ export const downloaderWPMedia = async (tab) => {
       const CONFIG = {
         maxImages: Number(prompt("Entrez le nombre maximum d'images à télécharger", "100")),
         startIndex: Number(prompt("À partir de quelle image commencer? (0 pour la première)", "0")),
-        downloadBaseDelay: Number(prompt("Délai minimum entre les téléchargements (en ms)", "500")),
         batchSize: Number(prompt("Nombre d'images à télécharger simultanément", "3")),
-        sizeFactor: 0.01, // Facteur de multiplication pour le poids de l'image
+        sizeFactor: 1.5, // Facteur de multiplication pour le poids de l'image
+        minDelay: 300,   // Délai minimum en ms
+        maxDelay: 2000,  // Délai maximum en ms
         containerID: "WPMediaDownloaderContainer"
       };
 
@@ -62,7 +63,8 @@ export const downloaderWPMedia = async (tab) => {
           const configInfo = document.createElement("div");
           configInfo.innerHTML = `
             <p style="margin: 5px 0; font-size: 12px;">Images: <strong>${this.config.maxImages}</strong> à partir de l'index <strong>${this.config.startIndex}</strong></p>
-            <p style="margin: 5px 0; font-size: 12px;">Lot de <strong>${this.config.batchSize}</strong> images, délai min: <strong>${this.config.downloadBaseDelay}ms</strong></p>
+            <p style="margin: 5px 0; font-size: 12px;">Lot de <strong>${this.config.batchSize}</strong> images</p>
+            <p style="margin: 5px 0; font-size: 12px;">Délai automatique: <strong>${this.config.minDelay}-${this.config.maxDelay}ms</strong> selon le poids</p>
           `;
           configInfo.style.marginBottom = "10px";
           container.appendChild(configInfo);
@@ -284,16 +286,36 @@ export const downloaderWPMedia = async (tab) => {
           const extension = filename.includes('.') ? filename.split('.').pop() : '';
 
           // Détecter et corriger les images redimensionnées
-          const resizedPattern = /[-_](\d+x\d+)\./;
+          // Modèle pour détecter les dimensions dans le nom de fichier (ex: -300x225)
+          const resizedPattern = /-(\d+x\d+)(\.[^\.]+)$/;
           const isResized = resizedPattern.test(filename);
 
           let finalUrl = url;
-          let name = filename.split('.')[0];
+          // Extraire le nom de base (sans les dimensions ni l'extension)
+          let name = filename;
 
           if (isResized) {
-            name = name.replace(resizedPattern, '');
-            finalUrl = url.replace(resizedPattern, '.');
+            // Correction du nom pour enlever les dimensions
+            name = filename.replace(resizedPattern, '$2');
+            // Récupérer le nom sans l'extension
+            name = name.substring(0, name.lastIndexOf('.'));
+            // Modifier l'URL pour obtenir l'image originale
+            finalUrl = url.replace(resizedPattern, '$2');
+          } else {
+            // Si pas de redimensionnement, extraire simplement le nom sans extension
+            name = name.substring(0, name.lastIndexOf('.'));
           }
+
+          // Decoder les caractères spéciaux (URL encoded)
+          try {
+            name = decodeURIComponent(name);
+          } catch (e) {
+            // En cas d'erreur de décodage, garder le nom tel quel
+            console.error("Erreur lors du décodage du nom:", e);
+          }
+
+          // Option: remplacer les tirets par des espaces si souhaité
+          // name = name.replace(/-/g, ' ');
 
           return { url: finalUrl, name, extension };
         }
@@ -313,7 +335,7 @@ export const downloaderWPMedia = async (tab) => {
         }
 
         createDownloadLink(blob, name, extension, size) {
-          const filename = name.endsWith(`.${extension}`) ? name : `${name}.${extension}`;
+          const filename = `${name}.${extension}`;
           const link = document.createElement('a');
           link.href = URL.createObjectURL(blob);
           link.download = filename;
@@ -328,10 +350,17 @@ export const downloaderWPMedia = async (tab) => {
           const size = parseInt(link.dataset.size);
           const filename = link.dataset.name;
 
-          // Calculer un délai basé sur la taille du fichier
+          // Calculer un délai basé sur la taille du fichier (KB)
+          const sizeKB = size / 1024;
+
+          // Formule logarithmique pour mieux s'adapter à différentes tailles de fichiers
+          // Plus le fichier est gros, plus le délai augmente, mais de façon non linéaire
+          const calculatedDelay = Math.log(sizeKB + 100) * this.config.sizeFactor;
+
+          // Limiter le délai entre min et max
           const delay = Math.max(
-            this.config.downloadBaseDelay,
-            Math.min(Math.sqrt(size) * this.config.sizeFactor, 2000)
+            this.config.minDelay,
+            Math.min(calculatedDelay, this.config.maxDelay)
           );
 
           return new Promise(resolve => {
@@ -340,7 +369,7 @@ export const downloaderWPMedia = async (tab) => {
                 link.click();
                 URL.revokeObjectURL(link.href); // Libérer la mémoire
                 this.ui.updateCounter(index + 1, totalLinks, "Téléchargé");
-                this.ui.log(`Téléchargé: ${filename} (délai: ${delay.toFixed(0)}ms)`);
+                this.ui.log(`Téléchargé: ${filename} (${sizeKB.toFixed(1)} KB → délai: ${delay.toFixed(0)}ms)`);
               } catch (error) {
                 this.ui.log(`Erreur sur ${filename}: ${error.message}`, true);
               }

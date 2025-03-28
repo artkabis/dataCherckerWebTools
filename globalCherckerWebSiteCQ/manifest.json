@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Health checker Website",
-  "version": "4.0.3",
+  "version": "4.0.4",
   "background": {
     "service_worker": "service_worker.js",
     "type": "module"
@@ -31,7 +31,8 @@
     "declarativeNetRequest",
     "declarativeNetRequestFeedback",
     "webRequest",
-    "debugger"
+    "debugger",
+    "downloads"
   ],
   "options_page": "options.html",
   "host_permissions": [
