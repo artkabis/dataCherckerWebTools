@@ -4,76 +4,85 @@ import { createDB } from "./Functions/createIndexDB.js";
 import { SitemapAnalyzer } from "./Functions/sitemapAnalyzer.js";
 import { CONFIG, initConfig } from "./config.js";
 
-// ==================== INITIALISATION ET CONFIGURATION ====================
+// ==================== STATE MANAGEMENT ====================
 
-// Variables globales
-let config;
-let sitemapAnalyzer = null;
-let user_soprod;
-let allTabs = [];
-let global_data = {};
-const db_name = "db_datas_checker";
-
-// Compteurs pour les processus asynchrones
-let cmp = 0;
-let cmpInterval = 0;
-
-
-
-const getProcessStep = async () => {
-  const result = await chrome.storage.local.get(['processStep']);
-  return result.processStep || 0;
-};
-
-const incrementProcessStep = async () => {
-  const currentStep = await getProcessStep();
-  const newStep = currentStep + 1;
-  await chrome.storage.local.set({ 'processStep': newStep });
-  console.log(`Étape de processus incrémentée: ${currentStep} -> ${newStep}`);
-  return newStep;
-};
-
-const resetProcessStep = async () => {
-  console.log("Réinitialisation de l'étape de processus");
-  await chrome.storage.local.set({ 'processStep': 0 });
-  return 0;
-};
-
-// Pour vérifier l'étape actuelle et réinitialiser si nécessaire
-const validateProcessStep = async () => {
-  const step = await getProcessStep();
-  if (step > 2) {
-    console.warn(`Étape de processus incohérente (${step}), réinitialisation forcée`);
-    return await resetProcessStep();
+// Application state
+const state = {
+  config: null,
+  sitemapAnalyzer: null,
+  user: null,
+  allTabs: [],
+  globalData: {},
+  dbName: "db_datas_checker",
+  processStep: 0,
+  cors: {
+    isEnabled: false,
+    scanInProgress: false
   }
-  return step;
 };
 
-// Initialisation de la configuration
+// Process step management
+const ProcessStepManager = {
+  async get() {
+    const result = await chrome.storage.local.get(['processStep']);
+    return result.processStep || 0;
+  },
+
+  async increment() {
+    const currentStep = await this.get();
+    const newStep = currentStep + 1;
+    await chrome.storage.local.set({ 'processStep': newStep });
+    console.log(`Process step incremented: ${currentStep} -> ${newStep}`);
+    return newStep;
+  },
+
+  async reset() {
+    console.log("Resetting process step");
+    await chrome.storage.local.set({ 'processStep': 0 });
+    return 0;
+  },
+
+  async validate() {
+    const step = await this.get();
+    if (step > 2) {
+      console.warn(`Inconsistent process step (${step}), forced reset`);
+      return await this.reset();
+    }
+    return step;
+  }
+};
+
+// ==================== INITIALIZATION ====================
+
+// Main initialization function
 const initialize = async () => {
-  // Réinitialiser l'étape du processus au démarrage
-  await resetProcessStep();
-  // Initialiser la configuration
-  config = await initConfig();
-  console.log("Configuration initialisée:", config);
+  // Reset process step at startup
+  await ProcessStepManager.reset();
 
-  // Initialiser la gestion des CORS
-  setupCORSLifecycle();
+  // Initialize configuration
+  state.config = await initConfig();
+  console.log("Configuration initialized:", state.config);
 
-  // Détecter les onglets Soprod au démarrage
+  // Setup CORS lifecycle
+  CORSManager.setupLifecycle();
+
+  // Detect Soprod tabs at startup
   await detectTabsAndInterfaces();
 };
 
-// Appel immédiat à l'initialisation
+// Initialize immediately
 initialize();
 
-// Liste des ressources à mettre en cache
+// ==================== RESOURCE CACHING ====================
+
+// List of resources to cache
 const resourcesToCache = [
   "./popup.html",
   "./popup.js",
   "./config.js",
   "./interface.html",
   "./service_worker.js",
+  // Icons
   "./icons/github-mark-white.png",
   "./icons/hn-icon.png",
   "./icons/icon-soprod.JPG",
@@ -84,17 +93,20 @@ const resourcesToCache = [
   "./icons/HCW-logo-48.png",
   "./icons/SofixedMenu-520.png",
   "./icons/soprod.png",
-  "./icons/HCW-logo-16.png",
+  // Rulesets
   "./rulesets/allow-credentials.json",
+  // Assets
   "./assets/canvas-confetti.mjs",
   "./assets/console.image.min.js",
   "./assets/htmx.min.js",
   "./assets/jquery-3.6.4.min.js",
+  // Interface icons
   "./interface_icons/note_1.png",
   "./interface_icons/note_2.png",
   "./interface_icons/note_3.png",
   "./interface_icons/note_4.png",
   "./interface_icons/note_5.png",
+  // Function modules
   "./Functions/checkAltImages.js",
   "./Functions/checkAndAddJquery.js",
   "./Functions/checkBold.js",
@@ -120,665 +132,561 @@ const resourcesToCache = [
   "./Functions/wordsCountLexical.js",
 ];
 
-// Fonction pour mettre en cache une ressource
+// Function to cache a resource
 const cacheResource = (url) => {
   fetch(url)
     .then((response) => {
-      if (response.ok) {
-        return response.text();
-      }
-      throw new Error("La récupération de la ressource a échoué.");
+      if (response.ok) return response.text();
+      throw new Error("Resource retrieval failed.");
     })
     .then((data) => {
       chrome.storage.local.set({ [url]: data }, () => {
-        console.log(`Ressource mise en cache : ${url}`);
+        console.log(`Resource cached: ${url}`);
       });
     })
     .catch((error) => {
-      console.error(
-        `Erreur lors de la mise en cache de la ressource ${url}:`,
-        error
-      );
+      console.error(`Error caching resource ${url}:`, error);
     });
 };
 
-// Événement d'installation ou de mise à jour de l'extension
-chrome.runtime.onInstalled.addListener(() => {
-  // Mettez en cache chaque ressource
-  for (const url of resourcesToCache) {
-    cacheResource(url);
-  }
+// ==================== CORS MANAGEMENT ====================
 
-  // Enregistrement du service worker
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker
-      .register("/service-worker.js")
-      .then((registration) => {
-        console.log("Service worker enregistré avec succès!", registration);
-      })
-      .catch((error) => {
-        console.error("Échec de l'enregistrement du service worker:", error);
-      });
-  }
-});
+// CORS Manager
+const CORSManager = {
+  // HTTP methods constants
+  DEFAULT_METHODS: [
+    "GET", "PUT", "POST", "DELETE", "HEAD", "OPTIONS", "PATCH",
+    "PROPFIND", "PROPPATCH", "MKCOL", "COPY", "MOVE", "LOCK",
+  ],
 
-// Fonction pour détecter les onglets et interfaces au démarrage
-const detectTabsAndInterfaces = async () => {
-  try {
-    const solocalmsTabs = await chrome.tabs.query({
-      url: "*://*.solocalms.fr/*",
-    });
+  DEFAULT_STATUS_METHODS: [
+    "GET", "POST", "PUT", "OPTIONS", "PATCH", "PROPFIND", "PROPPATCH",
+  ],
 
-    if (solocalmsTabs.length > 0) {
-      console.log("soprod tab detected...");
-      // Des onglets avec solocalms.fr ont été détectés
-      allTabs.push(...solocalmsTabs);
-    } else {
-      // Aucun onglet avec solocalms.fr détecté, ajouter uniquement l'onglet actif
-      const activeTab = await chrome.tabs.query({
-        currentWindow: true,
-        active: true,
-      });
-      console.log("active tab car pas d'onglet soprod : ", activeTab);
-      allTabs.push(activeTab[0]);
-    }
-  } catch (error) {
-    console.error("Error:", error);
-  } finally {
-    // Log des onglets détectés
-    console.log("allTabs:", allTabs);
-  }
-};
+  // Core ruleset functions
+  core: {
+    "overwrite-origin": (isEnabled) => CORSManager.updateRules("overwrite-origin", isEnabled)
+    // Other rules can be uncommented as needed
+    /*
+    'csp': (isEnabled) => CORSManager.updateRules('csp', isEnabled),
+    'allow-shared-array-buffer': (isEnabled) => CORSManager.updateRules('allow-shared-array-buffer', isEnabled),
+    'x-frame': (isEnabled) => CORSManager.updateRules('x-frame', isEnabled),
+    'allow-credentials': (isEnabled) => CORSManager.updateRules('allow-credentials', isEnabled),
+    'allow-headers': (isEnabled) => CORSManager.updateRules('allow-headers', isEnabled),
+    'referer': (isEnabled) => CORSManager.updateRules('referer', isEnabled),
+    */
+  },
 
-// Vérifiez si le service worker est actif
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.ready.then((registration) => {
-    console.log("Service worker prêt!", registration);
-  });
-}
-
-// Événements au démarrage de l'extension
-chrome.runtime.onStartup.addListener(() => {
-  console.log(`background onStartup`);
-  checkCurrentTab();
-});
-
-
-
-// ==================== GESTION AMÉLIORÉE DES CORS ====================
-
-// Constantes pour les méthodes HTTP
-self.DEFAULT_METHODS = [
-  "GET", "PUT", "POST", "DELETE", "HEAD", "OPTIONS", "PATCH",
-  "PROPFIND", "PROPPATCH", "MKCOL", "COPY", "MOVE", "LOCK",
-];
-
-self.DEFAULT_STATUS_METHODS = [
-  "GET", "POST", "PUT", "OPTIONS", "PATCH", "PROPFIND", "PROPPATCH",
-];
-
-// État des CORS
-const corsState = {
-  isEnabled: false,
-  scanInProgress: false
-};
-
-// Objet contenant les fonctions pour les règles CORS
-const core = {
-  "overwrite-origin": () => updateCORSRules("overwrite-origin", corsState.isEnabled)
-  // Les autres règles sont commentées mais peuvent être décommentées au besoin
-  /*
-  'csp': () => updateCORSRules('csp', corsState.isEnabled),
-  'allow-shared-array-buffer': () => updateCORSRules('allow-shared-array-buffer', corsState.isEnabled),
-  'x-frame': () => updateCORSRules('x-frame', corsState.isEnabled),
-  'allow-credentials': () => updateCORSRules('allow-credentials', corsState.isEnabled),
-  'allow-headers': () => updateCORSRules('allow-headers', corsState.isEnabled),
-  'referer': () => updateCORSRules('referer', corsState.isEnabled),
-  */
-};
-
-// Fonction pour activer les CORS de manière sécurisée
-const enableCORS = () => {
-  return new Promise((resolve) => {
-    if (corsState.isEnabled) {
-      console.log("Les CORS sont déjà activés");
-      resolve();
+  // Enable CORS
+  async enable() {
+    if (state.cors.isEnabled) {
+      console.log("CORS already enabled");
       return;
     }
 
-    corsState.scanInProgress = true;
-    chrome.storage.sync.set({ corsEnabled: true }, () => {
-      corsState.isEnabled = true;
-      const ruleNames = ["overwrite-origin"];
-      // Autres règles si nécessaire: 'csp', 'allow-shared-array-buffer', etc.
+    state.cors.scanInProgress = true;
+    await chrome.storage.sync.set({ corsEnabled: true });
+    state.cors.isEnabled = true;
 
-      ruleNames.forEach((ruleName) => {
-        const prefName = `remove-${ruleName}`;
-        updateCORSRules(ruleName, true);
-        console.log({ prefName, ruleName, enabled: true });
-      });
-
-      console.log("CORS activés pour le scan");
-
-      // Petit délai pour s'assurer que les règles sont appliquées
-      setTimeout(resolve, 100);
+    const ruleNames = ["overwrite-origin"];
+    ruleNames.forEach((ruleName) => {
+      this.updateRules(ruleName, true);
+      console.log(`CORS rule ${ruleName} enabled`);
     });
-  });
-};
 
-// Fonction pour désactiver les CORS de manière sécurisée
-const disableCORS = () => {
-  return new Promise((resolve) => {
-    if (!corsState.isEnabled && !corsState.scanInProgress) {
-      console.log("Les CORS sont déjà désactivés");
-      resolve();
+    console.log("CORS enabled for scanning");
+
+    // Small delay to ensure rules are applied
+    return new Promise(resolve => setTimeout(resolve, 100));
+  },
+
+  // Disable CORS
+  async disable() {
+    if (!state.cors.isEnabled && !state.cors.scanInProgress) {
+      console.log("CORS already disabled");
       return;
     }
 
-    chrome.storage.sync.set({ corsEnabled: false }, () => {
-      corsState.isEnabled = false;
-      corsState.scanInProgress = false;
+    await chrome.storage.sync.set({ corsEnabled: false });
+    state.cors.isEnabled = false;
+    state.cors.scanInProgress = false;
 
-      const ruleNames = ["overwrite-origin"];
-      // Autres règles si nécessaire
+    const ruleNames = ["overwrite-origin"];
+    ruleNames.forEach((ruleName) => {
+      this.updateRules(ruleName, false);
+      console.log(`CORS rule ${ruleName} disabled`);
+    });
 
-      ruleNames.forEach((ruleName) => {
-        const prefName = `remove-${ruleName}`;
-        updateCORSRules(ruleName, false);
-        console.log({ prefName, ruleName, enabled: false });
-      });
+    console.log("CORS disabled after scanning");
 
-      console.log("CORS désactivés après le scan");
-
-      // Force la désactivation une seconde fois pour s'assurer que les règles sont bien désactivées
+    // Force disable a second time for extra certainty
+    return new Promise(resolve => {
       setTimeout(() => {
-        forceCORSDisable();
+        this.forceDisable();
         resolve();
       }, 100);
     });
-  });
-};
+  },
 
-// Fonction pour forcer la désactivation des CORS (garantie supplémentaire)
-const forceCORSDisable = () => {
-  const ruleNames = ["overwrite-origin"];
-  // Autres règles si nécessaire
-
-  ruleNames.forEach(rule => {
-    chrome.declarativeNetRequest.updateEnabledRulesets({
-      disableRulesetIds: [rule]
-    }).then(() => {
-      console.log(`Forçage de la désactivation de la règle '${rule}' réussi`);
-    }).catch(error => {
-      console.error(`Erreur lors du forçage de la désactivation de '${rule}':`, error);
-    });
-  });
-};
-
-// Fonction pour mettre à jour les règles CORS (remplace toggle)
-const updateCORSRules = (rule, enable, value = false) => {
-  console.log("updateCORSRules arguments : ", { rule, enable, value });
-
-  chrome.declarativeNetRequest.updateEnabledRulesets(
-    enable
-      ? { enableRulesetIds: [rule] }
-      : { disableRulesetIds: [rule] }
-  ).then(() => {
-    console.log(`Règle '${rule}' ${enable ? 'activée' : 'désactivée'} avec succès`);
-  }).catch(error => {
-    console.error(`Erreur lors de la mise à jour de la règle '${rule}':`, error);
-  });
-};
-
-// Fonction pour exécuter une tâche avec gestion sécurisée des CORS
-const runWithSafeCORS = async (taskFunction) => {
-  try {
-    // Activer les CORS avant la tâche
-    await enableCORS();
-
-    // Exécuter la fonction passée en paramètre
-    return await taskFunction();
-
-  } catch (error) {
-    console.error("Erreur pendant l'exécution de la tâche:", error);
-    throw error;
-  } finally {
-    // Désactiver les CORS quoi qu'il arrive, même en cas d'erreur
-    await disableCORS();
-  }
-};
-
-// Initialisation de l'état des CORS au démarrage
-const initCORSState = () => {
-  chrome.storage.sync.get("corsEnabled", (result) => {
-    // Par défaut, on désactive les CORS au démarrage par sécurité
-    const shouldBeEnabled = false;
-
-    if (result.corsEnabled !== shouldBeEnabled) {
-      chrome.storage.sync.set({ corsEnabled: shouldBeEnabled });
-    }
-
-    corsState.isEnabled = shouldBeEnabled;
+  // Force disable CORS (additional guarantee)
+  forceDisable() {
     const ruleNames = ["overwrite-origin"];
-
-    ruleNames.forEach((ruleName) => {
-      updateCORSRules(ruleName, shouldBeEnabled);
+    ruleNames.forEach(rule => {
+      chrome.declarativeNetRequest.updateEnabledRulesets({
+        disableRulesetIds: [rule]
+      })
+        .then(() => console.log(`Forced disable of rule '${rule}' successful`))
+        .catch(error => console.error(`Error during forced disable of '${rule}':`, error));
     });
-  });
-};
+  },
 
-// Écouteur de message pour la gestion des CORS (fusion avec l'écouteur existant)
-const corsMessageHandler = (request, sender, sendResponse) => {
-  // Activation/désactivation des CORS
-  if (request.corsEnabled !== undefined) {
-    if (request.corsEnabled) {
-      enableCORS().then(() => {
-        sendResponse && sendResponse({ success: true, corsState: corsState });
-      });
-    } else {
-      disableCORS().then(() => {
-        sendResponse && sendResponse({ success: true, corsState: corsState });
-      });
+  // Update CORS rules (replaces toggle)
+  updateRules(rule, enable) {
+    console.log("updateCORSRules arguments:", { rule, enable });
+
+    chrome.declarativeNetRequest.updateEnabledRulesets(
+      enable
+        ? { enableRulesetIds: [rule] }
+        : { disableRulesetIds: [rule] }
+    )
+      .then(() => console.log(`Rule '${rule}' ${enable ? 'enabled' : 'disabled'} successfully`))
+      .catch(error => console.error(`Error updating rule '${rule}':`, error));
+  },
+
+  // Run a task with safe CORS handling
+  async runWithSafe(taskFunction) {
+    try {
+      // Enable CORS before task
+      await this.enable();
+
+      // Execute function passed as parameter
+      return await taskFunction();
+    } catch (error) {
+      console.error("Error during task execution:", error);
+      throw error;
+    } finally {
+      // Disable CORS regardless, even in case of error
+      await this.disable();
     }
-    return true;
-  }
+  },
 
-  // Récupération de l'état des CORS
-  if (request.action === 'getCORSStatus') {
-    sendResponse({
-      isEnabled: corsState.isEnabled,
-      scanInProgress: corsState.scanInProgress
-    });
-    return true;
-  }
+  // Initialize CORS state at startup
+  initState() {
+    chrome.storage.sync.get("corsEnabled", (result) => {
+      // By default, we disable CORS at startup for safety
+      const shouldBeEnabled = false;
 
-  return false; // Indique que ce handler n'a pas traité le message
-};
-
-// Configuration du cycle de vie pour la gestion des CORS
-const setupCORSLifecycle = () => {
-  // Initialisation des CORS au démarrage
-  initCORSState();
-
-  // S'assurer que les CORS sont désactivés lors de la suspension de l'extension
-  chrome.runtime.onSuspend.addListener(() => {
-    console.log("Extension en cours de suspension, désactivation forcée des CORS");
-    forceCORSDisable();
-  });
-};
-
-// Fonction pour maintenir la compatibilité avec le code existant
-const toggleCorsEnabled = (value) => {
-  if (value === undefined) {
-    // Si pas de valeur fournie, utiliser l'état actuel (pour maintenir la compatibilité)
-    value = corsState.isEnabled;
-  }
-
-  if (value) {
-    enableCORS();
-  } else {
-    disableCORS();
-  }
-};
-
-// Fonction pour maintenir la compatibilité avec le code existant
-const once = () => {
-  initCORSState();
-};
-
-
-
-// ==================== FONCTIONS D'ANALYSE ET D'INJECTION DE SCRIPTS ====================
-
-// Fonction d'injection de scripts pour l'analyse d'une page
-function injectScriptsForAnalysis(tabId) {
-  if (!tabId) {
-    console.error("Erreur: tabId est nécessaire pour injecter des scripts");
-    return;
-  }
-
-  console.log(`Injection de scripts pour l'analyse dans l'onglet ${tabId}`);
-
-  chrome.scripting.executeScript(
-    {
-      target: { tabId: tabId },
-      files: [
-        "./assets/jquery-3.6.4.min.js",
-        "./Functions/clear.js",
-        "./assets/console.image.min.js",
-        "./Functions/checkAndAddJquery.js",
-        "./Functions/settingsOptions.js",
-      ],
-    },
-    (injectionResults) => {
-      if (chrome.runtime.lastError) {
-        console.error("Erreur lors de l'injection de scripts:", chrome.runtime.lastError);
-        return;
+      if (result.corsEnabled !== shouldBeEnabled) {
+        chrome.storage.sync.set({ corsEnabled: shouldBeEnabled });
       }
 
-      console.log("Premier ensemble de scripts injecté avec succès");
+      state.cors.isEnabled = shouldBeEnabled;
+      const ruleNames = ["overwrite-origin"];
 
-      setTimeout(() => {
-        chrome.scripting.executeScript(
-          {
-            target: { tabId: tabId },
-            files: [
-              "./Functions/settingsWords.js",
-              "./Functions/dataCheckerSchema.js",
-              "./Functions/initLighthouse.js",
-              "./Functions/counterWords.js",
-              "./Functions/checkAltImages.js",
-              "./Functions/checkMetas.js",
-              "./Functions/checkLogoHeader.js",
-              "./Functions/checkOldRGPD.js",
-              "./Functions/checkBold.js",
-              "./Functions/checkOutlineHn.js",
-              "./Functions/checkColorContrast.js",
-              "./Functions/counterLettersHn.js",
-              "./Functions/initDataChecker.js",
-              "./Functions/checkDataBindingDuda.js",
-              "./Functions/checkLinkAndImages.js",
-            ],
-          },
-          (secondInjectionResults) => {
-            if (chrome.runtime.lastError) {
-              console.error("Erreur lors de l'injection du second ensemble de scripts:", chrome.runtime.lastError);
-            } else {
-              console.log("Second ensemble de scripts injecté avec succès");
-            }
-          }
-        );
-      }, 50);
-    }
-  );
-}
-
-// Fonction pour démarrer l'analyse avec gestion sécurisée des CORS
-async function startAnalysis(source, mode = 'sitemap') {
-  try {
-    console.log(`Démarrage de l'analyse en mode ${mode}`);
-
-    // Réinitialiser les états d'analyse
-    chrome.storage.local.set({
-      'linksAnalysisComplete': false
+      ruleNames.forEach((ruleName) => {
+        this.updateRules(ruleName, shouldBeEnabled);
+      });
     });
+  },
 
-    // Création de l'analyseur
-    sitemapAnalyzer = new SitemapAnalyzer({
-      batchSize: 3,
-      pauseBetweenBatches: 500,
-      tabTimeout: 30000,
-      maxRetries: 2
-    });
-
-    // Configurer les écouteurs d'événements
-    setupSitemapAnalyzerListeners();
-
-    // Exécuter l'analyse avec gestion sécurisée des CORS
-    return await runWithSafeCORS(async () => {
-      if (mode === 'urlList' && Array.isArray(source)) {
-        console.log(`Démarrage de l'analyse de ${source.length} URLs`);
-        return await sitemapAnalyzer.startWithUrlList(source);
+  // Message handler for CORS management
+  messageHandler(request, sender, sendResponse) {
+    // Enable/disable CORS
+    if (request.corsEnabled !== undefined) {
+      if (request.corsEnabled) {
+        this.enable().then(() => {
+          sendResponse && sendResponse({
+            success: true,
+            corsState: state.cors
+          });
+        });
       } else {
-        console.log(`Démarrage de l'analyse du sitemap: ${source}`);
-        return await sitemapAnalyzer.start(source);
+        this.disable().then(() => {
+          sendResponse && sendResponse({
+            success: true,
+            corsState: state.cors
+          });
+        });
       }
-    });
-
-  } catch (error) {
-    console.error('Erreur lors du démarrage de l\'analyse:', error);
-    sitemapAnalyzer = null;
-    // S'assurer que les CORS sont désactivés en cas d'erreur
-    await disableCORS();
-    throw error;
-  }
-}
-
-// Configurer les écouteurs d'événements pour l'analyseur de sitemap
-function setupSitemapAnalyzerListeners() {
-  // Écouteur pour la progression
-  sitemapAnalyzer.on('progress', (progress) => {
-    // Diffuser la progression à toutes les pages d'analyse ouvertes
-    chrome.runtime.sendMessage({
-      action: 'analysisProgress',
-      progress: progress
-    });
-  });
-
-  // Écouteur pour le statut d'analyse des liens
-  sitemapAnalyzer.on('linksAnalysisStatus', (status) => {
-    // Diffuser le statut d'analyse des liens
-    chrome.runtime.sendMessage({
-      action: 'linksAnalysisStatus',
-      status: status
-    });
-
-    // Si l'analyse des liens est terminée, mémoriser l'état
-    if (status.completed) {
-      chrome.storage.local.set({ 'linksAnalysisComplete': true });
+      return true;
     }
-  });
 
-  // Écouteur pour la complétion
-  sitemapAnalyzer.on('complete', async (results) => {
-    // Sauvegarder les résultats
-    console.log('Résultats complets avant sauvegarde:', results);
+    // Get CORS status
+    if (request.action === 'getCORSStatus') {
+      sendResponse({
+        isEnabled: state.cors.isEnabled,
+        scanInProgress: state.cors.scanInProgress
+      });
+      return true;
+    }
 
-    // Vérifiez spécifiquement les données de liens
-    let totalLinks = 0;
-    let totalPages = 0;
+    return false; // Indicates this handler didn't process the message
+  },
 
-    Object.entries(results.results).forEach(([url, data]) => {
-      totalPages++;
-      if (data.link_check && Array.isArray(data.link_check.link)) {
-        totalLinks += data.link_check.link.length;
-        console.log(`Page ${url}: ${data.link_check.link.length} liens`);
-      }
+  // Setup lifecycle for CORS management
+  setupLifecycle() {
+    // Initialize CORS at startup
+    this.initState();
+
+    // Ensure CORS is disabled when extension is suspended
+    chrome.runtime.onSuspend.addListener(() => {
+      console.log("Extension being suspended, forced CORS disable");
+      this.forceDisable();
     });
+  }
+};
 
-    console.log(`Total: ${totalPages} pages, ${totalLinks} liens`);
+// ==================== SCRIPT INJECTION & ANALYSIS ====================
 
-    chrome.storage.local.set({ 'sitemapAnalysis': results });
+// Analyzer Module
+const Analyzer = {
+  // Inject scripts for page analysis
+  injectScriptsForAnalysis(tabId) {
+    if (!tabId) {
+      console.error("Error: tabId is required to inject scripts");
+      return;
+    }
 
-    // Vérifier si toutes les analyses sont terminées
-    checkAllAnalysesComplete(results);
+    console.log(`Injecting analysis scripts into tab ${tabId}`);
 
-    sitemapAnalyzer = null; // Libérer la référence
-  });
-}
-
-// Fonction pour vérifier si toutes les analyses sont terminées
-function checkAllAnalysesComplete(results) {
-  chrome.storage.local.get(['linksAnalysisComplete'], (data) => {
-    const allComplete = (data.linksAnalysisComplete) ||
-      (results && results.analysisComplete === true);
-
-    if (allComplete) {
-      console.log('Toutes les analyses sont terminées');
-
-      // Récupérer et combiner les résultats des analyses
-      chrome.storage.local.get(['sitemapAnalysis', 'linksAnalysisResults'], (results) => {
-        // Enrichir les résultats d'analyse du site avec les résultats des liens
-        if (results.sitemapAnalysis && results.linksAnalysisResults) {
-          console.log('Enrichissement des résultats avec les données de liens');
-          // Vous pouvez implémenter la logique de fusion des résultats ici
+    chrome.scripting.executeScript(
+      {
+        target: { tabId: tabId },
+        files: [
+          "./assets/jquery-3.6.4.min.js",
+          "./Functions/clear.js",
+          "./assets/console.image.min.js",
+          "./Functions/checkAndAddJquery.js",
+          "./Functions/settingsOptions.js",
+        ],
+      },
+      (injectionResults) => {
+        if (chrome.runtime.lastError) {
+          console.error("Error during script injection:", chrome.runtime.lastError);
+          return;
         }
 
-        // Notification de fin de toutes les analyses
-        chrome.runtime.sendMessage({
-          action: 'allAnalysesComplete',
-          results: results.sitemapAnalysis
-        });
-      });
+        console.log("First set of scripts injected successfully");
 
-      // Réinitialiser les états pour les futures analyses
+        setTimeout(() => {
+          chrome.scripting.executeScript(
+            {
+              target: { tabId: tabId },
+              files: [
+                "./Functions/settingsWords.js",
+                "./Functions/dataCheckerSchema.js",
+                "./Functions/initLighthouse.js",
+                "./Functions/counterWords.js",
+                "./Functions/checkAltImages.js",
+                "./Functions/checkMetas.js",
+                "./Functions/checkLogoHeader.js",
+                "./Functions/checkOldRGPD.js",
+                "./Functions/checkBold.js",
+                "./Functions/checkOutlineHn.js",
+                "./Functions/checkColorContrast.js",
+                "./Functions/counterLettersHn.js",
+                "./Functions/initDataChecker.js",
+                "./Functions/checkDataBindingDuda.js",
+                "./Functions/checkLinkAndImages.js",
+              ],
+            },
+            (secondInjectionResults) => {
+              if (chrome.runtime.lastError) {
+                console.error("Error during second set script injection:", chrome.runtime.lastError);
+              } else {
+                console.log("Second set of scripts injected successfully");
+              }
+            }
+          );
+        }, 50);
+      }
+    );
+  },
+
+  // Start analysis with secure CORS handling
+  async startAnalysis(source, mode = 'sitemap') {
+    try {
+      console.log(`Starting analysis in ${mode} mode`);
+
+      // Reset analysis states
       chrome.storage.local.set({
         'linksAnalysisComplete': false
       });
-    }
-  });
-}
 
-// Fonction pour analyser une URL avec le module checkLinks.js
-async function analyzeURLWithLinks(url) {
-  let tab = null;
-  console.group(`🔍 Analyse des liens pour: ${url}`);
+      // Create analyzer
+      state.sitemapAnalyzer = new SitemapAnalyzer({
+        batchSize: 3,
+        pauseBetweenBatches: 500,
+        tabTimeout: 30000,
+        maxRetries: 2
+      });
 
-  try {
-    // Création d'un nouvel onglet pour l'analyse
-    tab = await chrome.tabs.create({
-      url: url,
-      active: false
-    });
+      // Configure event listeners
+      this.setupAnalyzerListeners();
 
-    // Attente du chargement complet de la page
-    await new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error('Timeout: chargement de la page trop long'));
-      }, 30000); // 30s de timeout
-
-      chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
-        if (tabId === tab.id && info.status === 'complete') {
-          chrome.tabs.onUpdated.removeListener(listener);
-          clearTimeout(timeoutId);
-          resolve();
+      // Run analysis with secure CORS handling
+      return await CORSManager.runWithSafe(async () => {
+        if (mode === 'urlList' && Array.isArray(source)) {
+          console.log(`Starting analysis of ${source.length} URLs`);
+          return await state.sitemapAnalyzer.startWithUrlList(source);
+        } else {
+          console.log(`Starting sitemap analysis: ${source}`);
+          return await state.sitemapAnalyzer.start(source);
         }
+      });
+
+    } catch (error) {
+      console.error('Error starting analysis:', error);
+      state.sitemapAnalyzer = null;
+      // Ensure CORS are disabled in case of error
+      await CORSManager.disable();
+      throw error;
+    }
+  },
+
+  // Configure event listeners for sitemap analyzer
+  setupAnalyzerListeners() {
+    // Progress listener
+    state.sitemapAnalyzer.on('progress', (progress) => {
+      // Broadcast progress to all open analysis pages
+      chrome.runtime.sendMessage({
+        action: 'analysisProgress',
+        progress: progress
       });
     });
 
-    console.log('Page chargée, injection du module checkLinks.js');
+    // Links analysis status listener
+    state.sitemapAnalyzer.on('linksAnalysisStatus', (status) => {
+      // Broadcast links analysis status
+      chrome.runtime.sendMessage({
+        action: 'linksAnalysisStatus',
+        status: status
+      });
 
-    // Injection des dépendances nécessaires
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      files: [
-        "./assets/jquery-3.6.4.min.js",
-        "./Functions/checkAndAddJquery.js",
-        "./Functions/settingsOptions.js"
-      ]
+      // If links analysis is complete, store state
+      if (status.completed) {
+        chrome.storage.local.set({ 'linksAnalysisComplete': true });
+      }
     });
 
-    // Petit délai pour s'assurer que jQuery est bien chargé
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Completion listener
+    state.sitemapAnalyzer.on('complete', async (results) => {
+      // Save results
+      console.log('Complete results before saving:', results);
 
-    // Injection du module checkLinks.js
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      files: ["./Functions/checkLinks.js"]
+      // Specifically check link data
+      let totalLinks = 0;
+      let totalPages = 0;
+
+      Object.entries(results.results).forEach(([url, data]) => {
+        totalPages++;
+        if (data.link_check && Array.isArray(data.link_check.link)) {
+          totalLinks += data.link_check.link.length;
+          console.log(`Page ${url}: ${data.link_check.link.length} links`);
+        }
+      });
+
+      console.log(`Total: ${totalPages} pages, ${totalLinks} links`);
+
+      chrome.storage.local.set({ 'sitemapAnalysis': results });
+
+      // Check if all analyses are complete
+      this.checkAllAnalysesComplete(results);
+
+      state.sitemapAnalyzer = null; // Free reference
     });
+  },
 
-    console.log('Module checkLinks.js injecté, démarrage de l\'analyse');
+  // Check if all analyses are complete
+  checkAllAnalysesComplete(results) {
+    chrome.storage.local.get(['linksAnalysisComplete'], (data) => {
+      const allComplete = (data.linksAnalysisComplete) ||
+        (results && results.analysisComplete === true);
 
-    // Démarrer l'analyse des liens
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      function: () => {
-        // Vérifier que le module est chargé
-        if (typeof window.startLinksAnalysis === 'function') {
-          console.log('Démarrage de l\'analyse des liens');
-          window.startLinksAnalysis();
+      if (allComplete) {
+        console.log('All analyses are complete');
 
-          // Créer un écouteur d'événement pour la fin de l'analyse
-          window.addEventListener('linksAnalysisComplete', (event) => {
-            console.log('Analyse des liens terminée, envoi des résultats au service worker');
-            chrome.runtime.sendMessage({
-              action: 'linksAnalysisComplete',
-              detail: event.detail
-            });
+        // Retrieve and combine analysis results
+        chrome.storage.local.get(['sitemapAnalysis', 'linksAnalysisResults'], (results) => {
+          // Enrich site analysis results with link results
+          if (results.sitemapAnalysis && results.linksAnalysisResults) {
+            console.log('Enriching results with link data');
+            // You can implement result merging logic here
+          }
+
+          // End of all analyses notification
+          chrome.runtime.sendMessage({
+            action: 'allAnalysesComplete',
+            results: results.sitemapAnalysis
           });
-        } else {
-          console.error('Module checkLinks.js non trouvé ou non initialisé');
-        }
+        });
+
+        // Reset states for future analyses
+        chrome.storage.local.set({
+          'linksAnalysisComplete': false
+        });
       }
     });
+  },
 
-    // Attendre que l'analyse des liens soit terminée
-    await waitForLinksAnalysisComplete(tab.id);
+  // Analyze URL with the checkLinks.js module
+  async analyzeURLWithLinks(url) {
+    let tab = null;
+    console.group(`🔍 Analyzing links for: ${url}`);
 
-    // Fermeture de l'onglet
-    if (tab) {
-      await chrome.tabs.remove(tab.id);
-      console.log('Onglet fermé après analyse des liens');
-    }
+    try {
+      // Create new tab for analysis
+      tab = await chrome.tabs.create({
+        url: url,
+        active: false
+      });
 
-    console.groupEnd();
-    return { url, status: 'analyzed' };
+      // Wait for page to load completely
+      await new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          reject(new Error('Timeout: page loading took too long'));
+        }, 30000); // 30s timeout
 
-  } catch (error) {
-    console.error('Erreur lors de l\'analyse des liens:', error);
-    if (tab) {
-      try {
-        await chrome.tabs.remove(tab.id);
-      } catch (e) {
-        console.error('Erreur lors de la fermeture de l\'onglet:', e);
-      }
-    }
-    console.groupEnd();
-    throw error;
-  }
-}
-
-// Fonction pour attendre que l'analyse des liens soit terminée
-function waitForLinksAnalysisComplete(tabId) {
-  return new Promise((resolve, reject) => {
-    const timeoutId = setTimeout(() => {
-      reject(new Error('Timeout: l\'analyse des liens a pris trop de temps'));
-    }, 60000); // 60 secondes de timeout
-
-    function checkStatus() {
-      chrome.scripting.executeScript({
-        target: { tabId },
-        function: () => {
-          return window.isLinksAnalysisComplete ? window.isLinksAnalysisComplete() : false;
-        }
-      })
-        .then(result => {
-          if (result[0].result === true) {
+        chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
+          if (tabId === tab.id && info.status === 'complete') {
+            chrome.tabs.onUpdated.removeListener(listener);
             clearTimeout(timeoutId);
             resolve();
+          }
+        });
+      });
+
+      console.log('Page loaded, injecting checkLinks.js module');
+
+      // Inject necessary dependencies
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: [
+          "./assets/jquery-3.6.4.min.js",
+          "./Functions/checkAndAddJquery.js",
+          "./Functions/settingsOptions.js"
+        ]
+      });
+
+      // Small delay to ensure jQuery is loaded
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Inject checkLinks.js module
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ["./Functions/checkLinks.js"]
+      });
+
+      console.log('checkLinks.js module injected, starting analysis');
+
+      // Start links analysis
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        function: () => {
+          // Check if module is loaded
+          if (typeof window.startLinksAnalysis === 'function') {
+            console.log('Starting links analysis');
+            window.startLinksAnalysis();
+
+            // Create event listener for analysis completion
+            window.addEventListener('linksAnalysisComplete', (event) => {
+              console.log('Links analysis complete, sending results to service worker');
+              chrome.runtime.sendMessage({
+                action: 'linksAnalysisComplete',
+                detail: event.detail
+              });
+            });
           } else {
-            // Vérifier à nouveau après un court délai
-            setTimeout(checkStatus, 1000);
+            console.error('checkLinks.js module not found or not initialized');
+          }
+        }
+      });
+
+      // Wait for links analysis to complete
+      await this.waitForLinksAnalysisComplete(tab.id);
+
+      // Close tab
+      if (tab) {
+        await chrome.tabs.remove(tab.id);
+        console.log('Tab closed after link analysis');
+      }
+
+      console.groupEnd();
+      return { url, status: 'analyzed' };
+
+    } catch (error) {
+      console.error('Error during link analysis:', error);
+      if (tab) {
+        try {
+          await chrome.tabs.remove(tab.id);
+        } catch (e) {
+          console.error('Error closing tab:', e);
+        }
+      }
+      console.groupEnd();
+      throw error;
+    }
+  },
+
+  // Wait for links analysis to complete
+  waitForLinksAnalysisComplete(tabId) {
+    return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error('Timeout: links analysis took too long'));
+      }, 60000); // 60 seconds timeout
+
+      function checkStatus() {
+        chrome.scripting.executeScript({
+          target: { tabId },
+          function: () => {
+            return window.isLinksAnalysisComplete ? window.isLinksAnalysisComplete() : false;
           }
         })
-        .catch(error => {
-          clearTimeout(timeoutId);
-          reject(error);
-        });
-    }
+          .then(result => {
+            if (result[0].result === true) {
+              clearTimeout(timeoutId);
+              resolve();
+            } else {
+              // Check again after a short delay
+              setTimeout(checkStatus, 1000);
+            }
+          })
+          .catch(error => {
+            clearTimeout(timeoutId);
+            reject(error);
+          });
+      }
 
-    // Démarrer la vérification
-    checkStatus();
-  });
-}
+      // Start checking
+      checkStatus();
+    });
+  }
+};
 
+// ==================== MESSAGE HANDLERS & EVENT LISTENERS ====================
 
-
-
-// ==================== ÉCOUTEURS DE MESSAGES ET GESTION DES ÉVÉNEMENTS ====================
-
-// Écouteur principal pour les messages de l'extension
+// Main message listener for extension
 chrome.runtime.onMessage.addListener(async function (request, sender, sendResponse) {
-  // === GESTION DES CORS ===
-  if (corsMessageHandler(request, sender, sendResponse)) {
-    return true; // Message traité par le gestionnaire CORS
+  // === CORS MANAGEMENT ===
+  if (CORSManager.messageHandler(request, sender, sendResponse)) {
+    return true; // Message handled by CORS manager
   }
 
-  // === GESTION DES ANALYSES ===
-  // Analyse de sitemap
+  // === ANALYSIS MANAGEMENT ===
+  // Sitemap analysis
   if (request.action === 'startSitemapAnalysis') {
-    startAnalysis(request.sitemapUrl)
+    Analyzer.startAnalysis(request.sitemapUrl)
       .then(results => {
-        // Une fois l'analyse terminée, ouvrir la page de résultats
+        // Once analysis is complete, open results page
         chrome.tabs.create({
           url: chrome.runtime.getURL('results.html')
         });
       })
       .catch(error => {
-        console.error('Erreur lors de l\'analyse :', error);
+        console.error('Error during analysis:', error);
       });
 
-    // Ouvrir immédiatement une page de suivi de progression
+    // Immediately open progress tracking page
     chrome.tabs.create({
       url: chrome.runtime.getURL('analysis-progress.html')
     });
@@ -787,20 +695,20 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
     return true;
   }
 
-  // Analyse de liste d'URLs
+  // URL list analysis
   if (request.action === 'startUrlListAnalysis') {
-    startAnalysis(request.urls, 'urlList')
+    Analyzer.startAnalysis(request.urls, 'urlList')
       .then(results => {
-        // Une fois l'analyse terminée, ouvrir la page de résultats
+        // Once analysis is complete, open results page
         chrome.tabs.create({
           url: chrome.runtime.getURL('results.html')
         });
       })
       .catch(error => {
-        console.error('Erreur lors de l\'analyse :', error);
+        console.error('Error during analysis:', error);
       });
 
-    // Ouvrir immédiatement une page de suivi de progression
+    // Immediately open progress tracking page
     chrome.tabs.create({
       url: chrome.runtime.getURL('analysis-progress.html')
     });
@@ -809,78 +717,78 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
     return true;
   }
 
-  // Gestion des contrôles de l'analyse
-  if (request.action === 'pauseAnalysis' && sitemapAnalyzer) {
-    sitemapAnalyzer.pause();
+  // Analysis control management
+  if (request.action === 'pauseAnalysis' && state.sitemapAnalyzer) {
+    state.sitemapAnalyzer.pause();
     sendResponse({ status: 'paused' });
     return true;
   }
 
-  if (request.action === 'resumeAnalysis' && sitemapAnalyzer) {
-    sitemapAnalyzer.resume();
+  if (request.action === 'resumeAnalysis' && state.sitemapAnalyzer) {
+    state.sitemapAnalyzer.resume();
     sendResponse({ status: 'resumed' });
     return true;
   }
 
-  if (request.action === 'cancelAnalysis' && sitemapAnalyzer) {
-    sitemapAnalyzer.cancel();
-    sitemapAnalyzer = null;
+  if (request.action === 'cancelAnalysis' && state.sitemapAnalyzer) {
+    state.sitemapAnalyzer.cancel();
+    state.sitemapAnalyzer = null;
 
-    // S'assurer que les CORS sont désactivés si l'analyse est annulée
-    disableCORS().then(() => {
+    // Ensure CORS are disabled if analysis is cancelled
+    CORSManager.disable().then(() => {
       sendResponse({ status: 'cancelled' });
     });
     return true;
   }
 
-  // Analyse de la page actuelle
+  // Current page analysis
   if (request.action === 'startCurrentPageAnalysis') {
-    // Activer les CORS avant l'analyse de la page
-    enableCORS().then(() => {
-      // Injecter les scripts pour analyser la page actuelle
-      injectScriptsForAnalysis(request.tabId);
+    // Enable CORS before page analysis
+    CORSManager.enable().then(() => {
+      // Inject scripts to analyze current page
+      Analyzer.injectScriptsForAnalysis(request.tabId);
 
-      // Une fois l'analyse terminée, s'assurer de désactiver les CORS
+      // Once analysis is complete, ensure CORS are disabled
       setTimeout(() => {
-        disableCORS();
-      }, 10000); // Timeout raisonnable pour l'analyse d'une page
+        CORSManager.disable();
+      }, 10000); // Reasonable timeout for page analysis
 
       sendResponse({ status: 'started' });
     });
     return true;
   }
 
-  // Récupération de l'état actuel de l'analyse
+  // Get current analysis state
   if (request.action === 'getAnalysisStatus') {
-    if (sitemapAnalyzer) {
+    if (state.sitemapAnalyzer) {
       sendResponse({
         active: true,
-        isPaused: sitemapAnalyzer.isPaused,
-        progress: sitemapAnalyzer.getProgress(),
-        corsState: corsState
+        isPaused: state.sitemapAnalyzer.isPaused,
+        progress: state.sitemapAnalyzer.getProgress(),
+        corsState: state.cors
       });
     } else {
       sendResponse({
         active: false,
-        corsState: corsState
+        corsState: state.cors
       });
     }
     return true;
   }
 
-  // Écouteur pour l'analyse des liens
+  // Link analysis listener
   if (request.action === 'linksAnalysisComplete') {
-    console.log('Message reçu: analyse des liens terminée', request.detail);
+    console.log('Message received: link analysis complete', request.detail);
     chrome.storage.local.set({
       'linksAnalysisComplete': true,
       'linksAnalysisResults': request.detail
     });
-    checkAllAnalysesComplete();
+    Analyzer.checkAllAnalysesComplete();
     sendResponse({ status: 'success' });
     return true;
   }
 
-  // Répondre aux demandes de statut d'analyse des liens
+  // Respond to link analysis status requests
   if (request.action === 'getLinksAnalysisStatus') {
     chrome.storage.local.get(['linksAnalysisComplete', 'linksAnalysisResults'], (data) => {
       sendResponse({
@@ -891,55 +799,35 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
     return true;
   }
 
-  // === GESTION DE L'INTERFACE ===
+  // === INTERFACE MANAGEMENT ===
   if (request.action === "open_interface") {
-    console.log("Demande d'ouverture de l'interface reçue");
-    // Valider et réinitialiser si nécessaire
-    await validateProcessStep();
+    console.log("Interface open request received");
+    // Validate and reset if needed
+    await ProcessStepManager.validate();
 
-    // Stocker les données reçues
-    global_data.dataChecker = request.data;
-    console.log("Data de datachecker stockée");
-
+    // Store received data
+    state.globalData.dataChecker = request.data;
+    console.log("dataChecker data stored");
 
     console.log("launch detected soprod tab and snip username");
     detecteSoprod();
-    console.log("Data de datachecker : ", request.data);
-    cmp++;
-    console.log(" cmp + 1 in datachecker interface : ", cmp);
-    global_data.dataChecker = request.data;
+    console.log("dataChecker data:", request.data);
 
-    // Vérifier si les données sont complètes
-    checkDatas(cmp);
+    // Vérifier si nous sommes déjà à l'étape 1 (user détecté)
+    const step = await ProcessStepManager.get();
+    if (step === 1) {
+      // Si nous avons déjà l'étape 1 (user détecté), passer à 2 (données complètes)
+      await ProcessStepManager.increment();
+      console.log("Step incremented to 2 (data complete) from interface request");
 
-    return true;
-  }
-
-  // Message pour la détection d'utilisateur Soprod
-  /*
-  if (request.user) {
-    console.log("request user soprod : ", request.user);
-    let cmpUserSoprod = 0;
-    if (cmpUserSoprod === 0) {
-      cmpUserSoprod++;
-      console.log(" Data de user Soprod : ", request.user);
-      cmp === 1 && cmp++;
-      console.log(" cmp + 1 in user soprod : ", cmp);
-      user_soprod = request.user;
-      global_data.user = user_soprod;
-
-      // Vérifier si les données sont complètes
-      checkDatas(cmp, user_soprod);
+      // Vérifier les données maintenant que nous sommes à l'étape 2
+      await checkDatas(state.user || "Customer");
     }
-    return true;
-  } else {
-    user_soprod = "Customer";
-    cmp === 1 && cmp++;
-    checkDatas(cmp, user_soprod);
-  }
-  */
 
-  // === FETCH POUR LES CONTENT SCRIPTS ===
+    return true;
+  }
+
+  // === FETCH FOR CONTENT SCRIPTS ===
   if (request.from === "content_script" && request.subject === "fetch") {
     fetch(request.url)
       .then((response) => response.text())
@@ -953,225 +841,57 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
   }
 });
 
-// Dans votre service worker, modifiez la fonction checkDatas:
-const checkDatas = async (user_soprod) => {
-  // Valider et obtenir l'étape actuelle
-  const step = await validateProcessStep();
-  console.log('Check étape avant ouverture interface:', step, user_soprod);
+// ==================== SOPROD DETECTION AND UI ELEMENTS ====================
 
-  // Vérifier si nous avons les deux données requises
-  if (step !== 2) {
-    console.log("Données incomplètes. Étape:", step);
-    return; // Sortir si les conditions ne sont pas remplies
-  }
-
-  console.log("Les deux données requises sont arrivées");
-
-  if (!global_data.dataChecker) {
-    console.error("Données dataChecker manquantes");
-    await resetProcessStep(); // Réinitialiser pour permettre une nouvelle tentative
-    return;
-  }
-
-  const user = user_soprod || global_data.user || "Customer";
-  console.log("User pour envoi vers indexDB:", user);
-  global_data.user = user;
-
+// Detect Soprod tabs and interfaces
+const detectTabsAndInterfaces = async () => {
   try {
-    const dataCheckerParse = JSON.parse(global_data.dataChecker);
-
-    // Stocker les données dans le stockage local
-    await chrome.storage.local.set({
-      'parsedData': dataCheckerParse,
-      'currentUser': user,
-      'timestamp': Date.now()
+    const solocalmsTabs = await chrome.tabs.query({
+      url: "*://*.solocalms.fr/*",
     });
 
-    console.log("Données sauvegardées dans le stockage local");
-
-    // Créer la base de données
-    try {
-      createDB(user, db_name, dataCheckerParse);
-      console.log("CREATEDB -> lancé avec les données: user =", user, { db_name });
-
-      // Réinitialiser l'étape AVANT d'ouvrir l'interface
-      await resetProcessStep();
-
-      // Ouvrir l'interface avec un délai
-      setTimeout(() => {
-        openOrReplaceInterfaceWindow();
-      }, 300);
-
-    } catch (dbError) {
-      console.error("Erreur lors de la création de la BD:", dbError);
-      await resetProcessStep();
-
-      // Essayer quand même d'ouvrir l'interface
-      setTimeout(() => {
-        openOrReplaceInterfaceWindow();
-      }, 300);
+    if (solocalmsTabs.length > 0) {
+      console.log("Soprod tab detected...");
+      // Tabs with solocalms.fr were detected
+      state.allTabs.push(...solocalmsTabs);
+    } else {
+      // No tab with solocalms.fr detected, add only active tab
+      const activeTab = await chrome.tabs.query({
+        currentWindow: true,
+        active: true,
+      });
+      console.log("Active tab (no Soprod tab):", activeTab);
+      state.allTabs.push(activeTab[0]);
     }
-
   } catch (error) {
-    console.error("Erreur lors du parsing des données:", error);
-    await resetProcessStep();
-
-    // Essayer quand même d'ouvrir l'interface
-    setTimeout(() => {
-      openOrReplaceInterfaceWindow();
-    }, 300);
+    console.error("Error:", error);
+  } finally {
+    // Log detected tabs
+    console.log("allTabs:", state.allTabs);
   }
 };
 
-// Fonction pour ouvrir ou remplacer la fenêtre d'interface
-const openOrReplaceInterfaceWindow = () => {
-  console.log("Démarrage de l'ouverture de l'interface");
-  const interfacePopupUrl = chrome.runtime.getURL("interface.html");
-
-  // Stocker un flag indiquant que nous sommes en train d'ouvrir l'interface
-  chrome.storage.local.set({ 'openingInterface': true, 'openingTime': Date.now() }, () => {
-    // Récupérer l'ID de la fenêtre depuis le stockage local
-    chrome.storage.local.get(["popupWindowId"], (result) => {
-      const popupWindowId = result.popupWindowId;
-
-      const createNewWindow = () => {
-        console.log("Création d'une nouvelle fenêtre d'interface");
-
-        // Ajouter une protection contre les erreurs
-        try {
-          chrome.windows.create(
-            {
-              type: "popup",
-              url: interfacePopupUrl,
-              width: 1000,
-              height: 1000,
-            },
-            (window) => {
-              if (chrome.runtime.lastError) {
-                console.error("Erreur lors de la création de la fenêtre:", chrome.runtime.lastError);
-                // Marquer que la création a échoué
-                chrome.storage.local.set({ 'openingInterface': false, 'interfaceError': chrome.runtime.lastError.message });
-                return;
-              }
-
-              if (!window || !window.id) {
-                console.error("Fenêtre créée sans ID valide");
-                chrome.storage.local.set({ 'openingInterface': false, 'interfaceError': 'Fenêtre sans ID' });
-                return;
-              }
-
-              // Stocker le nouvel ID de fenêtre
-              chrome.storage.local.set({
-                'popupWindowId': window.id,
-                'openingInterface': false,
-                'interfaceOpened': true
-              });
-              console.log("Nouvelle fenêtre d'interface créée, ID:", window.id);
-            }
-          );
-        } catch (e) {
-          console.error("Exception lors de la création de la fenêtre:", e);
-          chrome.storage.local.set({ 'openingInterface': false, 'interfaceError': e.message });
-        }
-      };
-
-      // Gérer la fenêtre existante
-      if (popupWindowId) {
-        try {
-          chrome.windows.get(popupWindowId, {}, (windowInfo) => {
-            const error = chrome.runtime.lastError;
-
-            if (error || !windowInfo) {
-              console.log("Fenêtre précédente non trouvée:", error);
-              chrome.storage.local.remove("popupWindowId", createNewWindow);
-            } else {
-              // Fenêtre existante trouvée - la fermer puis en créer une nouvelle
-              chrome.windows.remove(popupWindowId, () => {
-                console.log("Fenêtre existante fermée, ID:", popupWindowId);
-                chrome.storage.local.remove("popupWindowId", createNewWindow);
-              });
-            }
-          });
-        } catch (e) {
-          console.error("Exception lors de la vérification de la fenêtre existante:", e);
-          chrome.storage.local.remove("popupWindowId", createNewWindow);
-        }
-      } else {
-        // Aucun ID de fenêtre stocké, créer directement une nouvelle fenêtre
-        createNewWindow();
-      }
-    });
-  });
-};
-
-// Fonction pour récupérer l'ID de la fenêtre depuis le stockage local
-const getPopupWindowId = (callback) => {
-  chrome.storage.local.get(["popupWindowId"], (result) => {
-    const storedPopupWindowId = result.popupWindowId;
-    callback(storedPopupWindowId);
-  });
-};
-
-// Fonction pour stocker l'ID de la fenêtre dans le stockage local
-const setPopupWindowId = (id) => {
-  chrome.storage.local.set({ popupWindowId: id });
-};
-
-// Fonction pour fermer la fenêtre si elle existe
-const closeWindowIfExists = (windowId, callback) => {
-  if (windowId) {
-    chrome.windows.get(windowId, {}, (windowInfo) => {
-      if (chrome.runtime.lastError || !windowInfo) {
-        // Fenêtre introuvable ou erreur, réinitialiser l'ID stocké
-        console.log(
-          "Window not found or error:",
-          chrome.runtime.lastError
-        );
-        chrome.storage.local.remove("popupWindowId", () => {
-          callback();
-        });
-      } else {
-        // Fenêtre trouvée, la fermer
-        chrome.windows.remove(windowId, () => {
-          console.log("Closed existing window with ID:", windowId);
-          chrome.storage.local.remove("popupWindowId", () => {
-            callback();
-          });
-        });
-      }
-    });
-  } else {
-    // Aucun ID de fenêtre, ne rien faire
-    callback();
-  }
-};
-
-
-
-
-// ==================== DÉTECTION SOPROD ET GESTION DES ÉLÉMENTS UI ====================
-
-// Détection des utilisateurs Soprod
+// Soprod user detection
 const detecteSoprod = async () => {
-  console.log("Détection des onglets Soprod en cours...");
+  console.log("Detecting Soprod tabs...");
 
-  // Vérifier d'abord le stockage
+  // Check storage first
   const storageUser = await chrome.storage.sync.get("user");
 
-  // Si un utilisateur valide est déjà stocké, l'utiliser
+  // If a valid user is already stored, use it
   if (storageUser.user && storageUser.user.includes("@solocal.com")) {
-    console.log("Utilisateur Soprod déjà détecté dans le stockage:", storageUser.user);
+    console.log("Soprod user already detected in storage:", storageUser.user);
     await handleUserSoprod(storageUser.user);
     return;
   }
 
   try {
-    // Rechercher les onglets Soprod
+    // Find Soprod tabs
     const soprodTabs = await chrome.tabs.query({
       url: "*://*.solocalms.fr/*",
     });
 
-    // Parcourir les onglets Soprod pour trouver un utilisateur
+    // Go through Soprod tabs to find a user
     for (const tab of soprodTabs) {
       if (!tab.id) continue;
 
@@ -1186,264 +906,259 @@ const detecteSoprod = async () => {
 
         if (results && results[0] && results[0].result) {
           const userSoprod = results[0].result;
-          console.log("Utilisateur Soprod détecté:", userSoprod);
+          console.log("Soprod user detected:", userSoprod);
 
-          // Stocker l'utilisateur
+          // Store user
           await chrome.storage.sync.set({ user: userSoprod });
-          console.log("Utilisateur stocké dans storage.sync");
+          console.log("User stored in storage.sync");
 
-          // Traiter l'utilisateur détecté
+          // Process detected user
           await handleUserSoprod(userSoprod);
           return;
         }
       } catch (error) {
-        console.error("Erreur lors de l'exécution du script dans l'onglet Soprod:", error);
+        console.error("Error executing script in Soprod tab:", error);
       }
     }
 
-    // Si aucun utilisateur n'a été trouvé, utiliser "Customer"
-    console.log("Aucun utilisateur Soprod détecté, utilisation de 'Customer'");
+    // If no user found, use "Customer"
+    console.log("No Soprod user detected, using 'Customer'");
     await chrome.storage.sync.set({ user: "Customer" });
     await handleUserSoprod("Customer");
 
   } catch (error) {
-    console.error("Erreur lors de la détection des onglets Soprod:", error);
+    console.error("Error detecting Soprod tabs:", error);
     await chrome.storage.sync.set({ user: "Customer" });
     await handleUserSoprod("Customer");
   }
 };
 
-// NOUVELLE FONCTION: Pour traiter directement l'utilisateur Soprod détecté
+// Handle detected Soprod user
 const handleUserSoprod = async (user) => {
-  console.log("Traitement de l'utilisateur Soprod:", user);
+  console.log("Processing Soprod user:", user);
 
-  // Mettre à jour l'utilisateur dans les variables globales
-  user_soprod = user;
-  global_data.user = user;
+  // Update user in global state
+  state.user = user;
+  state.globalData.user = user;
 
-  // Valider et obtenir l'étape actuelle
-  let step = await validateProcessStep();
+  // Validate and get current step
+  let step = await ProcessStepManager.validate();
 
-  // Si l'étape est 0, on passe à 1 (utilisateur détecté)
-  // Si l'étape est 1, on passe à 2 (données complètes)
+  // If step is 0, go to 1 (user detected)
+  // If step is 1, go to 2 (data complete)
   if (step === 0) {
-    step = await incrementProcessStep();
-    console.log("Étape incrémentée à 1 (utilisateur détecté)");
-  } else if (step === 1) {
-    step = await incrementProcessStep();
-    console.log("Étape incrémentée à 2 (données complètes)");
+    step = await ProcessStepManager.increment();
+    console.log("Step incremented to 1 (user detected)");
   }
 
-  // Vérifier si les données sont complètes
+  // Si nous avons déjà des données dataChecker stockées, on peut incrémenter à 2
+  if (step === 1 && state.globalData.dataChecker) {
+    step = await ProcessStepManager.increment();
+    console.log("Step incremented to 2 (data complete)");
+  }
+
+  // Check if data is complete
   await checkDatas(user);
 };
-/******
-// Suppression du CTA IA MerciApp qui est injecté sur toutes les pages web actives
-const removeMAButton = async (activeTab, tabId, url) => {
-  if (!tabId) {
-    console.error("Impossible de supprimer le bouton: tabId manquant");
-    return;
-  }
 
-  if (!url) {
-    if (activeTab && activeTab.url) {
-      url = activeTab.url;
-    } else {
-      console.error("Impossible de supprimer le bouton: URL manquante");
-      return;
-    }
-  }
+// Interface window management
+const InterfaceManager = {
+  // Open or replace interface window
+  openOrReplaceWindow() {
+    console.log("Starting interface opening");
+    const interfacePopupUrl = chrome.runtime.getURL("interface.html");
 
-  if (
-    url &&
-    url.startsWith("http") &&
-    !url.startsWith("chrome://") &&
-    !url.startsWith("chrome-extension://") &&
-    !url.startsWith("chrome-devtools://")
-  ) {
-    console.log(`Vérification et suppression du bouton MerciApp dans l'onglet ${tabId}`);
+    // Store a flag indicating we're opening the interface
+    chrome.storage.local.set({ 'openingInterface': true, 'openingTime': Date.now() }, () => {
+      // Get window ID from local storage
+      chrome.storage.local.get(["popupWindowId"], (result) => {
+        const popupWindowId = result.popupWindowId;
 
-    try {
-      await chrome.scripting.executeScript({
-        target: { tabId: tabId },
-        function: () => {
-          const maButtonDiv = document.querySelector(
-            'div[style*="position: fixed; z-index: 9999999;"]'
-          );
+        const createNewWindow = () => {
+          console.log("Creating new interface window");
 
-          if (maButtonDiv && maButtonDiv.childElementCount === 0) {
-            console.log("Bouton MerciApp trouvé et masqué");
-            maButtonDiv.style.display = "none";
+          // Add error protection
+          try {
+            chrome.windows.create(
+              {
+                type: "popup",
+                url: interfacePopupUrl,
+                width: 1000,
+                height: 1000,
+              },
+              (window) => {
+                if (chrome.runtime.lastError) {
+                  console.error("Error creating window:", chrome.runtime.lastError);
+                  // Mark creation failed
+                  chrome.storage.local.set({
+                    'openingInterface': false,
+                    'interfaceError': chrome.runtime.lastError.message
+                  });
+                  return;
+                }
+
+                if (!window || !window.id) {
+                  console.error("Window created without valid ID");
+                  chrome.storage.local.set({
+                    'openingInterface': false,
+                    'interfaceError': 'Window without ID'
+                  });
+                  return;
+                }
+
+                // Store new window ID
+                chrome.storage.local.set({
+                  'popupWindowId': window.id,
+                  'openingInterface': false,
+                  'interfaceOpened': true
+                });
+                console.log("New interface window created, ID:", window.id);
+              }
+            );
+          } catch (e) {
+            console.error("Exception creating window:", e);
+            chrome.storage.local.set({ 'openingInterface': false, 'interfaceError': e.message });
           }
+        };
+
+        // Handle existing window
+        if (popupWindowId) {
+          try {
+            chrome.windows.get(popupWindowId, {}, (windowInfo) => {
+              const error = chrome.runtime.lastError;
+
+              if (error || !windowInfo) {
+                console.log("Previous window not found:", error);
+                chrome.storage.local.remove("popupWindowId", createNewWindow);
+              } else {
+                // Existing window found - close it then create a new one
+                chrome.windows.remove(popupWindowId, () => {
+                  console.log("Existing window closed, ID:", popupWindowId);
+                  chrome.storage.local.remove("popupWindowId", createNewWindow);
+                });
+              }
+            });
+          } catch (e) {
+            console.error("Exception checking existing window:", e);
+            chrome.storage.local.remove("popupWindowId", createNewWindow);
+          }
+        } else {
+          // No window ID stored, directly create a new window
+          createNewWindow();
         }
       });
-    } catch (error) {
-      console.error(`Erreur lors de la suppression du bouton MerciApp dans l'onglet ${tabId}:`, error);
+    });
+  },
+
+  // Get window ID from local storage
+  getWindowId(callback) {
+    chrome.storage.local.get(["popupWindowId"], (result) => {
+      const storedPopupWindowId = result.popupWindowId;
+      callback(storedPopupWindowId);
+    });
+  },
+
+  // Store window ID in local storage
+  setWindowId(id) {
+    chrome.storage.local.set({ popupWindowId: id });
+  },
+
+  // Close window if it exists
+  closeIfExists(windowId, callback) {
+    if (windowId) {
+      chrome.windows.get(windowId, {}, (windowInfo) => {
+        if (chrome.runtime.lastError || !windowInfo) {
+          // Window not found or error, reset stored ID
+          console.log(
+            "Window not found or error:",
+            chrome.runtime.lastError
+          );
+          chrome.storage.local.remove("popupWindowId", () => {
+            callback();
+          });
+        } else {
+          // Window found, close it
+          chrome.windows.remove(windowId, () => {
+            console.log("Closed existing window with ID:", windowId);
+            chrome.storage.local.remove("popupWindowId", () => {
+              callback();
+            });
+          });
+        }
+      });
+    } else {
+      // No window ID, do nothing
+      callback();
     }
   }
 };
 
-// Fonction pour vérifier l'onglet actif actuel et exécuter le script de suppression
-const checkCurrentTab = async () => {
+// Check and process data
+const checkDatas = async (user_soprod) => {
+  // Validate and get current step
+  const step = await ProcessStepManager.validate();
+  console.log('Check step before opening interface:', step, user_soprod);
+
+  // Check if we have the two required data
+  if (step !== 2) {
+    console.log("Incomplete data. Step:", step);
+    return; // Exit if conditions not met
+  }
+
+  console.log("Both required data arrived");
+
+  if (!state.globalData.dataChecker) {
+    console.error("dataChecker data missing");
+    await ProcessStepManager.reset(); // Reset to allow a new attempt
+    return;
+  }
+
+  const user = user_soprod || state.globalData.user || "Customer";
+  console.log("User for indexDB:", user);
+  state.globalData.user = user;
+
   try {
-    const [activeTab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
+    const dataCheckerParse = JSON.parse(state.globalData.dataChecker);
+
+    // Store data in local storage
+    await chrome.storage.local.set({
+      'parsedData': dataCheckerParse,
+      'currentUser': user,
+      'timestamp': Date.now()
     });
 
-    if (!activeTab) {
-      console.log("Aucun onglet actif trouvé");
-      return;
+    console.log("Data saved in local storage");
+
+    // Create database
+    try {
+      createDB(user, state.dbName, dataCheckerParse);
+      console.log("CREATEDB -> launched with data: user =", user, { dbName: state.dbName });
+
+      // Reset step BEFORE opening interface
+      await ProcessStepManager.reset();
+
+      // Open interface with delay
+      setTimeout(() => {
+        InterfaceManager.openOrReplaceWindow();
+      }, 300);
+
+    } catch (dbError) {
+      console.error("Error creating DB:", dbError);
+      await ProcessStepManager.reset();
+
+      // Try to open interface anyway
+      setTimeout(() => {
+        InterfaceManager.openOrReplaceWindow();
+      }, 300);
     }
 
-    if (
-      activeTab &&
-      activeTab.url &&
-      !(
-        activeTab.url.startsWith('chrome://') ||
-        activeTab.url.startsWith('chrome-extension://') ||
-        activeTab.url.startsWith('chrome-devtools://')
-      )
-    ) {
-      await removeMAButton(activeTab, activeTab.id, activeTab.url);
-    }
   } catch (error) {
-    console.error("Erreur lors de la vérification de l'onglet actuel:", error);
+    console.error("Error parsing data:", error);
+    await ProcessStepManager.reset();
+
+    // Try to open interface anyway
+    setTimeout(() => {
+      InterfaceManager.openOrReplaceWindow();
+    }, 300);
   }
 };
-
-// Écouter quand un onglet est mis à jour (changement d'URL, rechargement)
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (!tab || !tab.url) {
-    return;
-  }
-
-  if (
-    tab.url.startsWith('chrome://') ||
-    tab.url.startsWith('chrome-extension://') ||
-    tab.url.startsWith('chrome-devtools://')
-  ) {
-    return;
-  }
-
-  if (changeInfo.status === "complete") {
-    removeMAButton(tab, tabId, tab.url);
-  }
-});
-
-// Écouter quand l'utilisateur change d'onglet actif
-chrome.tabs.onActivated.addListener(async (activeInfo) => {
-  try {
-    const tab = await chrome?.tabs?.get(activeInfo.tabId);
-    if (tab && tab.id) {
-      removeMAButton(tab, tab.id, tab.url);
-    }
-  } catch (error) {
-    console.error("Erreur lors du changement d'onglet actif:", error);
-  }
-});
-
-****/
-
-// ==================== FINALISATION ET CONFIGURATION ====================
-
-// Gestion des écouteurs d'événements pour le cycle de vie de l'extension
-chrome.runtime.onStartup.addListener(() => {
-  console.log("Extension démarrée");
-
-  // Initialiser l'état des CORS au démarrage
-  initCORSState();
-
-  // Vérifier l'onglet actuel
-  //checkCurrentTab();
-
-  // Réinitialiser les états d'analyse
-  chrome.storage.local.set({
-    'linksAnalysisComplete': false
-  });
-});
-
-// Lorsque l'extension est installée ou mise à jour
-chrome.runtime.onInstalled.addListener((details) => {
-  console.log(`Extension installée/mise à jour: ${details.reason}`);
-
-  // Vérifier l'onglet actuel
-  //checkCurrentTab();
-
-  // Réinitialiser les états d'analyse
-  chrome.storage.local.set({
-    'linksAnalysisComplete': false
-  });
-});
-
-// Lorsque l'extension est sur le point d'être suspendue (navigateur fermé)
-chrome.runtime.onSuspend.addListener(() => {
-  console.log("Extension suspendue");
-
-  // S'assurer que les CORS sont désactivés
-  forceCORSDisable();
-
-  // Nettoyer les ressources si nécessaire
-  if (sitemapAnalyzer) {
-    sitemapAnalyzer.cancel();
-    sitemapAnalyzer = null;
-  }
-});
-
-// Fonction utilitaire pour la compatibilité des navigateurs
-const isBrowserCompatible = () => {
-  return typeof chrome !== 'undefined' &&
-    typeof chrome.runtime !== 'undefined' &&
-    typeof chrome.runtime.id !== 'undefined';
-};
-
-// ==================== ASSEMBLAGE FINAL ====================
-
-// Fonction pour assembler tous les modules et initialiser le service worker
-const initServiceWorker = () => {
-  if (!isBrowserCompatible()) {
-    console.error("Environnement de navigateur non compatible");
-    return;
-  }
-
-  console.log("Initialisation du service worker");
-
-  // Initialiser la configuration
-  initialize();
-
-  // Configurer le cycle de vie pour les CORS
-  setupCORSLifecycle();
-
-  // Enregistrer les écouteurs d'événements
-  console.log("Écouteurs d'événements enregistrés");
-
-  // Initialiser les variables globales
-  console.log("Variables globales initialisées");
-};
-
-// Auto-exécution de l'initialisation
-if (isBrowserCompatible()) {
-  initServiceWorker();
-} else {
-  console.error("Ce script ne peut être exécuté que dans un contexte d'extension Chrome");
-}
-
-// ==================== ASSEMBLAGE FINAL DU SERVICE WORKER ====================
-
-/* 
-  Ce service worker a été refactorisé pour améliorer:
-  1. La gestion des CORS - Désactivation garantie après les scans
-  2. L'organisation générale - Code plus lisible et maintenable
-  3. La gestion des erreurs - Meilleure robustesse
-  4. Les performances - Optimisation du cycle de vie
-  
-  Toutes les fonctionnalités existantes ont été conservées:
-  - Analyse des pages et des liens
-  - Détection des utilisateurs Soprod
-  - Suppression du bouton MerciApp
-  - Gestion des fenêtres et interfaces
-  - Mise en cache des ressources
-  
-  Version: 2.0.0
-  Date: 2025-03-24
-*/
