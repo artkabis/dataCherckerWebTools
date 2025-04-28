@@ -368,7 +368,107 @@ function setupTools() {
     });
   });
 }
+document.getElementById("diagnosticCORS").addEventListener("click", function () {
+  // Sauvegarder le texte original du bouton
+  const originalButtonText = this.textContent || "CORS";
 
+  // Désactiver le bouton pendant le diagnostic
+  this.disabled = true;
+  this.textContent = "Diagnostic en cours...";
+
+  // Fonction pour afficher le résultat et restaurer le bouton
+  const displayResult = (result) => {
+    console.log("Affichage du résultat CORS:", result);
+
+    // Restaurer le bouton
+    const button = document.getElementById("diagnosticCORS");
+    button.disabled = false;
+    button.textContent = originalButtonText;
+
+    if (!result) {
+      alert("Le diagnostic CORS a échoué. Aucun résultat n'a été reçu.");
+      return;
+    }
+
+    switch (result.status) {
+      case "fixed":
+        alert(`Des problèmes CORS ont été détectés et corrigés:\n${result.inconsistencies?.join('\n') || result.message}\n\nL'extension devrait maintenant fonctionner correctement.`);
+        break;
+
+      case "ok":
+        alert("✅ Aucun problème CORS détecté. L'extension fonctionne correctement.");
+        break;
+
+      case "error":
+        console.error("CORS diagnostic error:", result.error, result.details);
+        alert(`❌ Une erreur s'est produite lors du diagnostic CORS:\n${result.error || "Erreur inconnue"}\n\nVoir la console pour plus de détails.`);
+        break;
+
+      default:
+        console.warn("Unknown CORS diagnostic status:", result.status);
+        alert(`Résultat de diagnostic CORS inattendu: ${result.status || "statut inconnu"}`);
+    }
+  };
+
+  // Écouter la notification de résultat prêt
+  const messageListener = (message) => {
+    if (message.action === 'corsResultReady') {
+      // Supprimer l'écouteur de messages dès réception
+      chrome.runtime.onMessage.removeListener(messageListener);
+      clearTimeout(timeoutId); // Annuler le timeout
+
+      // Si le résultat est directement inclus dans le message, l'utiliser
+      if (message.result) {
+        displayResult(message.result);
+      } else {
+        // Sinon, récupérer le résultat depuis le stockage local
+        chrome.storage.local.get(['corsResult'], (data) => {
+          displayResult(data.corsResult);
+        });
+      }
+    }
+  };
+
+  // Ajouter l'écouteur de messages avant d'envoyer la requête
+  chrome.runtime.onMessage.addListener(messageListener);
+
+  // Ajouter un timeout pour éviter de bloquer indéfiniment
+  const timeoutId = setTimeout(() => {
+    chrome.runtime.onMessage.removeListener(messageListener);
+
+    // Restaurer le bouton
+    const button = document.getElementById("diagnosticCORS");
+    button.disabled = false;
+    button.textContent = originalButtonText;
+
+    // Vérifier si un résultat est disponible dans le stockage
+    chrome.storage.local.get(['corsResult', 'corsResultTimestamp'], (data) => {
+      if (data.corsResult && data.corsResultTimestamp &&
+        (Date.now() - data.corsResultTimestamp < 10000)) {
+        displayResult(data.corsResult);
+      } else {
+        alert("Le diagnostic CORS a pris trop de temps. Veuillez réessayer.");
+      }
+    });
+  }, 10000);
+
+  // Lancer le diagnostic
+  chrome.runtime.sendMessage({ action: "diagnoseCORS" }, (response) => {
+    console.log("Réponse du diagnostic CORS:", response);
+
+    if (!response || !response.received) {
+      // La demande n'a pas été reçue, annuler tout
+      clearTimeout(timeoutId);
+      chrome.runtime.onMessage.removeListener(messageListener);
+
+      // Restaurer le bouton
+      this.disabled = false;
+      this.textContent = originalButtonText;
+
+      alert("Impossible de lancer le diagnostic CORS. Veuillez réessayer.");
+    }
+  });
+});
 function showNotification(message, type = "info") {
   // On pourrait implémenter une notification toast ici
   alert(message);

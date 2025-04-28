@@ -20,7 +20,17 @@ const state = {
     scanInProgress: false
   }
 };
-
+function sendMessagePromise(tabId, message) {
+  return new Promise((resolve, reject) => {
+    chrome.tabs.sendMessage(tabId, message, response => {
+      if (chrome.runtime.lastError) {
+        reject(chrome.runtime.lastError);
+      } else {
+        resolve(response);
+      }
+    });
+  });
+}
 // Process step management
 const ProcessStepManager = {
   async get() {
@@ -177,58 +187,107 @@ const CORSManager = {
     */
   },
 
-  // Enable CORS
-  async enable() {
-    if (state.cors.isEnabled) {
-      console.log("CORS already enabled");
-      return;
-    }
-
-    state.cors.scanInProgress = true;
-    await chrome.storage.sync.set({ corsEnabled: true });
-    state.cors.isEnabled = true;
-
-    const ruleNames = ["overwrite-origin"];
-    ruleNames.forEach((ruleName) => {
-      this.updateRules(ruleName, true);
-      console.log(`CORS rule ${ruleName} enabled`);
-    });
-
-    console.log("CORS enabled for scanning");
-
-    // Small delay to ensure rules are applied
-    return new Promise(resolve => setTimeout(resolve, 100));
+  // État amélioré avec compteur de référence
+  _state: {
+    isEnabled: false,
+    refCount: 0,
+    activeScans: new Set(),
+    scanInProgress: false,
+    lastActionTimestamp: 0
   },
 
-  // Disable CORS
-  async disable() {
-    if (!state.cors.isEnabled && !state.cors.scanInProgress) {
-      console.log("CORS already disabled");
-      return;
+  // Activer CORS avec référence
+  async enable(scanId = null) {
+    this._state.lastActionTimestamp = Date.now();
+
+    // Ajouter une référence
+    this._state.refCount++;
+
+    // Ajouter l'ID du scan s'il est fourni
+    if (scanId) {
+      this._state.activeScans.add(scanId);
     }
 
-    await chrome.storage.sync.set({ corsEnabled: false });
-    state.cors.isEnabled = false;
-    state.cors.scanInProgress = false;
+    console.log(`CORS enable called. RefCount: ${this._state.refCount}, ActiveScans: ${this._state.activeScans.size}`);
 
-    const ruleNames = ["overwrite-origin"];
-    ruleNames.forEach((ruleName) => {
-      this.updateRules(ruleName, false);
-      console.log(`CORS rule ${ruleName} disabled`);
-    });
+    // Activer CORS seulement s'il n'est pas déjà activé
+    if (!this._state.isEnabled) {
+      this._state.scanInProgress = true;
+      await chrome.storage.sync.set({ corsEnabled: true });
+      this._state.isEnabled = true;
 
-    console.log("CORS disabled after scanning");
+      const ruleNames = ["overwrite-origin"];
+      for (const ruleName of ruleNames) {
+        await this.updateRules(ruleName, true);
+        console.log(`CORS rule ${ruleName} enabled`);
+      }
 
-    // Force disable a second time for extra certainty
-    return new Promise(resolve => {
-      setTimeout(() => {
-        this.forceDisable();
-        resolve();
-      }, 100);
-    });
+      console.log(`CORS enabled for scanning. RefCount: ${this._state.refCount}`);
+    }
+
+    // Synchroniser l'état avec state.cors
+    state.cors.isEnabled = this._state.isEnabled;
+    state.cors.scanInProgress = this._state.scanInProgress;
+    state.cors.refCount = this._state.refCount;
+
+    // Petit délai pour s'assurer que les règles sont appliquées
+    return new Promise(resolve => setTimeout(resolve, 200));
   },
 
-  // Force disable CORS (additional guarantee)
+  // Désactiver CORS avec gestion des références
+  async disable(scanId = null) {
+    this._state.lastActionTimestamp = Date.now();
+
+    // Réduire le compteur de référence
+    if (this._state.refCount > 0) {
+      this._state.refCount--;
+    }
+
+    // Supprimer l'ID du scan s'il est fourni
+    if (scanId && this._state.activeScans.has(scanId)) {
+      this._state.activeScans.delete(scanId);
+    }
+
+    console.log(`CORS disable called. RefCount: ${this._state.refCount}, ActiveScans: ${this._state.activeScans.size}`);
+
+    // Désactiver CORS seulement si toutes les références sont libérées
+    if (this._state.isEnabled && this._state.refCount === 0 && this._state.activeScans.size === 0) {
+      await chrome.storage.sync.set({ corsEnabled: false });
+      this._state.isEnabled = false;
+      this._state.scanInProgress = false;
+
+      const ruleNames = ["overwrite-origin"];
+      for (const ruleName of ruleNames) {
+        await this.updateRules(ruleName, false);
+        console.log(`CORS rule ${ruleName} disabled`);
+      }
+
+      console.log(`CORS disabled after all scans complete`);
+
+      // Force disable une seconde fois pour plus de certitude
+      setTimeout(() => this.forceDisable(), 300);
+    }
+
+    // Synchroniser l'état avec state.cors
+    state.cors.isEnabled = this._state.isEnabled;
+    state.cors.scanInProgress = this._state.scanInProgress;
+    state.cors.refCount = this._state.refCount;
+
+    return Promise.resolve();
+  },
+
+  // Obtenir l'état actuel des CORS
+  getState() {
+    return {
+      isEnabled: this._state.isEnabled,
+      refCount: this._state.refCount,
+      activeScans: Array.from(this._state.activeScans),
+      scanInProgress: this._state.scanInProgress,
+      lastActionTimestamp: this._state.lastActionTimestamp
+    };
+  },
+
+  // Force disable CORS (garantie supplémentaire)
   forceDisable() {
     const ruleNames = ["overwrite-origin"];
     ruleNames.forEach(rule => {
@@ -238,243 +297,369 @@ const CORSManager = {
         .then(() => console.log(`Forced disable of rule '${rule}' successful`))
         .catch(error => console.error(`Error during forced disable of '${rule}':`, error));
     });
+
+    // Réinitialiser complètement l'état
+    this._state.isEnabled = false;
+    this._state.refCount = 0;
+    this._state.activeScans.clear();
+    this._state.scanInProgress = false;
+
+    // Synchroniser l'état avec state.cors
+    state.cors.isEnabled = false;
+    state.cors.scanInProgress = false;
+
+    console.log("CORS force disabled - all state reset");
   },
 
-  // Update CORS rules (replaces toggle)
-  updateRules(rule, enable) {
-    console.log("updateCORSRules arguments:", { rule, enable });
+  // Mettre à jour les règles CORS (remplace toggle)
+  async updateRules(rule, enable) {
+    console.log("updateCORSRules:", { rule, enable });
 
-    chrome.declarativeNetRequest.updateEnabledRulesets(
-      enable
-        ? { enableRulesetIds: [rule] }
-        : { disableRulesetIds: [rule] }
-    )
-      .then(() => console.log(`Rule '${rule}' ${enable ? 'enabled' : 'disabled'} successfully`))
-      .catch(error => console.error(`Error updating rule '${rule}':`, error));
-  },
-
-  // Run a task with safe CORS handling
-  async runWithSafe(taskFunction) {
     try {
-      // Enable CORS before task
-      await this.enable();
-
-      // Execute function passed as parameter
-      return await taskFunction();
+      await chrome.declarativeNetRequest.updateEnabledRulesets(
+        enable
+          ? { enableRulesetIds: [rule] }
+          : { disableRulesetIds: [rule] }
+      );
+      console.log(`Rule '${rule}' ${enable ? 'enabled' : 'disabled'} successfully`);
+      return true;
     } catch (error) {
-      console.error("Error during task execution:", error);
-      throw error;
-    } finally {
-      // Disable CORS regardless, even in case of error
-      await this.disable();
+      console.error(`Error updating rule '${rule}':`, error);
+      return false;
     }
   },
 
-  // Initialize CORS state at startup
+  // Exécuter une tâche avec gestion sécurisée des CORS
+  async runWithSafe(taskFunction, scanId = `scan-${Date.now()}`) {
+    try {
+      // Activer CORS avant la tâche
+      await this.enable(scanId);
+      console.log(`Task ${scanId} started with CORS enabled`);
+
+      // Exécuter la fonction passée en paramètre
+      const result = await taskFunction();
+      return result;
+    } catch (error) {
+      console.error(`Error during task ${scanId} execution:`, error);
+      throw error;
+    } finally {
+      // Désactiver CORS dans tous les cas, même en cas d'erreur
+      await this.disable(scanId);
+      console.log(`Task ${scanId} completed, CORS reference released`);
+    }
+  },
+
+  // Initialiser l'état des CORS au démarrage
   initState() {
     chrome.storage.sync.get("corsEnabled", (result) => {
-      // By default, we disable CORS at startup for safety
+      // Par défaut, on désactive les CORS au démarrage par sécurité
       const shouldBeEnabled = false;
 
       if (result.corsEnabled !== shouldBeEnabled) {
         chrome.storage.sync.set({ corsEnabled: shouldBeEnabled });
       }
 
-      state.cors.isEnabled = shouldBeEnabled;
-      const ruleNames = ["overwrite-origin"];
+      this._state.isEnabled = shouldBeEnabled;
+      this._state.refCount = 0;
+      this._state.activeScans.clear();
+      this._state.scanInProgress = false;
 
+      // Synchroniser l'état avec state.cors
+      state.cors.isEnabled = shouldBeEnabled;
+      state.cors.scanInProgress = false;
+
+      const ruleNames = ["overwrite-origin"];
       ruleNames.forEach((ruleName) => {
         this.updateRules(ruleName, shouldBeEnabled);
       });
+
+      console.log("CORS state initialized:", shouldBeEnabled);
     });
   },
 
-  // Message handler for CORS management
+  // Gestionnaire de messages pour la gestion des CORS
   messageHandler(request, sender, sendResponse) {
-    // Enable/disable CORS
+    // Activer/désactiver CORS
     if (request.corsEnabled !== undefined) {
       if (request.corsEnabled) {
-        this.enable().then(() => {
+        this.enable(request.scanId || null).then(() => {
           sendResponse && sendResponse({
             success: true,
-            corsState: state.cors
+            corsState: this.getState()
           });
         });
       } else {
-        this.disable().then(() => {
+        this.disable(request.scanId || null).then(() => {
           sendResponse && sendResponse({
             success: true,
-            corsState: state.cors
+            corsState: this.getState()
           });
         });
       }
       return true;
     }
 
-    // Get CORS status
+    // Obtenir l'état des CORS
     if (request.action === 'getCORSStatus') {
-      sendResponse({
-        isEnabled: state.cors.isEnabled,
-        scanInProgress: state.cors.scanInProgress
-      });
+      sendResponse(this.getState());
       return true;
     }
 
-    return false; // Indicates this handler didn't process the message
+    return false; // Indique que ce gestionnaire n'a pas traité le message
   },
 
-  // Setup lifecycle for CORS management
+  // Configurer le cycle de vie pour la gestion des CORS
   setupLifecycle() {
-    // Initialize CORS at startup
+    // Initialiser les CORS au démarrage
     this.initState();
 
-    // Ensure CORS is disabled when extension is suspended
+    // S'assurer que les CORS sont désactivés lorsque l'extension est suspendue
     chrome.runtime.onSuspend.addListener(() => {
       console.log("Extension being suspended, forced CORS disable");
       this.forceDisable();
     });
+
+    // Vérifier périodiquement si les CORS sont activés sans scan actif
+    setInterval(() => {
+      if (this._state.isEnabled && this._state.refCount === 0 && this._state.activeScans.size === 0) {
+        const idleTime = Date.now() - this._state.lastActionTimestamp;
+        // Si inactif depuis plus de 60 secondes, forcer la désactivation
+        if (idleTime > 60000) {
+          console.warn(`CORS has been enabled without active scans for ${idleTime}ms, forcing disable`);
+          this.forceDisable();
+        }
+      }
+    }, 30000); // Vérifier toutes les 30 secondes
   }
 };
-
 // ==================== SCRIPT INJECTION & ANALYSIS ====================
 
 // Analyzer Module
 const Analyzer = {
   // Inject scripts for page analysis
-  injectScriptsForAnalysis(tabId) {
+  async injectScriptsForAnalysis(tabId) {
     if (!tabId) {
       console.error("Error: tabId is required to inject scripts");
-      return;
+      return Promise.reject(new Error("No tabId provided"));
     }
 
-    console.log(`Injecting analysis scripts into tab ${tabId}`);
+    const analysisId = `page-analysis-${Date.now()}`;
+    console.log(`Injecting analysis scripts into tab ${tabId}, analysisId: ${analysisId}`);
 
-    chrome.scripting.executeScript(
-      {
-        target: { tabId: tabId },
-        files: [
-          "./assets/jquery-3.6.4.min.js",
-          "./Functions/clear.js",
-          "./assets/console.image.min.js",
-          "./Functions/checkAndAddJquery.js",
-          "./Functions/settingsOptions.js",
-        ],
-      },
-      (injectionResults) => {
-        if (chrome.runtime.lastError) {
-          console.error("Error during script injection:", chrome.runtime.lastError);
-          return;
-        }
+    // Activer explicitement CORS pour cette analyse
+    await CORSManager.enable(analysisId);
 
-        console.log("First set of scripts injected successfully");
+    return new Promise((resolve, reject) => {
+      let scriptsInjected = false;
+      let analysisComplete = false;
 
-        setTimeout(() => {
-          chrome.scripting.executeScript(
-            {
-              target: { tabId: tabId },
-              files: [
-                "./Functions/settingsWords.js",
-                "./Functions/dataCheckerSchema.js",
-                "./Functions/initLighthouse.js",
-                "./Functions/counterWords.js",
-                "./Functions/checkAltImages.js",
-                "./Functions/checkMetas.js",
-                "./Functions/checkLogoHeader.js",
-                "./Functions/checkOldRGPD.js",
-                "./Functions/checkBold.js",
-                "./Functions/checkOutlineHn.js",
-                "./Functions/checkColorContrast.js",
-                "./Functions/counterLettersHn.js",
-                "./Functions/initDataChecker.js",
-                "./Functions/checkDataBindingDuda.js",
-                "./Functions/checkLinkAndImages.js",
-              ],
-            },
-            (secondInjectionResults) => {
-              if (chrome.runtime.lastError) {
-                console.error("Error during second set script injection:", chrome.runtime.lastError);
-              } else {
-                console.log("Second set of scripts injected successfully");
+      // Premier ensemble de scripts
+      chrome.scripting.executeScript(
+        {
+          target: { tabId: tabId },
+          files: [
+            "./assets/jquery-3.6.4.min.js",
+            "./Functions/clear.js",
+            "./assets/console.image.min.js",
+            "./Functions/checkAndAddJquery.js",
+            "./Functions/settingsOptions.js",
+          ],
+        },
+        (injectionResults) => {
+          if (chrome.runtime.lastError) {
+            console.error("Error during script injection:", chrome.runtime.lastError);
+            CORSManager.disable(analysisId);
+            reject(chrome.runtime.lastError);
+            return;
+          }
+
+          console.log(`First set of scripts injected successfully for ${analysisId}`);
+
+          // Petit délai avant d'injecter le second ensemble
+          setTimeout(() => {
+            chrome.scripting.executeScript(
+              {
+                target: { tabId: tabId },
+                files: [
+                  "./Functions/settingsWords.js",
+                  "./Functions/dataCheckerSchema.js",
+                  "./Functions/initLighthouse.js",
+                  "./Functions/counterWords.js",
+                  "./Functions/checkAltImages.js",
+                  "./Functions/checkMetas.js",
+                  "./Functions/checkLogoHeader.js",
+                  "./Functions/checkOldRGPD.js",
+                  "./Functions/checkBold.js",
+                  "./Functions/checkOutlineHn.js",
+                  "./Functions/checkColorContrast.js",
+                  "./Functions/counterLettersHn.js",
+                  "./Functions/initDataChecker.js",
+                  "./Functions/checkDataBindingDuda.js",
+                  "./Functions/checkLinkAndImages.js",
+                ],
+              },
+              (secondInjectionResults) => {
+                if (chrome.runtime.lastError) {
+                  console.error("Error during second set script injection:", chrome.runtime.lastError);
+                  CORSManager.disable(analysisId);
+                  reject(chrome.runtime.lastError);
+                } else {
+                  console.log(`Second set of scripts injected successfully for ${analysisId}`);
+                  scriptsInjected = true;
+
+                  // Si l'analyse est déjà terminée, résoudre maintenant
+                  if (analysisComplete) {
+                    CORSManager.disable(analysisId);
+                    resolve();
+                  }
+                }
               }
-            }
-          );
-        }, 50);
-      }
-    );
+            );
+          }, 100); // Délai légèrement augmenté
+        }
+      );
+
+      // Écouter l'événement de fin d'analyse
+      const messageListener = (message) => {
+        if (message.action === 'dataCheckerAnalysisComplete') {
+          console.log(`Analysis complete event received for ${analysisId}`);
+          analysisComplete = true;
+
+          // Si les scripts sont injectés, c'est terminé
+          if (scriptsInjected) {
+            chrome.runtime.onMessage.removeListener(messageListener);
+
+            // Désactiver CORS après un délai pour s'assurer que toutes les requêtes sont terminées
+            setTimeout(() => {
+              CORSManager.disable(analysisId);
+              console.log(`CORS disabled after page analysis completion ${analysisId}`);
+              resolve();
+            }, 2000);
+          }
+        }
+      };
+
+      chrome.runtime.onMessage.addListener(messageListener);
+
+      // Timeout de sécurité (augmenté à 30s)
+      setTimeout(() => {
+        if (!analysisComplete) {
+          console.warn(`Timeout reached for analysis ${analysisId}, force completing`);
+          chrome.runtime.onMessage.removeListener(messageListener);
+          CORSManager.disable(analysisId);
+          // On résout quand même pour éviter de bloquer
+          resolve();
+        }
+      }, 15000);
+    });
   },
 
   // Start analysis with secure CORS handling
   async startAnalysis(source, mode = 'sitemap') {
-    try {
-      console.log(`Starting analysis in ${mode} mode`);
+    // Générer un ID unique pour cette analyse
+    const analysisId = `analysis-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
-      // Reset analysis states
-      chrome.storage.local.set({
+    try {
+      console.log(`Starting analysis in ${mode} mode, ID: ${analysisId}`);
+
+      // Réinitialiser les états d'analyse
+      await chrome.storage.local.set({
         'linksAnalysisComplete': false
       });
 
-      // Create analyzer
+      // Créer l'analyseur avec options améliorées
       state.sitemapAnalyzer = new SitemapAnalyzer({
         batchSize: 3,
-        pauseBetweenBatches: 500,
-        tabTimeout: 30000,
-        maxRetries: 2
+        pauseBetweenBatches: 750, // Augmenter pour réduire la charge
+        tabTimeout: 45000,        // Augmenter pour les pages lentes
+        maxRetries: 2,
+        analysisId: analysisId    // Transmettre l'ID d'analyse
       });
 
-      // Configure event listeners
-      this.setupAnalyzerListeners();
+      // Configurer les écouteurs d'événements
+      this.setupAnalyzerListeners(analysisId);
 
-      // Run analysis with secure CORS handling
-      return await CORSManager.runWithSafe(async () => {
+      // Activer CORS explicitement avant l'analyse
+      await CORSManager.enable(analysisId);
+      console.log(`CORS explicitly enabled for analysis ${analysisId}`);
+
+      try {
+        // Démarrer l'analyse
+        let results;
         if (mode === 'urlList' && Array.isArray(source)) {
-          console.log(`Starting analysis of ${source.length} URLs`);
-          return await state.sitemapAnalyzer.startWithUrlList(source);
+          console.log(`Starting analysis of ${source.length} URLs with ID ${analysisId}`);
+          results = await state.sitemapAnalyzer.startWithUrlList(source);
         } else {
-          console.log(`Starting sitemap analysis: ${source}`);
-          return await state.sitemapAnalyzer.start(source);
+          console.log(`Starting sitemap analysis: ${source} with ID ${analysisId}`);
+          results = await state.sitemapAnalyzer.start(source);
         }
-      });
+
+        // Stocker les résultats
+        await chrome.storage.local.set({ 'sitemapAnalysis': results });
+        console.log(`Analysis ${analysisId} completed successfully`);
+
+        return results;
+      } finally {
+        // S'assurer que CORS est désactivé à la fin, même en cas d'erreur
+        await CORSManager.disable(analysisId);
+        console.log(`CORS explicitly disabled after analysis ${analysisId}`);
+      }
 
     } catch (error) {
-      console.error('Error starting analysis:', error);
+      console.error(`Error starting analysis ${analysisId}:`, error);
       state.sitemapAnalyzer = null;
-      // Ensure CORS are disabled in case of error
-      await CORSManager.disable();
+
+      // S'assurer que CORS est désactivé en cas d'erreur
+      await CORSManager.disable(analysisId);
+      console.log(`CORS disabled after analysis error ${analysisId}`);
+
       throw error;
     }
   },
 
-  // Configure event listeners for sitemap analyzer
-  setupAnalyzerListeners() {
-    // Progress listener
+  // Mettre à jour la fonction setupAnalyzerListeners pour utiliser l'ID d'analyse
+  setupAnalyzerListeners(analysisId) {
+    // Écouteur de progression
     state.sitemapAnalyzer.on('progress', (progress) => {
-      // Broadcast progress to all open analysis pages
+      // Ajouter l'ID d'analyse aux informations de progression
+      progress.analysisId = analysisId;
+
+      // Diffuser la progression à toutes les pages d'analyse ouvertes
       chrome.runtime.sendMessage({
         action: 'analysisProgress',
         progress: progress
       });
     });
 
-    // Links analysis status listener
+    // Écouteur d'état d'analyse de liens
     state.sitemapAnalyzer.on('linksAnalysisStatus', (status) => {
-      // Broadcast links analysis status
+      // Ajouter l'ID d'analyse aux informations d'état
+      status.analysisId = analysisId;
+
+      // Diffuser l'état d'analyse des liens
       chrome.runtime.sendMessage({
         action: 'linksAnalysisStatus',
         status: status
       });
 
-      // If links analysis is complete, store state
+      // Si l'analyse des liens est terminée, stocker l'état
       if (status.completed) {
-        chrome.storage.local.set({ 'linksAnalysisComplete': true });
+        chrome.storage.local.set({
+          'linksAnalysisComplete': true,
+          'linksAnalysisId': analysisId
+        });
       }
     });
 
-    // Completion listener
+    // Écouteur d'achèvement
     state.sitemapAnalyzer.on('complete', async (results) => {
-      // Save results
-      console.log('Complete results before saving:', results);
+      // Ajouter l'ID d'analyse aux résultats
+      results.analysisId = analysisId;
 
-      // Specifically check link data
+      // Journaliser les résultats complets
+      console.log(`Complete results for analysis ${analysisId} before saving:`, results);
+
+      // Vérifier spécifiquement les données de liens
       let totalLinks = 0;
       let totalPages = 0;
 
@@ -486,14 +671,23 @@ const Analyzer = {
         }
       });
 
-      console.log(`Total: ${totalPages} pages, ${totalLinks} links`);
+      console.log(`Analysis ${analysisId} complete: ${totalPages} pages, ${totalLinks} links`);
 
-      chrome.storage.local.set({ 'sitemapAnalysis': results });
+      // Sauvegarder les résultats
+      await chrome.storage.local.set({
+        'sitemapAnalysis': results,
+        'analysisCompleteId': analysisId,
+        'analysisCompleteTime': Date.now()
+      });
 
-      // Check if all analyses are complete
+      // Vérifier si toutes les analyses sont terminées
       this.checkAllAnalysesComplete(results);
 
-      state.sitemapAnalyzer = null; // Free reference
+      // Libérer explicitement la référence CORS
+      await CORSManager.disable(analysisId);
+      console.log(`CORS explicitly disabled after analysis completion ${analysisId}`);
+
+      state.sitemapAnalyzer = null; // Libérer la référence
     });
   },
 
@@ -675,45 +869,156 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
   // === ANALYSIS MANAGEMENT ===
   // Sitemap analysis
   if (request.action === 'startSitemapAnalysis') {
+    // Répondre immédiatement que l'analyse est démarrée
+    sendResponse({ status: 'started' });
+
+    // Ouvrir immédiatement la page de suivi de progression
+    chrome.tabs.create({
+      url: chrome.runtime.getURL('analysis-progress.html')
+    });
+
+    // Démarrer l'analyse en arrière-plan
     Analyzer.startAnalysis(request.sitemapUrl)
       .then(results => {
-        // Once analysis is complete, open results page
+        // Une fois l'analyse terminée, ouvrir la page de résultats
         chrome.tabs.create({
           url: chrome.runtime.getURL('results.html')
         });
       })
       .catch(error => {
         console.error('Error during analysis:', error);
+        // Notifier l'erreur
+        chrome.runtime.sendMessage({
+          action: 'analysisError',
+          error: error.message
+        });
       });
 
-    // Immediately open progress tracking page
-    chrome.tabs.create({
-      url: chrome.runtime.getURL('analysis-progress.html')
-    });
-
-    sendResponse({ status: 'started' });
     return true;
   }
 
   // URL list analysis
   if (request.action === 'startUrlListAnalysis') {
+    // Répondre immédiatement que l'analyse est démarrée
+    sendResponse({ status: 'started' });
+
+    // Ouvrir immédiatement la page de suivi de progression
+    chrome.tabs.create({
+      url: chrome.runtime.getURL('analysis-progress.html')
+    });
+
+    // Démarrer l'analyse en arrière-plan
     Analyzer.startAnalysis(request.urls, 'urlList')
       .then(results => {
-        // Once analysis is complete, open results page
+        // Une fois l'analyse terminée, ouvrir la page de résultats
         chrome.tabs.create({
           url: chrome.runtime.getURL('results.html')
         });
       })
       .catch(error => {
         console.error('Error during analysis:', error);
+        // Notifier l'erreur
+        chrome.runtime.sendMessage({
+          action: 'analysisError',
+          error: error.message
+        });
       });
 
-    // Immediately open progress tracking page
-    chrome.tabs.create({
-      url: chrome.runtime.getURL('analysis-progress.html')
+    return true;
+  }
+
+  // Analysis control management
+  if (request.action === 'pauseAnalysis' && state.sitemapAnalyzer) {
+    state.sitemapAnalyzer.pause();
+    sendResponse({ status: 'paused' });
+    return true;
+  }
+
+  if (request.action === 'resumeAnalysis' && state.sitemapAnalyzer) {
+    state.sitemapAnalyzer.resume();
+    sendResponse({ status: 'resumed' });
+    return true;
+  }
+
+  if (request.action === 'cancelAnalysis' && state.sitemapAnalyzer) {
+    // Capturer l'ID d'analyse avant d'annuler
+    const analysisId = state.sitemapAnalyzer.analysisId || 'unknown-analysis';
+
+    state.sitemapAnalyzer.cancel();
+    state.sitemapAnalyzer = null;
+
+    // Assurer que CORS est désactivé si l'analyse est annulée
+    try {
+      await CORSManager.disable(analysisId);
+      console.log(`CORS disabled after cancelling analysis ${analysisId}`);
+      sendResponse({ status: 'cancelled' });
+    } catch (error) {
+      console.error('Error disabling CORS after cancel:', error);
+      sendResponse({ status: 'cancelled', error: error.message });
+    }
+
+    return true;
+  }
+
+  // Current page analysis
+  if (request.action === 'startCurrentPageAnalysis') {
+    // Injecter des scripts pour analyser la page courante
+    try {
+      await Analyzer.injectScriptsForAnalysis(request.tabId);
+      console.log('Page analysis scripts injected successfully');
+      sendResponse({ status: 'started' });
+    } catch (error) {
+      console.error('Error during script injection:', error);
+      sendResponse({ status: 'error', message: error.message });
+    }
+
+    return true;
+  }
+
+  // Get current analysis state
+  if (request.action === 'getAnalysisStatus') {
+    const corsState = CORSManager.getState();
+
+    if (state.sitemapAnalyzer) {
+      sendResponse({
+        active: true,
+        isPaused: state.sitemapAnalyzer.isPaused,
+        progress: state.sitemapAnalyzer.getProgress(),
+        corsState: corsState
+      });
+    } else {
+      sendResponse({
+        active: false,
+        corsState: corsState
+      });
+    }
+    return true;
+  }
+
+  // Link analysis listener
+  if (request.action === 'linksAnalysisComplete') {
+    console.log('Message received: link analysis complete', request.detail);
+
+    await chrome.storage.local.set({
+      'linksAnalysisComplete': true,
+      'linksAnalysisResults': request.detail,
+      'linksAnalysisTimestamp': Date.now()
     });
 
-    sendResponse({ status: 'started' });
+    Analyzer.checkAllAnalysesComplete();
+    sendResponse({ status: 'success' });
+    return true;
+  }
+
+  // Respond to link analysis status requests
+  if (request.action === 'getLinksAnalysisStatus') {
+    chrome.storage.local.get(['linksAnalysisComplete', 'linksAnalysisResults', 'linksAnalysisTimestamp'], (data) => {
+      sendResponse({
+        complete: data.linksAnalysisComplete || false,
+        results: data.linksAnalysisResults || null,
+        timestamp: data.linksAnalysisTimestamp || null
+      });
+    });
     return true;
   }
 
@@ -1162,3 +1467,209 @@ const checkDatas = async (user_soprod) => {
     }, 300);
   }
 };
+
+// Fonction de diagnostic CORS
+// Fonction de diagnostic CORS
+async function diagnoseCORSIssues() {
+  console.group("🔍 CORS Diagnostic Tool");
+
+  try {
+    // 1. Vérifier l'état actuel
+    const corsState = CORSManager.getState();
+    console.log("Current CORS state:", corsState);
+
+    // 2. Vérifier la cohérence avec le storage
+    const storageData = await chrome.storage.sync.get(["corsEnabled"]);
+    console.log("Storage CORS state:", storageData);
+
+    // 3. Vérifier les règles actives
+    let enabledRulesets = [];
+    try {
+      enabledRulesets = await chrome.declarativeNetRequest.getEnabledRulesets();
+    } catch (e) {
+      console.warn("Error getting enabled rulesets:", e);
+      inconsistencies.push("Unable to verify active rulesets: " + e.message);
+    }
+    console.log("Enabled rulesets:", enabledRulesets);
+
+    // 4. Vérifier les sessions actives
+    console.log("Active scans:", corsState.activeScans);
+
+    // 5. Vérifier s'il y a des incohérences
+    const inconsistencies = [];
+
+    if (corsState.isEnabled !== storageData.corsEnabled) {
+      inconsistencies.push("CORS state mismatch between memory and storage");
+    }
+
+    if (corsState.isEnabled && !enabledRulesets.includes("overwrite-origin")) {
+      inconsistencies.push("CORS marked as enabled but ruleset not active");
+    }
+
+    if (!corsState.isEnabled && enabledRulesets.includes("overwrite-origin")) {
+      inconsistencies.push("CORS marked as disabled but ruleset still active");
+    }
+
+    if (corsState.refCount > 0 && corsState.activeScans.length === 0) {
+      inconsistencies.push("Reference count > 0 but no active scans registered");
+    }
+
+    if (corsState.refCount === 0 && corsState.activeScans.length > 0) {
+      inconsistencies.push("Reference count = 0 but active scans registered");
+    }
+
+    if (corsState.refCount > corsState.activeScans.length) {
+      inconsistencies.push("Reference count higher than active scans count");
+    }
+
+    // 6. Rapport
+    if (inconsistencies.length > 0) {
+      console.warn("CORS inconsistencies detected:", inconsistencies);
+
+      // 7. Tentative de correction automatique
+      console.log("Attempting automatic correction...");
+
+      // Réinitialiser l'état CORS
+      await CORSManager.forceDisable();
+
+      // Vérifier l'état après correction
+      const updatedState = CORSManager.getState();
+      console.log("CORS state after correction:", updatedState);
+
+      // Vérifier les analyses en cours
+      const runningAnalyses = await chrome.storage.local.get(['sitemapAnalysis', 'linksAnalysisComplete']);
+
+      if (runningAnalyses.linksAnalysisComplete === false) {
+        console.log("Incomplete link analysis detected, marking as complete");
+        await chrome.storage.local.set({ 'linksAnalysisComplete': true });
+      }
+
+      return {
+        status: "fixed",
+        message: "CORS inconsistencies detected and fixed",
+        inconsistencies: inconsistencies,
+        currentState: updatedState
+      };
+    } else {
+      console.log("No CORS inconsistencies detected");
+      return {
+        status: "ok",
+        message: "No CORS inconsistencies detected",
+        currentState: corsState
+      };
+    }
+  } catch (error) {
+    console.error("Error during CORS diagnosis:", error);
+    return {
+      status: "error",
+      error: error.message || "Unexpected error during CORS diagnosis",
+      details: error.stack
+    };
+  } finally {
+    console.groupEnd();
+  }
+}
+
+// Fonction pour corriger automatiquement les problèmes CORS
+async function repairCORSState() {
+  console.log("🛠️ Repairing CORS state...");
+
+  try {
+    // 1. Désactiver complètement CORS
+    await CORSManager.forceDisable();
+
+    // 2. Mettre à jour le stockage
+    await chrome.storage.sync.set({ corsEnabled: false });
+
+    // 3. Réinitialiser les états d'analyse en cours
+    await chrome.storage.local.set({
+      'linksAnalysisComplete': true
+    });
+
+    // 4. Vérifier l'état après réparation
+    const diagnosis = await diagnoseCORSIssues();
+
+    console.log("CORS repair completed:", diagnosis);
+    return diagnosis;
+  } catch (error) {
+    console.error("Error during CORS repair:", error);
+    return {
+      status: "error",
+      error: error.message
+    };
+  }
+}
+
+
+chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
+  if (request.action === 'diagnoseCORS') {
+    // Réponse immédiate pour confirmer réception
+    sendResponse({ received: true });
+
+    // Lancer le diagnostic en arrière-plan
+    diagnoseCORSIssues()
+      .then(result => {
+        console.log("Diagnostic CORS terminé:", result);
+
+        // Stocker le résultat dans le stockage local
+        chrome.storage.local.set({
+          'corsResult': result,
+          'corsResultTimestamp': Date.now()
+        }, () => {
+          // Notifier le popup que le résultat est disponible
+          chrome.runtime.sendMessage({
+            action: 'corsResultReady',
+            result: result  // Envoyer également le résultat directement
+          });
+        });
+      })
+      .catch(error => {
+        console.error("Error during CORS diagnosis:", error);
+
+        // Stocker l'erreur également
+        chrome.storage.local.set({
+          'corsResult': {
+            status: 'error',
+            error: error.message || "Unexpected error during CORS diagnosis",
+            details: error.stack
+          },
+          'corsResultTimestamp': Date.now()
+        }, () => {
+          // Notifier le popup que le résultat est disponible
+          chrome.runtime.sendMessage({
+            action: 'corsResultReady',
+            error: true
+          });
+        });
+      });
+
+    return true; // Indiquer que sendResponse sera appelé de manière asynchrone
+  }
+
+  if (request.action === 'repairCORS') {
+    const result = await repairCORSState();
+    sendResponse(result);
+    return true;
+  }
+
+  return false; // Indiquer que ce gestionnaire n'a pas traité le message
+});
+
+// Écouter les erreurs de CORS pour les diagnostiquer automatiquement
+self.addEventListener('unhandledrejection', async (event) => {
+  const error = event.reason;
+
+  // Si l'erreur semble liée à CORS, diagnostiquer et corriger
+  if (error && typeof error.message === 'string' &&
+    (error.message.includes('CORS') || error.message.includes('cross-origin'))) {
+    console.warn("Unhandled CORS-related rejection detected:", error);
+
+    // Diagnostiquer et corriger automatiquement
+    const result = await repairCORSState();
+    console.log("Auto-repair result:", result);
+  }
+});
+setTimeout(async () => {
+  console.log("Performing startup CORS diagnosis...");
+  await diagnoseCORSIssues();
+}, 3000);

@@ -163,10 +163,6 @@ input:checked+.toggle-slider:before {
     display: block;
 }
 
-/* Analysis section */
-.analysis-section {
-    margin-bottom: 20px;
-}
 
 .info-text {
     margin-bottom: 15px;
@@ -253,9 +249,6 @@ textarea:focus {
 }
 
 /* Tools section */
-.tools-section {
-    margin-bottom: 20px;
-}
 
 .tools-section h2 {
     font-size: 16px;
