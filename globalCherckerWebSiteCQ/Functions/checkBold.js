@@ -128,7 +128,7 @@ const MIN_PARENT_WORDS = 20; // Nombre minimal de mots dans un parent pour consi
 
     // Si nous sommes sur Duda, collecte aussi les spans avec style en gras
     if (isDuda) {
-      $("#dm_content span").each(function () {
+      $("#dm_content span:not(.alt_tooltip)").each(function () {
         const $this = $(this);
         const isSlide = $this.closest(".slide-inner").length > 0;
         const isContentDataBinding = $this.find("div[data-binding]").length > 0;

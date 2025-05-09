@@ -246,6 +246,7 @@ async function injectScriptsForAnalysis(tab) {
                 "./Functions/counterLettersHn.js",
                 "./Functions/initDataChecker.js",
                 "./Functions/checkDataBindingDuda.js",
+                "./Functions/checkBreakLinks.js",
                 "./Functions/checkLinkAndImages.js",
               ],
             }
