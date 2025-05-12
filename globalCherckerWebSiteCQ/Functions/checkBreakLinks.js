@@ -9,105 +9,87 @@ function verifierLiensCoupes() {
         // Ignorer les liens vides
         if (!texte || texte.length === 0) return;
 
-        // PARTIE 1: Vérification des liens commençant par une minuscule
-        if (/^[a-zàáâäçèéêëìíîïñòóôöùúûü]/.test(texte)) {
-            let estJustifie = false;
+        // Récupérer le paragraphe parent ou autre conteneur
+        const conteneur = lien.closest('p, div, li, span');
+        if (!conteneur) return;
 
-            // Récupérer le paragraphe parent
-            const paragraphe = lien.closest('p, div, li');
-            if (paragraphe) {
-                // Obtenir l'HTML du paragraphe
-                const htmlParagraphe = paragraphe.innerHTML;
+        // Obtenir l'HTML du conteneur
+        const htmlConteneur = conteneur.innerHTML;
 
-                // Trouver la position du lien dans le HTML
-                const positionLien = htmlParagraphe.indexOf(lien.outerHTML);
+        // Trouver la position du lien dans le HTML
+        const positionLien = htmlConteneur.indexOf(lien.outerHTML);
+        if (positionLien <= 0) return;
 
-                if (positionLien > 0) {
-                    // Récupérer le HTML précédant le lien (jusqu'à 100 caractères)
-                    const htmlAvantLien = htmlParagraphe.substring(Math.max(0, positionLien - 100), positionLien);
+        // Récupérer le HTML précédant le lien (jusqu'à 100 caractères)
+        const htmlAvantLien = htmlConteneur.substring(Math.max(0, positionLien - 100), positionLien);
 
-                    // Convertir le HTML en texte brut
-                    const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = htmlAvantLien;
-                    const texteAvantLien = tempDiv.textContent.trim();
+        // Créer un élément temporaire pour convertir le HTML en texte
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = htmlAvantLien;
+        const texteAvantLien = tempDiv.textContent;
 
-                    // Vérifier les 20 derniers caractères avant le lien
-                    const derniersCaracteres = texteAvantLien.slice(-20).trim();
+        // Vérifier si le texte avant le lien se termine par une lettre sans espace après
+        const dernierCaractere = texteAvantLien.slice(-1);
 
-                    // Liste de mots/expressions qui justifient une minuscule suivante
-                    const justifications = [
-                        'de ', 'des ', 'du ', 'pour ', 'par ', 'sur ', 'avec ', 'et ', 'ou ',
-                        'au ', 'aux ', 'le ', 'la ', 'les ', 'nos ', 'vos ', 'ces ', 'un ', 'une ',
-                        'demande de', 'besoin de', 'envie de'
-                    ];
+        // Vérifier si le dernier caractère est une lettre (pas un espace, pas un signe de ponctuation)
+        if (/[a-zàáâäçèéêëìíîïñòóôöùúûüA-ZÀÁÂÄÇÈÉÊËÌÍÎÏÑÒÓÔÖÙÚÛÜ]/.test(dernierCaractere)) {
+            // Vérifier si le dernier caractère n'est pas suivi d'un espace
+            const avantLienFinitParEspace = texteAvantLien.endsWith(' ') ||
+                texteAvantLien.endsWith('&nbsp;') ||
+                texteAvantLien.endsWith('\t') ||
+                texteAvantLien.endsWith('\n');
 
-                    // Vérifier si l'un des mots/expressions justifie la minuscule
-                    estJustifie = justifications.some(mot => derniersCaracteres.endsWith(mot));
+            if (!avantLienFinitParEspace) {
+                // Récupérer le premier mot du lien
+                const premierMotLien = texte.split(' ')[0];
 
-                    // Si la phrase n'est pas terminée, c'est aussi justifié
-                    if (!estJustifie && derniersCaracteres.length > 0 &&
-                        /[a-zàáâäçèéêëìíîïñòóôöùúûü]$/.test(derniersCaracteres) &&
-                        !derniersCaracteres.endsWith('.')) {
-                        estJustifie = true;
-                    }
-                }
-            }
+                // Créer un "mot potentiel" en combinant le dernier caractère avant le lien
+                // et le premier mot du lien
+                const motPotentiel = dernierCaractere + premierMotLien;
 
-            // Si la minuscule n'est pas justifiée, c'est probablement une erreur
-            if (!estJustifie) {
                 problemes.push({
-                    type: "texte_commence_par_minuscule",
+                    lien: lien,
+                    type: "lien_probablement_coupe",
                     texte: texte,
                     html: lien.outerHTML,
-                    contexte: paragraphe ? paragraphe.innerHTML.substring(0, 200) : '',
-                    justification: "Commence par une minuscule sans être dans la continuité d'une phrase"
+                    contexteAvant: texteAvantLien.slice(-30),
+                    caractereManquant: dernierCaractere,
+                    premierMotLien: premierMotLien,
+                    motSuggere: motPotentiel,
+                    texteCompletSuggere: dernierCaractere + texte
                 });
-            }
-        }
-
-        // PARTIE 2: Détection de lettres manquantes au début des mots
-        const premierMot = texte.split(' ')[0].toLowerCase();
-
-        // Liste de mots problématiques connus
-        const motsProblematiques = {
-            'ortes': 'p',  // portes
-            'orte': 'p',   // porte
-            'oiture': 'v', // voiture
-            'enetre': 'f', // fenetre
-            'arage': 'g',  // garage
-            'itrage': 'v'  // vitrage
-        };
-
-        for (const [motPartiel, lettre] of Object.entries(motsProblematiques)) {
-            if (premierMot === motPartiel ||
-                premierMot.startsWith(motPartiel + 's') ||
-                premierMot.startsWith(motPartiel + ' ') ||
-                premierMot.startsWith(motPartiel + "d'")) {
-                problemes.push({
-                    type: "lettre_manquante_probable",
-                    texte: texte,
-                    html: lien.outerHTML,
-                    motProblematique: premierMot,
-                    lettreManquante: lettre,
-                    motCorrect: lettre + motPartiel
-                });
-                break;
             }
         }
     });
-    problemes?.length && (
-        console.log(`%c${problemes.length} problèmes de liens détectés`, 'color:red'),
-        console.table(problemes.map(p => ({
-            "Type": p.type,
-            "Texte": p.texte,
-            "HTML": p.html,
-            "Contexte": p.contexte,
-            "Justification": p.justification || '',
-            "Mot problématique": p.motProblematique || '',
-            "Lettre manquante": p.lettreManquante || '',
-            "Mot correct": p.motCorrect || ''
-        })))
 
-    );
+    // Afficher les résultats
+    if (problemes.length > 0) {
+        console.log(`%c${problemes.length} problèmes de liens coupés détectés`, 'color:red; font-weight:bold');
+        console.table(problemes.map(p => ({
+            "lien": p.lien,
+            "Type": p.type,
+            "Texte du lien": p.texte,
+            "Contexte avant": p.contexteAvant,
+            "Caractère manquant": p.caractereManquant,
+            "Premier mot du lien": p.premierMotLien,
+            "Texte suggéré": p.texteCompletSuggere
+        })));
+
+        // Afficher plus de détails sur chaque problème
+        problemes.forEach((p, index) => {
+            console.log(`%cProblème #${index + 1}`, 'color:red; font-weight:bold');
+            console.log(`Texte avant le lien: "${p.contexteAvant}"`);
+            console.log(`Texte du lien: "${p.texte}"`);
+            console.log(`Texte complet suggéré: "${p.texteCompletSuggere}"`);
+            console.log(`HTML: ${p.html}`);
+            console.log('-------------------------------------------');
+        });
+    } else {
+        console.log('%cAucun problème de lien coupé détecté', 'color:green; font-weight:bold');
+    }
+
+    return problemes;
 }
-verifierLiensCoupes()
+
+// Exécuter la fonction
+verifierLiensCoupes();
