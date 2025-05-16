@@ -192,66 +192,6 @@
         return problemes;
     }
 
-    // ... (le reste de vos fonctions : genererRapportBuilder, mettreEnEvidenceLiensCoupes, exporterCSV, obtenirCheminHTML, lancerVerificationComplete, genererRapportEtBoutonAvecProblemes, window.debugLiensCoupes)
-    // Assurez-vous que ces fonctions utilisent les bonnes données et ne rappellent pas verifierLiensCoupes inutilement.
-    // Le `lancerVerificationComplete` de ma réponse précédente orchestre bien cela.
-    // Je recopie ici les fonctions de support et d'orchestration pour que le script soit complet.
-
-    /**
-     * Génère un rapport détaillé pour faciliter les corrections.
-     * @param {Array} problemes - Liste des problèmes détectés
-     * @returns {Array} - Données du rapport
-     */
-    function genererRapportEtBoutonAvecProblemes(problemes) {
-        if (problemes.length === 0) {
-            console.log('%cAucun problème détecté pour le rapport builder (via wrapper)', 'color:green; font-weight:bold');
-            const btnTelecharger = document.getElementById('btn-telecharger-rapport');
-            if (btnTelecharger) btnTelecharger.remove();
-            return [];
-        }
-
-        const rapportData = problemes.map((p, index) => {
-            return {
-                "Problème #": index + 1,
-                "ID Conteneur": p.idConteneur,
-                "Classes Conteneur": p.classesConteneur,
-                "Aperçu du conteneur": p.texteCompletConteneurPourRapport,
-                "Texte avant (large)": p.contexteAvant,
-                "Texte précédent direct": `"${p.textePrecedentDirect}"`,
-                "Texte du lien": p.texte,
-                "Caractère manquant": p.caractereManquant,
-                "Correction suggérée": p.texteCompletSuggere,
-                "Chemin HTML du lien": obtenirCheminHTML(p.lien) // Chemin vers le lien lui-même
-            };
-        });
-
-        console.log('%cRapport détaillé pour le builder (via wrapper):', 'color:blue; font-weight:bold');
-        console.table(rapportData);
-
-        const csvContent = exporterCSV(rapportData);
-
-        let btnTelecharger = document.getElementById('btn-telecharger-rapport');
-        if (btnTelecharger) {
-            btnTelecharger.remove();
-        }
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.id = 'btn-telecharger-rapport';
-        a.href = url;
-        a.download = 'rapport_liens_coupes.csv';
-        a.textContent = 'Télécharger le rapport CSV';
-        a.style.cssText = `
-        display: block; position: fixed; top: 10px; right: 10px; z-index: 10001;
-        margin: 10px; padding: 10px 15px; text-align: center;
-        background-color: #4CAF50; color: white; text-decoration: none;
-        border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        font-size: 14px; font-weight: bold; cursor:pointer;
-    `;
-        document.body.appendChild(a);
-        return rapportData;
-    }
 
     /**
      * Met en évidence visuellement les liens coupés sur la page.
@@ -331,23 +271,7 @@
         console.log(`%c${problemes.length} problèmes mis en évidence.`, 'color:red; font-weight:bold');
     }
 
-    /**
-     * Exporte les données au format CSV
-     */
-    function exporterCSV(data) {
-        if (!data || data.length === 0) return '';
-        const headers = Object.keys(data[0]);
-        let csvContent = headers.join(',') + '\n';
-        data.forEach(item => {
-            const row = headers.map(header => {
-                let cell = item[header] === null || typeof item[header] === 'undefined' ? '' : item[header];
-                cell = cell.toString().replace(/"/g, '""');
-                return `"${cell}"`;
-            });
-            csvContent += row.join(',') + '\n';
-        });
-        return csvContent;
-    }
+
 
     /**
      * Obtient un chemin HTML pour identifier un élément
@@ -396,14 +320,12 @@
         console.log("Lancement de la vérification complète...");
         const problemesDetectes = verifierLiensCoupes();
         mettreEnEvidenceLiensCoupes(problemesDetectes);
-        genererRapportEtBoutonAvecProblemes(problemesDetectes);
         return problemesDetectes;
     }
 
     window.debugLiensCoupes = {
         verifier: verifierLiensCoupes,
         mettreEnEvidence: mettreEnEvidenceLiensCoupes,
-        genererRapport: genererRapportEtBoutonAvecProblemes,
         lancerTout: lancerVerificationComplete,
         obtenirChemin: obtenirCheminHTML
     };
