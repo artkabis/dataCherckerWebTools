@@ -1,193 +1,413 @@
 /**
- * Détecte les liens qui pourraient être "coupés" - c'est-à-dire quand une lettre 
- * qui devrait faire partie du texte du lien se trouve juste avant celui-ci.
- * @returns {Array} - Liste des problèmes détectés
+ * Script complet de détection des liens coupés dans les conteneurs dmNewParagraph
+ * Version révisée avec débogage - Mai 2024
  */
-function verifierLiensCoupes() {
-    console.log("%cDébut de la vérification des liens coupés...", "color:blue; font-weight:bold");
 
-    // Récupérer tous les liens
-    const liens = document.querySelectorAll('a');
-    const problemes = [];
+(function () {
+    /**
+     * Détecte les liens qui pourraient être "coupés".
+     * @returns {Array} - Liste des problèmes détectés
+     */
+    function verifierLiensCoupes() {
+        console.log("%cDébut de la vérification des liens coupés...", "color:blue; font-weight:bold");
+        const problemes = [];
+        const liensTraites = new Set();
 
-    // Set pour éviter les doublons
-    const liensTraites = new Set();
+        document.querySelectorAll('div.dmNewParagraph').forEach((conteneur) => {
+            const liensConteneur = conteneur.querySelectorAll('a');
+            if (liensConteneur.length === 0) return;
 
-    // Pour chaque conteneur de texte
-    document.querySelectorAll('p, div, li, td, article').forEach((conteneur) => {
-        // Récupérer tous les liens dans ce conteneur
-        const liensConteneur = conteneur.querySelectorAll('a');
-        if (liensConteneur.length === 0) return;
+            const texteCompletPourRapport = conteneur.textContent.substring(0, 200) + (conteneur.textContent.length > 200 ? '...' : '');
 
-        // Obtenir le texte complet du conteneur
-        const texteComplet = conteneur.textContent;
+            liensConteneur.forEach((lien, lienIndex) => { // Ajout de lienIndex pour logs
+                if (liensTraites.has(lien)) return;
+                liensTraites.add(lien);
 
-        // Pour chaque lien dans ce conteneur
-        liensConteneur.forEach((lien) => {
-            // Vérifier si nous avons déjà traité ce lien
-            const lienId = lien.href + "_" + lien.textContent;
-            if (liensTraites.has(lienId)) return;
+                const texteLien = lien.textContent.trim();
+                if (!texteLien || lien.querySelector('img')) return;
 
-            // Marquer le lien comme traité
-            liensTraites.add(lienId);
+                console.log(`%cVérification du lien #${lienIndex}: "${texteLien.substring(0, 30)}..."`, "color:darkcyan");
+                console.log("  Lien element:", lien);
 
-            // Ignorer les liens vides ou avec seulement des images
-            const texteLien = lien.textContent.trim();
-            if (!texteLien || lien.querySelector('img')) return;
+                let textePrecedentImmediat = "";
+                let noeudPrecedentInitial = lien.previousSibling;
 
-            // Récupérer la position du texte du lien dans le texte complet
-            const positionLien = texteComplet.indexOf(texteLien);
-            if (positionLien <= 0) return; // Lien pas trouvé ou au début
+                // DEBUG: Log du noeud précédent initial
+                console.log("  Noeud frère précédent initial:", noeudPrecedentInitial);
+                if (noeudPrecedentInitial) {
+                    console.log(`    Type: ${noeudPrecedentInitial.nodeType}, Contenu brut: "${noeudPrecedentInitial.textContent}"`);
+                }
 
-            // Extraire les 20 caractères avant le lien (ou moins si pas assez de texte)
-            const nbCaracteres = 20;
-            const debutPos = Math.max(0, positionLien - nbCaracteres);
-            const texteAvant = texteComplet.substring(debutPos, positionLien);
+                // Optionnel: Boucle pour sauter les nœuds texte vides/blancs (peut être activée si besoin)
+                // Cette boucle pourrait changer la détection si des retours à la ligne sont entre les éléments.
+                /*
+                let noeudPrecedentPourLogique = noeudPrecedentInitial;
+                while (noeudPrecedentPourLogique &&
+                       noeudPrecedentPourLogique.nodeType === Node.TEXT_NODE &&
+                       noeudPrecedentPourLogique.textContent.trim() === "") {
+                    console.log("    Sauté noeud texte vide/blanc:", noeudPrecedentPourLogique);
+                    noeudPrecedentPourLogique = noeudPrecedentPourLogique.previousSibling;
+                }
+                console.log("  Noeud frère précédent après saut des vides (si activé):", noeudPrecedentPourLogique);
+                if (noeudPrecedentPourLogique && noeudPrecedentPourLogique !== noeudPrecedentInitial) {
+                     console.log(`    Type: ${noeudPrecedentPourLogique.nodeType}, Contenu brut: "${noeudPrecedentPourLogique.textContent}"`);
+                }
+                let noeudPrecedent = noeudPrecedentPourLogique; // Utiliser ce noeud pour la suite
+                */
+                let noeudPrecedent = noeudPrecedentInitial; // Par défaut, ne pas sauter les noeuds vides
 
-            // Vérifier si le texte avant se termine par une lettre (sans espace après)
-            const texteAvantTrim = texteAvant.trimRight();
 
-            // Vérifier si le dernier caractère est une lettre
-            const dernierCaractere = texteAvantTrim.slice(-1);
-            const estLettre = /[a-zàáâäãåçèéêëìíîïñòóôöõùúûüÿA-ZÀÁÂÄÃÅÇÈÉÊËÌÍÎÏÑÒÓÔÖÕÙÚÛÜŸ]/.test(dernierCaractere);
-
-            // Vérifier si le premier caractère du lien est une lettre
-            const premierCaractere = texteLien.charAt(0);
-            const premierEstLettre = /[a-zàáâäãåçèéêëìíîïñòóôöõùúûüÿA-ZÀÁÂÄÃÅÇÈÉÊËÌÍÎÏÑÒÓÔÖÕÙÚÛÜŸ]/.test(premierCaractere);
-
-            // La règle simple : si le dernier caractère avant est une lettre,
-            // le premier caractère du lien est une lettre,
-            // et il n'y a pas d'espace à la fin du texte avant
-            if (estLettre && premierEstLettre && !texteAvant.endsWith(" ")) {
-                console.log(`Problème détecté dans le lien: "${texteLien}"`);
-
-                problemes.push({
-                    lien: lien,
-                    type: "lien_probablement_coupe",
-                    texte: texteLien,
-                    html: lien.outerHTML,
-                    contexteAvant: texteAvant,
-                    caractereManquant: dernierCaractere,
-                    premierMotLien: texteLien.split(/\s+/)[0],
-                    texteCompletSuggere: dernierCaractere + texteLien
-                });
-            }
-        });
-    });
-
-    // Afficher les résultats
-    if (problemes.length > 0) {
-        console.log(`%c${problemes.length} problèmes de liens coupés détectés`, 'color:red; font-weight:bold; font-size: 14px; background: #f5f5f5; padding: 5px;');
-
-        // Afficher un tableau résumé
-        console.table(problemes.map(p => ({
-            "Texte du lien": p.texte,
-            "Contexte avant": p.contexteAvant,
-            "Caractère manquant": p.caractereManquant,
-            "Texte suggéré": p.texteCompletSuggere
-        })));
-
-        // Afficher les détails de chaque problème
-        problemes.forEach((p, index) => {
-            console.group(`%cProblème #${index + 1}`, 'color:red; font-weight:bold');
-            console.log(`Texte avant: "${p.contexteAvant}"`);
-            console.log(`Texte du lien: "${p.texte}"`);
-            console.log(`Correction suggérée: "${p.texteCompletSuggere}"`);
-
-            // Afficher l'élément DOM pour faciliter le débogage
-            console.log('Élément:', p.lien);
-            console.log('HTML:', p.html);
-            console.groupEnd();
-        });
-
-        // Proposer une fonction de correction automatique
-        console.log('%cUtilisez correctionAutomatique() pour appliquer les corrections suggérées', 'color:blue; font-weight:bold');
-    } else {
-        console.log('%cAucun problème de lien coupé détecté', 'color:green; font-weight:bold; font-size: 14px; background: #f5f5f5; padding: 5px;');
-    }
-
-    return problemes;
-}
-
-/**
- * Fonction pour appliquer automatiquement les corrections suggérées
- * @param {Array} problemes - Liste des problèmes détectés par verifierLiensCoupes()
- * @returns {Number} - Nombre de corrections appliquées
- */
-function correctionAutomatique(problemes = null) {
-    // Si aucun problème n'est fourni, exécuter la vérification
-    if (!problemes) {
-        problemes = verifierLiensCoupes();
-    }
-
-    if (problemes.length === 0) {
-        console.log('%cAucune correction à appliquer', 'color:blue; font-weight:bold');
-        return 0;
-    }
-
-    let corrections = 0;
-
-    problemes.forEach(p => {
-        try {
-            // Stratégie de correction: Modifier le HTML directement
-
-            // 1. Trouver le nœud texte contenant le caractère à déplacer
-            let previousTextNode = null;
-            let node = p.lien.previousSibling;
-
-            // Parcourir les nœuds précédents pour trouver le dernier nœud texte
-            while (node && !previousTextNode) {
-                if (node.nodeType === Node.TEXT_NODE && node.textContent.includes(p.caractereManquant)) {
-                    previousTextNode = node;
-                } else if (node.nodeType === Node.ELEMENT_NODE) {
-                    // Chercher dans les enfants de ce nœud
-                    const textNodes = [];
-                    const findTextNodes = function (n) {
-                        if (n.nodeType === Node.TEXT_NODE) {
-                            textNodes.push(n);
-                        } else if (n.nodeType === Node.ELEMENT_NODE) {
-                            for (let i = 0; i < n.childNodes.length; i++) {
-                                findTextNodes(n.childNodes[i]);
+                if (noeudPrecedent) {
+                    if (noeudPrecedent.nodeType === Node.TEXT_NODE) {
+                        textePrecedentImmediat = noeudPrecedent.textContent;
+                    } else if (noeudPrecedent.nodeType === Node.ELEMENT_NODE) {
+                        textePrecedentImmediat = noeudPrecedent.textContent;
+                        // DEBUG: Si c'est un élément, vérifier son dernier enfant texte
+                        let dernierEnfantTexteInterne = "";
+                        let curseur = noeudPrecedent.lastChild;
+                        while (curseur) {
+                            if (curseur.nodeType === Node.TEXT_NODE) {
+                                dernierEnfantTexteInterne = curseur.textContent;
+                                break;
+                            }
+                            if (curseur.nodeType === Node.ELEMENT_NODE && curseur.lastChild) {
+                                curseur = curseur.lastChild; // Plonger
+                            } else {
+                                curseur = curseur.previousSibling; // Remonter ou passer au frère
                             }
                         }
-                    };
-
-                    findTextNodes(node);
-
-                    // Vérifier si le dernier nœud texte contient le caractère manquant
-                    const lastTextNode = textNodes[textNodes.length - 1];
-                    if (lastTextNode && lastTextNode.textContent.includes(p.caractereManquant)) {
-                        previousTextNode = lastTextNode;
+                        console.log(`    [Element] Contenu textuel total: "${textePrecedentImmediat}"`);
+                        console.log(`    [Element] Dernier nœud texte interne (approximatif): "${dernierEnfantTexteInterne}"`);
                     }
                 }
-                node = node.previousSibling;
-            }
+                console.log(`  Texte précédent immédiat déterminé: "${textePrecedentImmediat}" (longueur: ${textePrecedentImmediat.length})`);
 
-            // Si on a trouvé le nœud texte précédent
-            if (previousTextNode) {
-                // Supprimer le caractère manquant du nœud texte précédent
-                const originalText = previousTextNode.textContent;
-                const newText = originalText.substring(0, originalText.lastIndexOf(p.caractereManquant));
-                previousTextNode.textContent = newText;
 
-                // Ajouter le caractère au début du texte du lien
-                p.lien.textContent = p.caractereManquant + p.lien.textContent;
+                let contexteAvantPourRapport = "N/A";
+                const posLienDansConteneurText = conteneur.textContent.indexOf(texteLien);
+                if (posLienDansConteneurText > 0) {
+                    const debutPosRapport = Math.max(0, posLienDansConteneurText - 20);
+                    contexteAvantPourRapport = conteneur.textContent.substring(debutPosRapport, posLienDansConteneurText);
+                } else {
+                    contexteAvantPourRapport = textePrecedentImmediat.slice(-20);
+                }
 
-                corrections++;
-            } else {
-                // Approche alternative: simplement ajouter le caractère au début du lien
-                p.lien.textContent = p.caractereManquant + p.lien.textContent;
-                console.warn('Nœud texte précédent non trouvé, caractère ajouté au lien sans suppression');
-                corrections++;
-            }
-        } catch (e) {
-            console.error('Erreur lors de la correction:', e);
+                const dernierCaractereAvant = textePrecedentImmediat.slice(-1);
+                // Regex pour vérifier si le dernier caractère N'EST PAS un espace blanc.
+                const pasDEspaceAvant = textePrecedentImmediat.length > 0 && !/\s$/.test(textePrecedentImmediat);
+
+                console.log(`  Dernier caractère avant: "${dernierCaractereAvant}" (code: ${dernierCaractereAvant.charCodeAt(0)})`);
+                console.log(`  Pas d'espace avant (basé sur textePrecedentImmediat qui se termine par non-\\s): ${pasDEspaceAvant}`);
+
+                const estCaracterePotentiellementCoupe = /[a-zàáâäãåçèéêëìíîïñòóôöõùúûüÿA-ZÀÁÂÄÃÅÇÈÉÊËÌÍÎÏÑÒÓÔÖÕÙÚÛÜŸ0-9]/.test(dernierCaractereAvant);
+                const premierCaractereLien = texteLien.charAt(0);
+                const premierLienEstAlphanum = /[a-zàáâäãåçèéêëìíîïñòóôöõùúûüÿA-ZÀÁÂÄÃÅÇÈÉÊËÌÍÎÏÑÒÓÔÖÕÙÚÛÜŸ0-9]/.test(premierCaractereLien);
+
+                console.log(`  Est caractère potentiellement coupé (dernierCaractereAvant est alphanum): ${estCaracterePotentiellementCoupe}`);
+                console.log(`  Premier caractère du lien est alphanum (pour "${premierCaractereLien}"): ${premierLienEstAlphanum}`);
+
+                const ponctuationPermise = ['"', "'", '(', '[', '{', '«', '.', ':', ';', ',', '/', '\\'];
+                const prefixesIgnores = new Set(['m', 'km', 'cm', 'mm', 'kg', 'g', 'l', 'ml', 'h', 'min', 'sec', 'no', 'n°']);
+
+                if (pasDEspaceAvant && estCaracterePotentiellementCoupe && premierLienEstAlphanum) {
+                    console.log("    Cond 1 (structure de base pour un problème): VRAIE");
+                    if (!ponctuationPermise.includes(dernierCaractereAvant)) {
+                        console.log(`    Cond 2 (pas une ponctuation permise "${dernierCaractereAvant}"): VRAIE`);
+                        const motsAvant = textePrecedentImmediat.trimRight().split(/\s+/);
+                        const dernierMotAvant = motsAvant.length > 0 ? motsAvant[motsAvant.length - 1] : '';
+                        console.log(`    Dernier mot avant (de textePrecedentImmediat): "${dernierMotAvant}"`);
+
+                        // Logique pour déterminer si le caractère/mot précédent est un préfixe à ignorer
+                        // Un problème est signalé si ce n'est PAS un préfixe ignoré.
+                        // On ignore si le `dernierMotAvant` est dans la liste des préfixes ET
+                        // (soit ce mot a plus d'une lettre (ex: "km"),
+                        //  soit il a une lettre et cette lettre est bien le `dernierCaractereAvant` (ex: "m"))
+                        let ignorerCausePrefixe = false;
+                        if (prefixesIgnores.has(dernierMotAvant.toLowerCase())) {
+                            if (dernierMotAvant.length > 1) {
+                                ignorerCausePrefixe = true; // Ex: "km"
+                            } else if (dernierMotAvant.length === 1 && dernierCaractereAvant.toLowerCase() === dernierMotAvant.toLowerCase()) {
+                                ignorerCausePrefixe = true; // Ex: "m"
+                            }
+                        }
+
+                        console.log(`    Ignorer à cause d'un préfixe (comme "m", "km"): ${ignorerCausePrefixe}`);
+                        if (!ignorerCausePrefixe) {
+                            console.log("      %cPROBLÈME DÉTECTÉ !", "color:red; font-weight:bold;");
+                            problemes.push({
+                                lien: lien,
+                                type: "lien_probablement_coupe",
+                                texte: texteLien,
+                                html: lien.outerHTML,
+                                contexteAvant: contexteAvantPourRapport,
+                                textePrecedentDirect: textePrecedentImmediat,
+                                caractereManquant: dernierCaractereAvant,
+                                premierMotLien: texteLien.split(/\s+/)[0],
+                                texteCompletSuggere: dernierCaractereAvant + texteLien,
+                                idConteneur: conteneur.id || '',
+                                classesConteneur: conteneur.className,
+                                texteCompletConteneurPourRapport: texteCompletPourRapport,
+                                cheminConteneur: obtenirCheminHTML(conteneur),
+                                indexDansConteneur: Array.from(conteneur.querySelectorAll('a')).indexOf(lien)
+                            });
+                        }
+                    } else {
+                        console.log(`    Cond 2 (pas une ponctuation permise "${dernierCaractereAvant}"): FAUSSE (c'est une ponctuation)`);
+                    }
+                } else {
+                    console.log("    Cond 1 (structure de base pour un problème): FAUSSE. Raisons possibles:");
+                    if (!pasDEspaceAvant) console.log("      - Soit textePrecedentImmediat est vide, soit il se termine par \\s.");
+                    if (!estCaracterePotentiellementCoupe) console.log("      - Soit dernierCaractereAvant n'est pas alphanumérique.");
+                    if (!premierLienEstAlphanum) console.log("      - Soit premierCaractereLien n'est pas alphanumérique.");
+                }
+                console.log("------------------------------------");
+            });
+        });
+
+        // ... (affichage des résultats identique)
+        if (problemes.length > 0) {
+            console.log(`%c${problemes.length} problèmes de liens coupés détectés`, 'color:red; font-weight:bold; font-size: 14px; background: #f5f5f5; padding: 5px;');
+            console.table(problemes.map(p => ({
+                "Texte du lien": p.texte,
+                "Contexte avant (large)": p.contexteAvant,
+                "Texte précédent direct": `"${p.textePrecedentDirect}"`,
+                "Caractère manquant": p.caractereManquant,
+                "Texte suggéré": p.texteCompletSuggere
+            })));
+            problemes.forEach((p, index) => {
+                console.group(`%cDétail Problème #${index + 1}`, 'color:red; font-weight:bold');
+                console.log(`ID Conteneur: ${p.idConteneur}`);
+                console.log(`Classes Conteneur: ${p.classesConteneur}`);
+                console.log(`Texte avant (large): "${p.contexteAvant}"`);
+                console.log(`Texte précédent direct: "${p.textePrecedentDirect}"`);
+                console.log(`Texte du lien: "${p.texte}"`);
+                console.log(`Correction suggérée: "${p.texteCompletSuggere}"`);
+                console.log('Élément:', p.lien);
+                console.log('HTML:', p.html);
+                console.groupEnd();
+            });
+        } else {
+            console.log('%cAucun problème de lien coupé détecté', 'color:green; font-weight:bold; font-size: 14px; background: #f5f5f5; padding: 5px;');
         }
-    });
+        return problemes;
+    }
 
-    console.log(`%c${corrections} corrections appliquées`, 'color:green; font-weight:bold');
-    return corrections;
-}
+    // ... (le reste de vos fonctions : genererRapportBuilder, mettreEnEvidenceLiensCoupes, exporterCSV, obtenirCheminHTML, lancerVerificationComplete, genererRapportEtBoutonAvecProblemes, window.debugLiensCoupes)
+    // Assurez-vous que ces fonctions utilisent les bonnes données et ne rappellent pas verifierLiensCoupes inutilement.
+    // Le `lancerVerificationComplete` de ma réponse précédente orchestre bien cela.
+    // Je recopie ici les fonctions de support et d'orchestration pour que le script soit complet.
 
-// Exécuter la fonction
-const problemes = verifierLiensCoupes();
+    /**
+     * Génère un rapport détaillé pour faciliter les corrections.
+     * @param {Array} problemes - Liste des problèmes détectés
+     * @returns {Array} - Données du rapport
+     */
+    function genererRapportEtBoutonAvecProblemes(problemes) {
+        if (problemes.length === 0) {
+            console.log('%cAucun problème détecté pour le rapport builder (via wrapper)', 'color:green; font-weight:bold');
+            const btnTelecharger = document.getElementById('btn-telecharger-rapport');
+            if (btnTelecharger) btnTelecharger.remove();
+            return [];
+        }
+
+        const rapportData = problemes.map((p, index) => {
+            return {
+                "Problème #": index + 1,
+                "ID Conteneur": p.idConteneur,
+                "Classes Conteneur": p.classesConteneur,
+                "Aperçu du conteneur": p.texteCompletConteneurPourRapport,
+                "Texte avant (large)": p.contexteAvant,
+                "Texte précédent direct": `"${p.textePrecedentDirect}"`,
+                "Texte du lien": p.texte,
+                "Caractère manquant": p.caractereManquant,
+                "Correction suggérée": p.texteCompletSuggere,
+                "Chemin HTML du lien": obtenirCheminHTML(p.lien) // Chemin vers le lien lui-même
+            };
+        });
+
+        console.log('%cRapport détaillé pour le builder (via wrapper):', 'color:blue; font-weight:bold');
+        console.table(rapportData);
+
+        const csvContent = exporterCSV(rapportData);
+
+        let btnTelecharger = document.getElementById('btn-telecharger-rapport');
+        if (btnTelecharger) {
+            btnTelecharger.remove();
+        }
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.id = 'btn-telecharger-rapport';
+        a.href = url;
+        a.download = 'rapport_liens_coupes.csv';
+        a.textContent = 'Télécharger le rapport CSV';
+        a.style.cssText = `
+        display: block; position: fixed; top: 10px; right: 10px; z-index: 10001;
+        margin: 10px; padding: 10px 15px; text-align: center;
+        background-color: #4CAF50; color: white; text-decoration: none;
+        border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        font-size: 14px; font-weight: bold; cursor:pointer;
+    `;
+        document.body.appendChild(a);
+        return rapportData;
+    }
+
+    /**
+     * Met en évidence visuellement les liens coupés sur la page.
+     * @param {Array} problemes - Liste des problèmes DÉJÀ DÉTECTÉS
+     */
+    function mettreEnEvidenceLiensCoupes(problemes) {
+        document.querySelectorAll('.lien-coupe-highlight-custom').forEach(el => {
+            const infoDiv = el.querySelector('.lien-coupe-info-custom');
+            if (infoDiv) infoDiv.remove();
+            el.classList.remove('lien-coupe-highlight-custom');
+            if (el.dataset.originalPosition) {
+                el.style.position = el.dataset.originalPosition;
+            } else {
+                el.style.removeProperty('position');
+            }
+            delete el.dataset.originalPosition;
+        });
+
+        if (!problemes || problemes.length === 0) {
+            console.log('%cAucun problème à mettre en évidence', 'color:green; font-weight:bold');
+            const panneauExistant = document.getElementById('panneau-resume-liens-custom');
+            if (panneauExistant) panneauExistant.remove();
+            return;
+        }
+
+        if (!document.getElementById('style-liens-coupes-custom')) {
+            const style = document.createElement('style');
+            style.id = 'style-liens-coupes-custom';
+            style.textContent = `
+        .lien-coupe-highlight-custom { 
+          background-color: rgba(255, 0, 0, 0.2) !important; 
+          outline: 2px solid red !important; 
+        }
+        .lien-coupe-info-custom {
+          position: absolute; top: 100%; left: 0; background: #fff;
+          border: 1px solid #ccc; padding: 8px; font-size: 12px;
+          z-index: 10000; max-width: 300px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+          display: none; color: black; text-align: left; line-height: 1.4;
+        }
+        .lien-coupe-highlight-custom:hover .lien-coupe-info-custom { display: block; }
+      `;
+            document.head.appendChild(style);
+        }
+
+        problemes.forEach((p, index) => {
+            p.lien.classList.add('lien-coupe-highlight-custom');
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'lien-coupe-info-custom';
+            infoDiv.innerHTML = `
+        <b>Problème #${index + 1}</b><br>
+        Texte actuel: "<code>${p.texte.replace(/&/g, '&').replace(/</g, '<')}</code>"<br>
+        Précédent direct: "<code>${p.textePrecedentDirect.slice(-20).replace(/&/g, '&').replace(/</g, '<')}</code>"<br>
+        Caractère suspect: "<code>${p.caractereManquant.replace(/&/g, '&').replace(/</g, '<')}</code>"<br>
+        Suggestion: "<code>${p.texteCompletSuggere.replace(/&/g, '&').replace(/</g, '<')}</code>"
+      `;
+            const currentPosition = window.getComputedStyle(p.lien).position;
+            if (currentPosition === 'static') {
+                p.lien.dataset.originalPosition = 'static';
+                p.lien.style.position = 'relative';
+            }
+            p.lien.appendChild(infoDiv);
+        });
+
+        let panneauResume = document.getElementById('panneau-resume-liens-custom');
+        if (!panneauResume) {
+            panneauResume = document.createElement('div');
+            panneauResume.id = 'panneau-resume-liens-custom';
+            panneauResume.style.cssText = `
+            position: fixed; bottom: 10px; right: 10px; padding: 10px 15px;
+            background-color: rgba(255, 0, 0, 0.8); color: white; border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 9999;
+            font-size: 14px; font-weight: bold;
+        `;
+            document.body.appendChild(panneauResume);
+        }
+        panneauResume.textContent = `${problemes.length} problèmes de liens détectés. Survolez les éléments en rouge.`;
+        console.log(`%c${problemes.length} problèmes mis en évidence.`, 'color:red; font-weight:bold');
+    }
+
+    /**
+     * Exporte les données au format CSV
+     */
+    function exporterCSV(data) {
+        if (!data || data.length === 0) return '';
+        const headers = Object.keys(data[0]);
+        let csvContent = headers.join(',') + '\n';
+        data.forEach(item => {
+            const row = headers.map(header => {
+                let cell = item[header] === null || typeof item[header] === 'undefined' ? '' : item[header];
+                cell = cell.toString().replace(/"/g, '""');
+                return `"${cell}"`;
+            });
+            csvContent += row.join(',') + '\n';
+        });
+        return csvContent;
+    }
+
+    /**
+     * Obtient un chemin HTML pour identifier un élément
+     */
+    function obtenirCheminHTML(element) {
+        const chemin = [];
+        let currentElement = element;
+        while (currentElement && currentElement.tagName && currentElement.tagName.toLowerCase() !== 'body') {
+            let selecteur = currentElement.tagName.toLowerCase();
+            if (currentElement.id) {
+                selecteur += '#' + currentElement.id.replace(/[^a-zA-Z0-9_-]/g, '\\$&');
+                chemin.unshift(selecteur); // Si ID, c'est suffisant pour ce segment
+                break; // On peut souvent s'arrêter à un ID unique
+            } else {
+                let classSelector = Array.from(currentElement.classList)
+                    .map(c => c.replace(/[^a-zA-Z0-9_-]/g, '\\$&'))
+                    .join('.');
+                if (classSelector) selecteur += '.' + classSelector;
+
+                const parent = currentElement.parentNode;
+                if (parent) {
+                    const siblings = Array.from(parent.children);
+                    const memeTagSiblings = siblings.filter(sibling => sibling.tagName === currentElement.tagName);
+                    if (memeTagSiblings.length > 1) {
+                        const index = memeTagSiblings.indexOf(currentElement);
+                        selecteur += `:nth-of-type(${index + 1})`;
+                    }
+                }
+            }
+            chemin.unshift(selecteur);
+            if (currentElement.classList.contains('dmNewParagraph')) break; // Arrêter au conteneur parent d'intérêt
+            currentElement = currentElement.parentNode;
+        }
+        if (currentElement && currentElement.tagName.toLowerCase() === 'body') {
+            chemin.unshift('body');
+        } else if (chemin.length === 0 && element.id) { // Cas d'un élément orphelin avec ID
+            chemin.unshift(element.tagName.toLowerCase() + '#' + element.id.replace(/[^a-zA-Z0-9_-]/g, '\\$&'));
+        }
+        return chemin.join(' > ');
+    }
+
+    /**
+     * Fonction principale - lance la vérification et l'affichage
+     */
+    function lancerVerificationComplete() {
+        console.log("Lancement de la vérification complète...");
+        const problemesDetectes = verifierLiensCoupes();
+        mettreEnEvidenceLiensCoupes(problemesDetectes);
+        genererRapportEtBoutonAvecProblemes(problemesDetectes);
+        return problemesDetectes;
+    }
+
+    window.debugLiensCoupes = {
+        verifier: verifierLiensCoupes,
+        mettreEnEvidence: mettreEnEvidenceLiensCoupes,
+        genererRapport: genererRapportEtBoutonAvecProblemes,
+        lancerTout: lancerVerificationComplete,
+        obtenirChemin: obtenirCheminHTML
+    };
+
+    console.log("Script de détection des liens coupés chargé. Utilisez window.debugLiensCoupes.lancerTout() pour démarrer.");
+    lancerVerificationComplete();
+})();
