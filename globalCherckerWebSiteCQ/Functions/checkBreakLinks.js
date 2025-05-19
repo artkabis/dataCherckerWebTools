@@ -9,7 +9,7 @@
      * @returns {Array} - Liste des problèmes détectés
      */
     function verifierLiensCoupes() {
-        console.log("%cDébut de la vérification des liens coupés...", "color:blue; font-weight:bold");
+        //console.log("%cDébut de la vérification des liens coupés...", "color:blue; font-weight:bold");
         const problemes = [];
         const liensTraites = new Set();
 
@@ -26,16 +26,16 @@
                 const texteLien = lien.textContent.trim();
                 if (!texteLien || lien.querySelector('img')) return;
 
-                console.log(`%cVérification du lien #${lienIndex}: "${texteLien.substring(0, 30)}..."`, "color:darkcyan");
-                console.log("  Lien element:", lien);
+                //console.log(`%cVérification du lien #${lienIndex}: "${texteLien.substring(0, 30)}..."`, "color:darkcyan");
+                //console.log("  Lien element:", lien);
 
                 let textePrecedentImmediat = "";
                 let noeudPrecedentInitial = lien.previousSibling;
 
                 // DEBUG: Log du noeud précédent initial
-                console.log("  Noeud frère précédent initial:", noeudPrecedentInitial);
+                //console.log("  Noeud frère précédent initial:", noeudPrecedentInitial);
                 if (noeudPrecedentInitial) {
-                    console.log(`    Type: ${noeudPrecedentInitial.nodeType}, Contenu brut: "${noeudPrecedentInitial.textContent}"`);
+                    //console.log(`    Type: ${noeudPrecedentInitial.nodeType}, Contenu brut: "${noeudPrecedentInitial.textContent}"`);
                 }
 
                 // Optionnel: Boucle pour sauter les nœuds texte vides/blancs (peut être activée si besoin)
@@ -76,11 +76,11 @@
                                 curseur = curseur.previousSibling; // Remonter ou passer au frère
                             }
                         }
-                        console.log(`    [Element] Contenu textuel total: "${textePrecedentImmediat}"`);
-                        console.log(`    [Element] Dernier nœud texte interne (approximatif): "${dernierEnfantTexteInterne}"`);
+                        //console.log(`    [Element] Contenu textuel total: "${textePrecedentImmediat}"`);
+                        //console.log(`    [Element] Dernier nœud texte interne (approximatif): "${dernierEnfantTexteInterne}"`);
                     }
                 }
-                console.log(`  Texte précédent immédiat déterminé: "${textePrecedentImmediat}" (longueur: ${textePrecedentImmediat.length})`);
+                //console.log(`  Texte précédent immédiat déterminé: "${textePrecedentImmediat}" (longueur: ${textePrecedentImmediat.length})`);
 
 
                 let contexteAvantPourRapport = "N/A";
@@ -96,26 +96,26 @@
                 // Regex pour vérifier si le dernier caractère N'EST PAS un espace blanc.
                 const pasDEspaceAvant = textePrecedentImmediat.length > 0 && !/\s$/.test(textePrecedentImmediat);
 
-                console.log(`  Dernier caractère avant: "${dernierCaractereAvant}" (code: ${dernierCaractereAvant.charCodeAt(0)})`);
-                console.log(`  Pas d'espace avant (basé sur textePrecedentImmediat qui se termine par non-\\s): ${pasDEspaceAvant}`);
+                //console.log(`  Dernier caractère avant: "${dernierCaractereAvant}" (code: ${dernierCaractereAvant.charCodeAt(0)})`);
+                //console.log(`  Pas d'espace avant (basé sur textePrecedentImmediat qui se termine par non-\\s): ${pasDEspaceAvant}`);
 
                 const estCaracterePotentiellementCoupe = /[a-zàáâäãåçèéêëìíîïñòóôöõùúûüÿA-ZÀÁÂÄÃÅÇÈÉÊËÌÍÎÏÑÒÓÔÖÕÙÚÛÜŸ0-9]/.test(dernierCaractereAvant);
                 const premierCaractereLien = texteLien.charAt(0);
                 const premierLienEstAlphanum = /[a-zàáâäãåçèéêëìíîïñòóôöõùúûüÿA-ZÀÁÂÄÃÅÇÈÉÊËÌÍÎÏÑÒÓÔÖÕÙÚÛÜŸ0-9]/.test(premierCaractereLien);
 
-                console.log(`  Est caractère potentiellement coupé (dernierCaractereAvant est alphanum): ${estCaracterePotentiellementCoupe}`);
-                console.log(`  Premier caractère du lien est alphanum (pour "${premierCaractereLien}"): ${premierLienEstAlphanum}`);
+                //console.log(`  Est caractère potentiellement coupé (dernierCaractereAvant est alphanum): ${estCaracterePotentiellementCoupe}`);
+                //console.log(`  Premier caractère du lien est alphanum (pour "${premierCaractereLien}"): ${premierLienEstAlphanum}`);
 
                 const ponctuationPermise = ['"', "'", '(', '[', '{', '«', '.', ':', ';', ',', '/', '\\'];
                 const prefixesIgnores = new Set(['m', 'km', 'cm', 'mm', 'kg', 'g', 'l', 'ml', 'h', 'min', 'sec', 'no', 'n°']);
 
                 if (pasDEspaceAvant && estCaracterePotentiellementCoupe && premierLienEstAlphanum) {
-                    console.log("    Cond 1 (structure de base pour un problème): VRAIE");
+                    //console.log("    Cond 1 (structure de base pour un problème): VRAIE");
                     if (!ponctuationPermise.includes(dernierCaractereAvant)) {
-                        console.log(`    Cond 2 (pas une ponctuation permise "${dernierCaractereAvant}"): VRAIE`);
+                        //console.log(`    Cond 2 (pas une ponctuation permise "${dernierCaractereAvant}"): VRAIE`);
                         const motsAvant = textePrecedentImmediat.trimRight().split(/\s+/);
                         const dernierMotAvant = motsAvant.length > 0 ? motsAvant[motsAvant.length - 1] : '';
-                        console.log(`    Dernier mot avant (de textePrecedentImmediat): "${dernierMotAvant}"`);
+                        //console.log(`    Dernier mot avant (de textePrecedentImmediat): "${dernierMotAvant}"`);
 
                         // Logique pour déterminer si le caractère/mot précédent est un préfixe à ignorer
                         // Un problème est signalé si ce n'est PAS un préfixe ignoré.
@@ -131,7 +131,7 @@
                             }
                         }
 
-                        console.log(`    Ignorer à cause d'un préfixe (comme "m", "km"): ${ignorerCausePrefixe}`);
+                        //console.log(`    Ignorer à cause d'un préfixe (comme "m", "km"): ${ignorerCausePrefixe}`);
                         if (!ignorerCausePrefixe) {
                             console.log("      %cPROBLÈME DÉTECTÉ !", "color:red; font-weight:bold;");
                             problemes.push({
@@ -152,19 +152,20 @@
                             });
                         }
                     } else {
-                        console.log(`    Cond 2 (pas une ponctuation permise "${dernierCaractereAvant}"): FAUSSE (c'est une ponctuation)`);
+                        //console.log(`    Cond 2 (pas une ponctuation permise "${dernierCaractereAvant}"): FAUSSE (c'est une ponctuation)`);
                     }
                 } else {
+                    /*
                     console.log("    Cond 1 (structure de base pour un problème): FAUSSE. Raisons possibles:");
                     if (!pasDEspaceAvant) console.log("      - Soit textePrecedentImmediat est vide, soit il se termine par \\s.");
                     if (!estCaracterePotentiellementCoupe) console.log("      - Soit dernierCaractereAvant n'est pas alphanumérique.");
                     if (!premierLienEstAlphanum) console.log("      - Soit premierCaractereLien n'est pas alphanumérique.");
+                    */
                 }
-                console.log("------------------------------------");
+                //console.log("------------------------------------");
             });
         });
 
-        // ... (affichage des résultats identique)
         if (problemes.length > 0) {
             console.log(`%c${problemes.length} problèmes de liens coupés détectés`, 'color:red; font-weight:bold; font-size: 14px; background: #f5f5f5; padding: 5px;');
             console.table(problemes.map(p => ({
@@ -211,7 +212,7 @@
         });
 
         if (!problemes || problemes.length === 0) {
-            console.log('%cAucun problème à mettre en évidence', 'color:green; font-weight:bold');
+            //console.log('%cAucun problème à mettre en évidence', 'color:green; font-weight:bold');
             const panneauExistant = document.getElementById('panneau-resume-liens-custom');
             if (panneauExistant) panneauExistant.remove();
             return;
@@ -317,7 +318,7 @@
      * Fonction principale - lance la vérification et l'affichage
      */
     function lancerVerificationComplete() {
-        console.log("Lancement de la vérification complète...");
+        //console.log("Lancement de la vérification complète...");
         const problemesDetectes = verifierLiensCoupes();
         mettreEnEvidenceLiensCoupes(problemesDetectes);
         return problemesDetectes;
@@ -330,6 +331,5 @@
         obtenirChemin: obtenirCheminHTML
     };
 
-    console.log("Script de détection des liens coupés chargé. Utilisez window.debugLiensCoupes.lancerTout() pour démarrer.");
     lancerVerificationComplete();
 })();
