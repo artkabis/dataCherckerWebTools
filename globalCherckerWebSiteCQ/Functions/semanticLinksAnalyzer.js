@@ -281,38 +281,6 @@ export const semanticLinks = (tab) => {
                     'asse', 'âtre', 'eau', 'elle', 'et', 'ette', 'illon', 'in', 'ine', 'ot', 'otte', 'ole', 'ule'
                 ];
 
-                // Dictionnaire étendu de correspondances sémantiques en français (pour référence)
-                const semanticMatches = {
-                    // Page d'accueil
-                    accueil: ['accueil', 'home', 'bienvenue', 'index', 'principale', 'welcome', 'decouvrir', 'decouverte', 'page principale'],
-
-                    // Page de contact
-                    contact: ['contact', 'contactez', 'nous contacter', 'formulaire', 'message', 'ecrire', 'ecrivez', 'coordonnees',
-                        'adresse', 'telephone', 'tel', 'mail', 'email', 'courriel', 'joindre', 'appeler', 'appelez', 'demande', 'devis'],
-
-                    // Page à propos
-                    apropos: ['propos', 'presentation', 'equipe', 'entreprise', 'societe', 'histoire', 'valeurs',
-                        'philosophie', 'sommes', 'qui', 'about', 'decouvrir'],
-
-                    // Page de services/matériel
-                    services: ['materiel', 'equipement', 'location', 'produit', 'service', 'prestation', 'propose',
-                        'offre', 'gamme', 'catalogue', 'solution', 'article', 'dispo', 'table'],
-
-                    // Page de photos/galerie
-                    photos: ['photo', 'galerie', 'image', 'album', 'portfolio', 'realisation', 'apercu', 'visuel', 'voir', 'verre'],
-
-                    // Page de tentes/chapiteaux
-                    tentes: ['tente', 'chapiteau', 'chapiteaux', 'abri', 'toile', 'structure', 'reception', 'evenement'],
-
-                    // Page de vaisselle
-                    vaisselle: ['vaisselle', 'assiette', 'verre', 'couvert', 'porcelaine', 'couverts', 'ustensile', 'gobelet', 'table'],
-
-                    // Mentions légales, etc.
-                    mentions: ['mention', 'legale', 'condition', 'cgv', 'cgu', 'juridique', 'cookie', 'confidentialite', 'privacy'],
-
-                    // Vie privée
-                    vieprivee: ['vie', 'privee', 'privacy', 'donnee', 'personnel', 'confidentialite', 'rgpd', 'cookie']
-                };
 
                 /**
                  * Normalise une chaîne de caractères en français de manière robuste
@@ -1215,26 +1183,41 @@ export const semanticLinks = (tab) => {
             }
 
             /**
-             * Affiche les résultats de l'analyse dans un rapport visuel amélioré
+             * Affiche les résultats de l'analyse dans un rapport visuel amélioré avec drag and drop
+             * Version corrigée pour résoudre les problèmes de bouton close
+             */
+            /**
+             * Affiche les résultats de l'analyse dans un rapport visuel amélioré avec drag and drop
+             * Version complète avec toutes les fonctions nécessaires
              */
             function displayLinkRelevanceReport() {
                 const results = checkLinkTextRelevance();
+
+                // Supprimer toute instance précédente pour éviter les doublons
+                const existingReport = document.getElementById('link-relevance-report');
+                if (existingReport) {
+                    existingReport.remove();
+                }
 
                 // Créer un rapport visuel sur la page
                 const reportDiv = document.createElement('div');
                 reportDiv.id = 'link-relevance-report';
                 reportDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #fff; border: 2px solid #333; ' +
                     'padding: 0; z-index: 9999; max-width: 600px; max-height: 85vh; overflow: hidden; ' +
-                    'box-shadow: 0 0 20px rgba(0,0,0,0.3); border-radius: 8px; font-family: Arial, sans-serif;';
+                    'box-shadow: 0 0 20px rgba(0,0,0,0.3); border-radius: 8px; font-family: Arial, sans-serif; ' +
+                    'user-select: none;';
 
                 // Créer la structure du rapport
                 reportDiv.innerHTML = `
-      <div style="display: flex; align-items: center; justify-content: space-between; background: #333; color: white; padding: 10px 15px;">
-        <h3 style="margin: 0; font-size: 16px;">🔍 Analyse de cohérence des liens</h3>
-        <button id="close-report-btn" style="background: transparent; border: none; color: white; font-size: 20px; cursor: pointer; padding: 0;">✕</button>
+      <div id="report-header" style="display: flex; align-items: center; justify-content: space-between; background: #333; color: white; padding: 10px 15px; cursor: move; position: relative;">
+        <h3 style="margin: 0; font-size: 16px; pointer-events: none;">🔍 Analyse de cohérence des liens</h3>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <button id="minimize-btn" title="Réduire/Restaurer" style="background: transparent; border: none; color: white; font-size: 16px; cursor: pointer; padding: 2px 5px;">−</button>
+          <button id="close-report-btn" title="Fermer" style="background: transparent; border: none; color: white; font-size: 20px; cursor: pointer; padding: 0;">✕</button>
+        </div>
       </div>
       
-      <div style="padding: 15px;">
+      <div id="report-content" style="padding: 15px;">
         <!-- Score global -->
         <div style="text-align: center; margin-bottom: 15px;">
           <div style="position: relative; width: 100px; height: 100px; margin: 0 auto;">
@@ -1319,28 +1302,23 @@ export const semanticLinks = (tab) => {
 
                 document.body.appendChild(reportDiv);
 
-                // Dessiner le graphique de score
-                drawScoreChart(results.score);
+                // ===============================================
+                // VARIABLES ET RÉFÉRENCES DOM
+                // ===============================================
 
-                // Ajouter les gestionnaires d'événements
-                document.getElementById('close-report-btn').addEventListener('click', () => reportDiv.remove());
-                document.getElementById('all-links-btn').addEventListener('click', () => renderLinks([...results.coherent, ...results.incoherent]));
-                document.getElementById('incoherent-links-btn').addEventListener('click', () => renderLinks(results.incoherent, 'incoherent'));
-                document.getElementById('logo-links-btn').addEventListener('click', () => renderLinks([...results.coherent, ...results.incoherent].filter(link => link.isLogo)));
-                document.getElementById('cta-links-btn').addEventListener('click', () => renderLinks([...results.coherent, ...results.incoherent].filter(link => link.isCta)));
-                document.getElementById('image-links-btn').addEventListener('click', () => renderLinks([...results.coherent, ...results.incoherent].filter(link => link.isImageLink && !link.isLogo)));
-                document.getElementById('export-csv-btn').addEventListener('click', () => exportLinkRelevanceResultsCSV(results));
+                let isDragging = false;
+                let dragOffset = { x: 0, y: 0 };
+                let isMinimized = false;
 
-                // Rendre les boutons mutuellement exclusifs avec état actif
-                const filterBtns = document.querySelectorAll('.filter-btn');
-                filterBtns.forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        filterBtns.forEach(b => b.style.opacity = '0.7');
-                        btn.style.opacity = '1';
-                    });
-                });
+                const header = document.getElementById('report-header');
+                const content = document.getElementById('report-content');
+                const minimizeBtn = document.getElementById('minimize-btn');
+                const closeBtn = document.getElementById('close-report-btn');
 
-                // Fonction pour obtenir la couleur selon la qualité
+                // ===============================================
+                // FONCTIONS D'ASSISTANCE
+                // ===============================================
+
                 function getQualityColor(quality) {
                     switch (quality) {
                         case 'excellent': return '#4caf50';
@@ -1351,7 +1329,6 @@ export const semanticLinks = (tab) => {
                     }
                 }
 
-                // Fonction pour obtenir le libellé selon la qualité
                 function getQualityLabel(quality) {
                     switch (quality) {
                         case 'excellent': return 'Excellent';
@@ -1365,10 +1342,15 @@ export const semanticLinks = (tab) => {
                 // Fonction pour dessiner le graphique circulaire du score
                 function drawScoreChart(score) {
                     const canvas = document.getElementById('score-chart');
+                    if (!canvas) return;
+
                     const ctx = canvas.getContext('2d');
                     const centerX = canvas.width / 2;
                     const centerY = canvas.height / 2;
                     const radius = 40;
+
+                    // Nettoyer le canvas
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
                     // Dessiner le cercle de fond
                     ctx.beginPath();
@@ -1402,6 +1384,8 @@ export const semanticLinks = (tab) => {
                 // Fonction pour rendre les liens filtrés
                 function renderLinks(links, filter = null) {
                     const container = document.getElementById('results-container');
+                    if (!container) return;
+
                     container.innerHTML = '';
 
                     if (links.length === 0) {
@@ -1446,6 +1430,8 @@ export const semanticLinks = (tab) => {
                 // Fonction pour rendre une liste de liens
                 function renderLinkList(links) {
                     const container = document.getElementById('results-container');
+                    if (!container) return;
+
                     const list = document.createElement('ul');
                     list.style.cssText = 'list-style: none; padding: 0; margin: 0;';
 
@@ -1487,7 +1473,7 @@ export const semanticLinks = (tab) => {
 
                         basic.appendChild(toggleBtn);
 
-                        // Badge "Survoler"
+                        // Badge "Survoler" pour mettre en évidence sur la page
                         if (link.element) {
                             const highlightBtn = document.createElement('button');
                             highlightBtn.textContent = '👁️';
@@ -1496,8 +1482,8 @@ export const semanticLinks = (tab) => {
                             highlightBtn.onclick = () => {
                                 // Restaurer les styles précédents
                                 if (window.highlightedElement) {
-                                    window.highlightedElement.style.outline = window.highlightedElementOriginalOutline;
-                                    window.highlightedElement.style.backgroundColor = window.highlightedElementOriginalBg;
+                                    window.highlightedElement.style.outline = window.highlightedElementOriginalOutline || '';
+                                    window.highlightedElement.style.backgroundColor = window.highlightedElementOriginalBg || '';
                                 }
 
                                 // Sauvegarder les styles originaux
@@ -1515,8 +1501,8 @@ export const semanticLinks = (tab) => {
                                 // Restaurer après 3 secondes
                                 setTimeout(() => {
                                     if (window.highlightedElement) {
-                                        window.highlightedElement.style.outline = window.highlightedElementOriginalOutline;
-                                        window.highlightedElement.style.backgroundColor = window.highlightedElementOriginalBg;
+                                        window.highlightedElement.style.outline = window.highlightedElementOriginalOutline || '';
+                                        window.highlightedElement.style.backgroundColor = window.highlightedElementOriginalBg || '';
                                     }
                                 }, 3000);
                             };
@@ -1583,8 +1569,220 @@ export const semanticLinks = (tab) => {
                     container.appendChild(list);
                 }
 
+                // ===============================================
+                // FONCTION DE FERMETURE ROBUSTE
+                // ===============================================
+
+                function closeReport() {
+                    try {
+                        // Nettoyer les gestionnaires d'événements pour éviter les fuites mémoire
+                        if (reportDiv && reportDiv.parentNode) {
+                            // Animation de fermeture seulement si l'élément est visible
+                            if (reportDiv.style.display !== 'none' && reportDiv.offsetHeight > 0) {
+                                reportDiv.style.transition = 'all 0.3s ease';
+                                reportDiv.style.transform = 'scale(0.9)';
+                                reportDiv.style.opacity = '0';
+
+                                setTimeout(() => {
+                                    if (reportDiv && reportDiv.parentNode) {
+                                        reportDiv.remove();
+                                    }
+                                }, 300);
+                            } else {
+                                // Fermeture immédiate si l'élément n'est pas visible
+                                reportDiv.remove();
+                            }
+                        }
+                    } catch (error) {
+                        console.warn('Erreur lors de la fermeture du rapport:', error);
+                        // Fermeture forcée en cas d'erreur
+                        if (reportDiv && reportDiv.parentNode) {
+                            reportDiv.remove();
+                        }
+                    }
+                }
+
+                // ===============================================
+                // GESTIONNAIRES D'ÉVÉNEMENTS ROBUSTES
+                // ===============================================
+
+                // Gestionnaire centralisé pour tous les boutons
+                reportDiv.addEventListener('click', (e) => {
+                    const target = e.target;
+
+                    switch (target.id) {
+                        case 'close-report-btn':
+                            e.preventDefault();
+                            e.stopPropagation();
+                            closeReport();
+                            break;
+
+                        case 'minimize-btn':
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            isMinimized = !isMinimized;
+
+                            if (isMinimized) {
+                                content.style.display = 'none';
+                                reportDiv.style.maxHeight = 'auto';
+                                reportDiv.style.height = 'auto';
+                                minimizeBtn.textContent = '+';
+                                minimizeBtn.title = 'Restaurer';
+                            } else {
+                                content.style.display = 'block';
+                                reportDiv.style.maxHeight = '85vh';
+                                minimizeBtn.textContent = '−';
+                                minimizeBtn.title = 'Réduire';
+                            }
+                            break;
+
+                        case 'all-links-btn':
+                            renderLinks([...results.coherent, ...results.incoherent]);
+                            break;
+                        case 'incoherent-links-btn':
+                            renderLinks(results.incoherent, 'incoherent');
+                            break;
+                        case 'logo-links-btn':
+                            renderLinks([...results.coherent, ...results.incoherent].filter(link => link.isLogo));
+                            break;
+                        case 'cta-links-btn':
+                            renderLinks([...results.coherent, ...results.incoherent].filter(link => link.isCta));
+                            break;
+                        case 'image-links-btn':
+                            renderLinks([...results.coherent, ...results.incoherent].filter(link => link.isImageLink && !link.isLogo));
+                            break;
+                        case 'export-csv-btn':
+                            exportLinkRelevanceResultsCSV(results);
+                            break;
+                    }
+
+                    // Gestion de l'état actif des boutons de filtre
+                    if (target.classList.contains('filter-btn')) {
+                        const filterBtns = reportDiv.querySelectorAll('.filter-btn');
+                        filterBtns.forEach(btn => btn.style.opacity = '0.7');
+                        target.style.opacity = '1';
+                    }
+                });
+
+                // ===============================================
+                // FONCTIONNALITÉ DRAG AND DROP
+                // ===============================================
+
+                function constrainToScreen(x, y, width, height) {
+                    const maxX = window.innerWidth - width;
+                    const maxY = window.innerHeight - height;
+
+                    return {
+                        x: Math.max(0, Math.min(x, maxX)),
+                        y: Math.max(0, Math.min(y, maxY))
+                    };
+                }
+
+                // Événement mousedown sur l'en-tête
+                header.addEventListener('mousedown', (e) => {
+                    // Ne pas commencer le drag si on clique sur un bouton
+                    if (e.target.tagName === 'BUTTON') return;
+
+                    isDragging = true;
+                    header.style.cursor = 'grabbing';
+
+                    // Calculer l'offset relatif au coin supérieur gauche de l'élément
+                    const rect = reportDiv.getBoundingClientRect();
+                    dragOffset.x = e.clientX - rect.left;
+                    dragOffset.y = e.clientY - rect.top;
+
+                    // Empêcher la sélection de texte
+                    e.preventDefault();
+
+                    // Ajouter une classe pour indiquer le drag
+                    reportDiv.style.opacity = '0.9';
+                    reportDiv.style.transform = 'scale(1.02)';
+                    reportDiv.style.transition = 'none';
+                });
+
+                // Événement mousemove sur le document
+                document.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+
+                    // Calculer la nouvelle position
+                    let newX = e.clientX - dragOffset.x;
+                    let newY = e.clientY - dragOffset.y;
+
+                    // Contraindre dans l'écran
+                    const rect = reportDiv.getBoundingClientRect();
+                    const constrained = constrainToScreen(newX, newY, rect.width, rect.height);
+
+                    // Appliquer la nouvelle position
+                    reportDiv.style.left = constrained.x + 'px';
+                    reportDiv.style.top = constrained.y + 'px';
+                    reportDiv.style.right = 'auto';
+                });
+
+                // Événement mouseup sur le document
+                document.addEventListener('mouseup', () => {
+                    if (isDragging) {
+                        isDragging = false;
+                        header.style.cursor = 'move';
+
+                        // Restaurer l'apparence normale
+                        reportDiv.style.opacity = '1';
+                        reportDiv.style.transform = 'scale(1)';
+                        reportDiv.style.transition = 'all 0.2s ease';
+
+                        // Sauvegarder la position
+                        const rect = reportDiv.getBoundingClientRect();
+                        try {
+                            sessionStorage.setItem('linkReportPosition', JSON.stringify({
+                                x: rect.left,
+                                y: rect.top
+                            }));
+                        } catch (e) {
+                            // Ignorer les erreurs de sessionStorage
+                        }
+                    }
+                });
+
+                // ===============================================
+                // RESTAURATION DE POSITION ET ANIMATIONS
+                // ===============================================
+
+                // Restaurer la position précédente si elle existe
+                try {
+                    const savedPosition = sessionStorage.getItem('linkReportPosition');
+                    if (savedPosition) {
+                        const pos = JSON.parse(savedPosition);
+                        const constrained = constrainToScreen(pos.x, pos.y, 600, 400);
+                        reportDiv.style.left = constrained.x + 'px';
+                        reportDiv.style.top = constrained.y + 'px';
+                        reportDiv.style.right = 'auto';
+                    }
+                } catch (e) {
+                    // Ignorer les erreurs de parsing ou de sessionStorage
+                }
+
+                // Animation d'entrée
+                reportDiv.style.transition = 'all 0.3s ease';
+                reportDiv.style.transform = 'scale(0.9)';
+                reportDiv.style.opacity = '0';
+
+                requestAnimationFrame(() => {
+                    reportDiv.style.transform = 'scale(1)';
+                    reportDiv.style.opacity = '1';
+                });
+
+                // Dessiner le graphique de score
+                setTimeout(() => {
+                    drawScoreChart(results.score);
+                }, 100);
+
                 // Afficher les liens incohérents par défaut
-                document.getElementById('incoherent-links-btn').click();
+                setTimeout(() => {
+                    const incoherentBtn = document.getElementById('incoherent-links-btn');
+                    if (incoherentBtn) {
+                        incoherentBtn.click();
+                    }
+                }, 200);
 
                 // Rendre disponible globalement
                 window.linkRelevanceResults = results;
