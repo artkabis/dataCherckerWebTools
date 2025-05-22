@@ -6,6 +6,7 @@ import { dudaSitemap } from "./Functions/DudaSitemap.js";
 import { HnOutlineValidity } from "./Functions/HnOutlineValidity.js";
 import { downloaderWPMedia } from "./Functions/downloaderWPMedias.js";
 import { analyzeMetas } from "./Functions/metaAnalyzer.js";
+import { semanticLinks } from "./Functions/semanticLinksAnalyzer.js";
 
 document.addEventListener('DOMContentLoaded', () => {
   // Affichage de la version dans le popup
@@ -311,6 +312,13 @@ function setupTools() {
   document.getElementById("linksDuda").addEventListener("click", function () {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       dudaSitemap(tabs[0]);
+    });
+  });
+
+  // Outil vérification de la sémantique des ancres de lien
+  document.getElementById("semanticLinks").addEventListener("click", function () {
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      semanticLinks(tabs[0]);
     });
   });
 
