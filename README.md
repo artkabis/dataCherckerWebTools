@@ -132,10 +132,6 @@
 // Suggestions d'amélioration automatiques
 ```
 
-### Raccourcis clavier
-- `Ctrl + Shift + G` : Ouvrir le checker
-- `Ctrl + Shift + R` : Relancer l'analyse
-- `Ctrl + Shift + E` : Exporter le rapport
 
 ## 📊 Types de rapports
 
