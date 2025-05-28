@@ -109,15 +109,19 @@
 2. **Configuration Chrome/Edge**
    
    **Étape 1 :** Ouvrir `chrome://extensions/`
+
    ![Extensions](https://github.com/artkabis/toolsWP/blob/main/Solocal%20tools%2C%20tips%20%26%20fix/tools-cq-checker/Chrome-extension/globalCheckerWebsite/medias/open-extensions.JPG)
    
    **Étape 2 :** Activer le **Mode développeur**
+
    ![Mode dev](https://github.com/artkabis/toolsWP/blob/main/Solocal%20tools%2C%20tips%20%26%20fix/tools-cq-checker/Chrome-extension/globalCheckerWebsite/medias/mode-dev.JPG)
    
    **Étape 3 :** Charger l'**extension non empaquetée**
+
    ![Chargement](https://github.com/artkabis/toolsWP/blob/main/Solocal%20tools%2C%20tips%20%26%20fix/tools-cq-checker/Chrome-extension/globalCheckerWebsite/medias/extension-empaquetee.JPG)
    
    **Étape 4 :** Sélectionner le **dossier extrait**
+
    ![Sélection](https://github.com/artkabis/toolsWP/blob/main/Solocal%20tools%2C%20tips%20%26%20fix/tools-cq-checker/Chrome-extension/globalCheckerWebsite/medias/selection-dossier-extension.JPG)
 
 3. **Activation**
