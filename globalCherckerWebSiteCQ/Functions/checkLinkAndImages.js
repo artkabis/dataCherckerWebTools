@@ -1171,7 +1171,7 @@ function initcheckerLinksAndImages() {
               : "";
 
         if (url && verifExcludesUrls(url)) {
-          const delayTime = ($this.closest("dmRoot") && linksStackFilter.length > 99) ? 50 : 0;
+          const delayTime = ($this.closest("dmRoot") && linksStackFilter.length > 99) ? 35 : 0;
           await delay(delayTime);
 
           check(url, txtContent, t.target);

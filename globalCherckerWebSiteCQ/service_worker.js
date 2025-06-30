@@ -163,8 +163,9 @@ const cacheResource = (url) => {
 // ==================== CORS MANAGEMENT ====================
 
 // CORS Manager
+// CORSManager complet avec toutes les fonctionnalités originales + améliorations
 const CORSManager = {
-  // HTTP methods constants
+  // HTTP methods constants (conservées de l'original)
   DEFAULT_METHODS: [
     "GET", "PUT", "POST", "DELETE", "HEAD", "OPTIONS", "PATCH",
     "PROPFIND", "PROPPATCH", "MKCOL", "COPY", "MOVE", "LOCK",
@@ -174,7 +175,7 @@ const CORSManager = {
     "GET", "POST", "PUT", "OPTIONS", "PATCH", "PROPFIND", "PROPPATCH",
   ],
 
-  // Core ruleset functions
+  // Core ruleset functions (conservées de l'original)
   core: {
     "overwrite-origin": (isEnabled) => CORSManager.updateRules("overwrite-origin", isEnabled)
     // Other rules can be uncommented as needed
@@ -188,70 +189,133 @@ const CORSManager = {
     */
   },
 
-  // État amélioré avec compteur de référence
+  // État amélioré avec plus de détails
   _state: {
     isEnabled: false,
     refCount: 0,
     activeScans: new Set(),
     scanInProgress: false,
-    lastActionTimestamp: 0
+    lastActionTimestamp: 0,
+    lastRuleCheck: 0,
+    enableAttempts: 0
   },
 
-  // Activer CORS avec référence
+  // Vérifier que les règles sont réellement actives
+  async verifyRulesActive(expectedRules = ["overwrite-origin"]) {
+    try {
+      const enabledRulesets = await chrome.declarativeNetRequest.getEnabledRulesets();
+      const allActive = expectedRules.every(rule => enabledRulesets.includes(rule));
+
+      console.log(`Rules verification: expected ${expectedRules}, active ${enabledRulesets}, allActive: ${allActive}`);
+      return allActive;
+    } catch (error) {
+      console.error("Error verifying rules:", error);
+      return false;
+    }
+  },
+
+  // Activer CORS avec vérifications robustes
   async enable(scanId = null) {
     this._state.lastActionTimestamp = Date.now();
-
-    // Ajouter une référence
     this._state.refCount++;
+    this._state.enableAttempts++;
 
-    // Ajouter l'ID du scan s'il est fourni
     if (scanId) {
       this._state.activeScans.add(scanId);
     }
 
-    console.log(`CORS enable called. RefCount: ${this._state.refCount}, ActiveScans: ${this._state.activeScans.size}`);
+    console.log(`CORS enable called. RefCount: ${this._state.refCount}, Attempt: ${this._state.enableAttempts}`);
 
-    // Activer CORS seulement s'il n'est pas déjà activé
-    if (!this._state.isEnabled) {
-      this._state.scanInProgress = true;
-      await chrome.storage.sync.set({ corsEnabled: true });
-      this._state.isEnabled = true;
-
-      const ruleNames = ["overwrite-origin"];
-      for (const ruleName of ruleNames) {
-        await this.updateRules(ruleName, true);
-        console.log(`CORS rule ${ruleName} enabled`);
+    // Si déjà activé, vérifier quand même que les règles sont actives
+    if (this._state.isEnabled) {
+      const rulesActive = await this.verifyRulesActive();
+      if (rulesActive) {
+        console.log("CORS already enabled and rules verified active");
+        this.syncState();
+        return Promise.resolve();
+      } else {
+        console.warn("CORS marked as enabled but rules not active, forcing re-enable");
+        this._state.isEnabled = false; // Forcer la réactivation
       }
-
-      console.log(`CORS enabled for scanning. RefCount: ${this._state.refCount}`);
     }
 
-    // Synchroniser l'état avec state.cors
-    state.cors.isEnabled = this._state.isEnabled;
-    state.cors.scanInProgress = this._state.scanInProgress;
-    state.cors.refCount = this._state.refCount;
+    // Activer les règles
+    this._state.scanInProgress = true;
 
-    // Petit délai pour s'assurer que les règles sont appliquées
-    return new Promise(resolve => setTimeout(resolve, 200));
+    const ruleNames = ["overwrite-origin"];
+    let allRulesEnabled = true;
+
+    for (const ruleName of ruleNames) {
+      const success = await this.updateRules(ruleName, true);
+      if (!success) {
+        allRulesEnabled = false;
+        console.error(`Failed to enable rule: ${ruleName}`);
+      }
+    }
+
+    if (!allRulesEnabled) {
+      console.error("Some rules failed to enable, attempting retry...");
+      // Tentative supplémentaire après délai
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      for (const ruleName of ruleNames) {
+        await this.updateRules(ruleName, true);
+      }
+    }
+
+    // Attendre et vérifier plusieurs fois
+    const maxAttempts = 5;
+    let attempt = 0;
+    let rulesVerified = false;
+
+    while (attempt < maxAttempts && !rulesVerified) {
+      await new Promise(resolve => setTimeout(resolve, 200 + (attempt * 100)));
+      rulesVerified = await this.verifyRulesActive();
+
+      if (!rulesVerified) {
+        console.warn(`Rules verification failed, attempt ${attempt + 1}/${maxAttempts}`);
+        // Réessayer d'activer les règles
+        for (const ruleName of ruleNames) {
+          await this.updateRules(ruleName, true);
+        }
+      }
+
+      attempt++;
+    }
+
+    if (rulesVerified) {
+      await chrome.storage.sync.set({ corsEnabled: true });
+      this._state.isEnabled = true;
+      this._state.lastRuleCheck = Date.now();
+      console.log(`CORS successfully enabled after ${attempt} attempts`);
+    } else {
+      console.error("Failed to verify CORS rules after maximum attempts");
+      // Marquer comme partiellement activé pour permettre les tentatives
+      this._state.isEnabled = true;
+      await chrome.storage.sync.set({ corsEnabled: true });
+    }
+
+    // Synchroniser l'état
+    this.syncState();
+
+    return Promise.resolve();
   },
 
-  // Désactiver CORS avec gestion des références
+  // Désactiver avec vérifications (fonction originale améliorée)
   async disable(scanId = null) {
     this._state.lastActionTimestamp = Date.now();
 
-    // Réduire le compteur de référence
     if (this._state.refCount > 0) {
       this._state.refCount--;
     }
 
-    // Supprimer l'ID du scan s'il est fourni
     if (scanId && this._state.activeScans.has(scanId)) {
       this._state.activeScans.delete(scanId);
     }
 
     console.log(`CORS disable called. RefCount: ${this._state.refCount}, ActiveScans: ${this._state.activeScans.size}`);
 
-    // Désactiver CORS seulement si toutes les références sont libérées
+    // Désactiver seulement si toutes les références sont libérées
     if (this._state.isEnabled && this._state.refCount === 0 && this._state.activeScans.size === 0) {
       await chrome.storage.sync.set({ corsEnabled: false });
       this._state.isEnabled = false;
@@ -263,21 +327,18 @@ const CORSManager = {
         console.log(`CORS rule ${ruleName} disabled`);
       }
 
-      console.log(`CORS disabled after all scans complete`);
+      console.log("CORS disabled after all scans complete");
 
-      // Force disable une seconde fois pour plus de certitude
+      // Force disable une seconde fois pour plus de certitude (original)
       setTimeout(() => this.forceDisable(), 300);
     }
 
-    // Synchroniser l'état avec state.cors
-    state.cors.isEnabled = this._state.isEnabled;
-    state.cors.scanInProgress = this._state.scanInProgress;
-    state.cors.refCount = this._state.refCount;
-
+    // Synchroniser l'état
+    this.syncState();
     return Promise.resolve();
   },
 
-  // Obtenir l'état actuel des CORS
+  // Obtenir l'état actuel des CORS (fonction originale)
   getState() {
     return {
       isEnabled: this._state.isEnabled,
@@ -288,7 +349,7 @@ const CORSManager = {
     };
   },
 
-  // Force disable CORS (garantie supplémentaire)
+  // Force disable CORS (fonction originale conservée)
   forceDisable() {
     const ruleNames = ["overwrite-origin"];
     ruleNames.forEach(rule => {
@@ -306,22 +367,36 @@ const CORSManager = {
     this._state.scanInProgress = false;
 
     // Synchroniser l'état avec state.cors
-    state.cors.isEnabled = false;
-    state.cors.scanInProgress = false;
+    this.syncState();
 
     console.log("CORS force disabled - all state reset");
   },
 
-  // Mettre à jour les règles CORS (remplace toggle)
+  // Mettre à jour les règles CORS avec gestion d'erreurs améliorée
   async updateRules(rule, enable) {
-    console.log("updateCORSRules:", { rule, enable });
+    console.log(`Updating rule '${rule}' to ${enable ? 'enabled' : 'disabled'}`);
 
     try {
-      await chrome.declarativeNetRequest.updateEnabledRulesets(
-        enable
-          ? { enableRulesetIds: [rule] }
-          : { disableRulesetIds: [rule] }
-      );
+      const operation = enable
+        ? { enableRulesetIds: [rule] }
+        : { disableRulesetIds: [rule] };
+
+      await chrome.declarativeNetRequest.updateEnabledRulesets(operation);
+
+      // Vérification immédiate (nouvelle fonctionnalité)
+      const enabledRules = await chrome.declarativeNetRequest.getEnabledRulesets();
+      const isActive = enabledRules.includes(rule);
+
+      if (enable && !isActive) {
+        console.error(`Rule '${rule}' should be enabled but is not in active list`);
+        return false;
+      }
+
+      if (!enable && isActive) {
+        console.error(`Rule '${rule}' should be disabled but is still in active list`);
+        return false;
+      }
+
       console.log(`Rule '${rule}' ${enable ? 'enabled' : 'disabled'} successfully`);
       return true;
     } catch (error) {
@@ -330,27 +405,50 @@ const CORSManager = {
     }
   },
 
-  // Exécuter une tâche avec gestion sécurisée des CORS
+  // Exécuter une tâche avec gestion sécurisée des CORS (fonction originale améliorée)
   async runWithSafe(taskFunction, scanId = `scan-${Date.now()}`) {
-    try {
-      // Activer CORS avant la tâche
-      await this.enable(scanId);
-      console.log(`Task ${scanId} started with CORS enabled`);
+    const maxRetries = 3;
+    let attempt = 0;
 
-      // Exécuter la fonction passée en paramètre
-      const result = await taskFunction();
-      return result;
-    } catch (error) {
-      console.error(`Error during task ${scanId} execution:`, error);
-      throw error;
-    } finally {
-      // Désactiver CORS dans tous les cas, même en cas d'erreur
-      await this.disable(scanId);
-      console.log(`Task ${scanId} completed, CORS reference released`);
+    while (attempt < maxRetries) {
+      try {
+        // Vérifier l'état avant d'activer (nouveau)
+        await this.performHealthCheck();
+
+        // Activer CORS avant la tâche
+        await this.enable(scanId);
+        console.log(`Task ${scanId} started with CORS enabled (attempt ${attempt + 1})`);
+
+        // Vérifier que les règles sont réellement actives (nouveau)
+        const rulesActive = await this.verifyRulesActive();
+        if (!rulesActive) {
+          throw new Error("CORS rules not active after enable");
+        }
+
+        // Exécuter la fonction passée en paramètre
+        const result = await taskFunction();
+        return result;
+
+      } catch (error) {
+        console.error(`Error during task ${scanId} execution (attempt ${attempt + 1}):`, error);
+
+        if (attempt === maxRetries - 1) {
+          throw error; // Dernière tentative échouée
+        }
+
+        // Attendre avant de réessayer
+        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+        attempt++;
+
+      } finally {
+        // Désactiver CORS dans tous les cas, même en cas d'erreur
+        await this.disable(scanId);
+        console.log(`Task ${scanId} completed, CORS reference released`);
+      }
     }
   },
 
-  // Initialiser l'état des CORS au démarrage
+  // Initialiser l'état des CORS au démarrage (fonction originale)
   initState() {
     chrome.storage.sync.get("corsEnabled", (result) => {
       // Par défaut, on désactive les CORS au démarrage par sécurité
@@ -365,9 +463,8 @@ const CORSManager = {
       this._state.activeScans.clear();
       this._state.scanInProgress = false;
 
-      // Synchroniser l'état avec state.cors
-      state.cors.isEnabled = shouldBeEnabled;
-      state.cors.scanInProgress = false;
+      // Synchroniser l'état
+      this.syncState();
 
       const ruleNames = ["overwrite-origin"];
       ruleNames.forEach((ruleName) => {
@@ -378,7 +475,7 @@ const CORSManager = {
     });
   },
 
-  // Gestionnaire de messages pour la gestion des CORS
+  // Gestionnaire de messages pour la gestion des CORS (fonction originale)
   messageHandler(request, sender, sendResponse) {
     // Activer/désactiver CORS
     if (request.corsEnabled !== undefined) {
@@ -409,7 +506,7 @@ const CORSManager = {
     return false; // Indique que ce gestionnaire n'a pas traité le message
   },
 
-  // Configurer le cycle de vie pour la gestion des CORS
+  // Configurer le cycle de vie pour la gestion des CORS (fonction originale)
   setupLifecycle() {
     // Initialiser les CORS au démarrage
     this.initState();
@@ -431,6 +528,109 @@ const CORSManager = {
         }
       }
     }, 30000); // Vérifier toutes les 30 secondes
+  },
+
+  // === NOUVELLES FONCTIONS AJOUTÉES ===
+
+  // Synchroniser l'état avec state.cors
+  syncState() {
+    if (typeof state !== 'undefined' && state.cors) {
+      state.cors.isEnabled = this._state.isEnabled;
+      state.cors.scanInProgress = this._state.scanInProgress;
+      state.cors.refCount = this._state.refCount;
+    }
+  },
+
+  // Diagnostic amélioré
+  async performHealthCheck() {
+    console.group("🏥 CORS Health Check");
+
+    try {
+      const internalState = this._state.isEnabled;
+      const storageData = await chrome.storage.sync.get(["corsEnabled"]);
+      const storageState = storageData.corsEnabled;
+      const rulesActive = await this.verifyRulesActive();
+
+      const issues = [];
+
+      if (internalState !== storageState) {
+        issues.push("Internal state mismatch with storage");
+      }
+
+      if (internalState && !rulesActive) {
+        issues.push("CORS enabled but rules not active");
+      }
+
+      if (!internalState && rulesActive) {
+        issues.push("CORS disabled but rules still active");
+      }
+
+      if (this._state.refCount > 0 && this._state.activeScans.size === 0) {
+        issues.push("Ref count > 0 but no active scans");
+      }
+
+      const result = {
+        healthy: issues.length === 0,
+        issues: issues,
+        state: {
+          internal: internalState,
+          storage: storageState,
+          rulesActive: rulesActive,
+          refCount: this._state.refCount,
+          activeScans: this._state.activeScans.size,
+          enableAttempts: this._state.enableAttempts
+        }
+      };
+
+      console.log("Health check result:", result);
+
+      // Auto-réparation si problème détecté
+      if (!result.healthy) {
+        console.log("Issues detected, attempting auto-repair...");
+        await this.autoRepair();
+      }
+
+      return result;
+    } catch (error) {
+      console.error("Health check failed:", error);
+      return { healthy: false, error: error.message };
+    } finally {
+      console.groupEnd();
+    }
+  },
+
+  // Auto-réparation
+  async autoRepair() {
+    console.log("🔧 Starting auto-repair...");
+
+    try {
+      // 1. Forcer la désactivation complète
+      await this.forceDisable();
+
+      // 2. Attendre un peu
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // 3. Réinitialiser l'état
+      this._state.isEnabled = false;
+      this._state.refCount = 0;
+      this._state.activeScans.clear();
+      this._state.scanInProgress = false;
+
+      // 4. Synchroniser avec le storage
+      await chrome.storage.sync.set({ corsEnabled: false });
+
+      // 5. Vérifier que tout est bien désactivé
+      const rulesStillActive = await this.verifyRulesActive();
+      if (rulesStillActive) {
+        console.warn("Rules still active after repair, manual intervention may be needed");
+      }
+
+      console.log("Auto-repair completed");
+      return true;
+    } catch (error) {
+      console.error("Auto-repair failed:", error);
+      return false;
+    }
   }
 };
 // ==================== SCRIPT INJECTION & ANALYSIS ====================
