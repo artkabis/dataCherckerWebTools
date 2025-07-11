@@ -563,7 +563,7 @@ Ce projet est sous licence MIT. Voir [LICENSE](LICENSE) pour détails complets.
 
 - **🐛 Bug Reports** : [GitHub Issues](https://github.com/artkabis/dataCherckerWebTools/issues)
 - **💡 Feature Requests** : [GitHub Discussions](https://github.com/artkabis/dataCherckerWebTools/discussions)  
-- **📧 Contact** : [artkabis@example.com](mailto:artkabis@example.com)
+- **📧 Contact** : [artkabis.entreprise@gmail.com](mailto:artkabis.entreprise@gmail.com)
 - **🌐 Site web** : [perfectlinks.artkabis.fr](https://perfectlinks.artkabis.fr)
 
 ### 🙏 Remerciements
