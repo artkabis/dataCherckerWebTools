@@ -1175,6 +1175,7 @@ function initcheckerLinksAndImages() {
           await delay(delayTime);
 
           check(url, txtContent, t.target);
+          (url?.at(-1) === "#") && console.log('%cAttention, le lien est une ancre interne pouvant poser problème : ' + url, 'color:orange;');
 
           if (url.includes("linkedin")) {
             console.log(

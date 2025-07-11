@@ -287,8 +287,20 @@ const CORSManager = {
       await chrome.storage.sync.set({ corsEnabled: true });
       this._state.isEnabled = true;
       this._state.lastRuleCheck = Date.now();
+
+      // 🔴 NOUVEAU : Afficher le badge rouge
+      chrome.action.setBadgeText({ text: 'CORS' });
+      chrome.action.setBadgeBackgroundColor({ color: '#CC0000' }); // Rouge foncé
+      chrome.action.setBadgeTextColor({ color: 'white' });
+      chrome.action.setTitle({ title: 'Website Health Checker - CORS Activé' });
       console.log(`CORS successfully enabled after ${attempt} attempts`);
     } else {
+
+      // 🔴 NOUVEAU : Afficher le badge même en cas de problème
+      chrome.action.setBadgeText({ text: 'CORS' });
+      chrome.action.setBadgeBackgroundColor({ color: '#CC0000' }); // Rouge foncé
+      chrome.action.setTitle({ title: 'Website Health Checker - CORS Activé' });
+      chrome.action.setBadgeTextColor({ color: 'white' });
       console.error("Failed to verify CORS rules after maximum attempts");
       // Marquer comme partiellement activé pour permettre les tentatives
       this._state.isEnabled = true;
@@ -328,6 +340,9 @@ const CORSManager = {
       }
 
       console.log("CORS disabled after all scans complete");
+      // 🔴 NOUVEAU : Enlever le badge
+      chrome.action.setBadgeText({ text: '' });
+      chrome.action.setTitle({ title: 'Website Health Checker' });
 
       // Force disable une seconde fois pour plus de certitude (original)
       setTimeout(() => this.forceDisable(), 300);
@@ -368,6 +383,9 @@ const CORSManager = {
 
     // Synchroniser l'état avec state.cors
     this.syncState();
+    // 🔴 NOUVEAU : Enlever le badge lors du force disable
+    chrome.action.setBadgeText({ text: '' });
+    chrome.action.setTitle({ title: 'Website Health Checker' });
 
     console.log("CORS force disabled - all state reset");
   },
@@ -469,7 +487,17 @@ const CORSManager = {
       const ruleNames = ["overwrite-origin"];
       ruleNames.forEach((ruleName) => {
         this.updateRules(ruleName, shouldBeEnabled);
+
       });
+      // 🔴 NOUVEAU : Initialiser le badge au démarrage
+      if (shouldBeEnabled) {
+        chrome.action.setBadgeText({ text: '·' });
+        chrome.action.setBadgeBackgroundColor({ color: '#FF0000' });
+        chrome.action.setTitle({ title: 'Website Health Checker - CORS Activé' });
+      } else {
+        chrome.action.setBadgeText({ text: '' });
+        chrome.action.setTitle({ title: 'Website Health Checker' });
+      }
 
       console.log("CORS state initialized:", shouldBeEnabled);
     });

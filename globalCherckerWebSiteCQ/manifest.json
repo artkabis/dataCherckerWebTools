@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Health checker Website",
-  "version": "4.1.5",
+  "version": "4.1.8",
   "background": {
     "service_worker": "service_worker.js",
     "type": "module"
