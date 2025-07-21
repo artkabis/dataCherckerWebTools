@@ -1496,6 +1496,70 @@ const handleUserSoprod = async (user) => {
   await checkDatas(user);
 };
 
+
+
+/**
+ * Cette fonction vérifie si un onglet donné correspond à l'URL de Soprod
+ * et injecte le script si c'est le cas.
+ * @param {number} tabId L'ID de l'onglet à vérifier.
+ */
+function injectScriptIfSoprod(tabId) {
+  // S'assure que tabId est valide
+  if (!tabId) {
+    return;
+  }
+
+  // On récupère les détails de l'onglet pour avoir son URL
+  chrome.tabs.get(tabId, (tab) => {
+    // Vérifie si l'onglet existe toujours et si son URL est accessible
+    // chrome.runtime.lastError est une vérification de sécurité
+    if (chrome.runtime.lastError || !tab || !tab.url) {
+      // console.error(chrome.runtime.lastError?.message || "Tab or URL not found.");
+      return;
+    }
+
+    // On vérifie si l'URL de l'onglet correspond au pattern de Soprod
+    if (tab.url.includes("solocalms.fr")) {
+      console.log(`Tab ${tabId} is a Soprod tab. Injecting script...`);
+
+      // Injection du script depuis le fichier local
+      chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['./Functions/soprodDOMTime.js']
+      })
+        .then(() => {
+          console.log("Script 'soprodDOMTime.js' injected successfully.");
+        })
+        .catch(err => {
+          console.error("Failed to inject script:", err);
+        });
+    } else {
+      console.log(`Tab ${tabId} is not a Soprod tab. No action taken.`);
+    }
+  });
+}
+
+/**
+ * Écouteur pour le changement d'onglet actif.
+ * Se déclenche lorsque l'utilisateur clique sur un autre onglet.
+ */
+chrome.tabs.onActivated.addListener((activeInfo) => {
+  console.log("User switched tabs. Checking new active tab...");
+  injectScriptIfSoprod(activeInfo.tabId);
+});
+
+/**
+ * Écouteur pour la mise à jour d'un onglet.
+ * Se déclenche lorsqu'une page est chargée ou rechargée.
+ * On vérifie que la page est complètement chargée ('complete').
+ */
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete') {
+    console.log("A tab has finished loading. Checking it...");
+    injectScriptIfSoprod(tabId);
+  }
+});
+
 // Interface window management
 const InterfaceManager = {
   // Open or replace interface window
