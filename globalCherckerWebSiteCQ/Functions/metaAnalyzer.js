@@ -28,8 +28,8 @@ export const analyzeMetas = async (tab) => {
             const metaDesc = document.querySelector('meta[name="description"]')?.getAttribute('content') || '';
 
             // Analyse des balises meta
-            const titleLength = metaTitle.length;
-            const descLength = metaDesc.length;
+            const titleLength = metaTitle.trim().length;
+            const descLength = metaDesc.trim().length;
 
             const titleValid = titleLength >= MIN_META_TITLE_CARACTERE && titleLength <= MAX_META_TITLE_CARACTERE;
             const descValid = descLength >= MIN_META_DESC_CARACTERE && descLength <= MAX_META_DESC_CARACTERE;

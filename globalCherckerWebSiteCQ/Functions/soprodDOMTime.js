@@ -3,12 +3,13 @@
  * du bookmarklet fourni. Il a pour but de :
  * 1. Trouver un champ de saisie de code postal sur la page.
  * 2. Détecter si le code postal correspond à un DOM-TOM.
- * 3. Afficher l'heure locale du DOM-TOM correspondant dans un encadré.
+ * 3. Afficher l'heure locale du DOM-TOM correspondant dans un encadré UNIQUEMENT si différente.
  */
 
 // Utilisation d'une fonction anonyme auto-invoquée (IIFE)
 // pour ne pas polluer l'environnement global de la page.
 (() => {
+
     // Objet de configuration contenant les préfixes des codes postaux
     // des DOM-TOM et leur décalage horaire par rapport à UTC.
     const timeZoneOffsets = {
@@ -90,10 +91,28 @@
         // Construit le contenu HTML à afficher
         let content = `Votre heure :<br><span style="color: #4dabf7; font-size: 2em; font-weight: bold;">${currentTime}</span>`;
         if (adjustedTime && country) {
-            content += `<br><br>Heure à ${country} :<br><span style="color: #ff8787; font-size: 2em; font-weight: bold;">${adjustedTime}</span>`;
+            content += `<br><br>Heure : ${country} :<br><span style="color: #ff8787; font-size: 2em; font-weight: bold;">${adjustedTime}</span>`;
         }
 
         timeDiv.innerHTML = content;
+    }
+
+    /**
+     * Supprime la div d'affichage si elle existe.
+     */
+    function removeTimeDiv() {
+        const timeDiv = document.getElementById('domTomTimeDiv');
+        if (timeDiv) {
+            timeDiv.remove();
+        }
+    }
+
+    /**
+     * Calcule le décalage horaire actuel de l'utilisateur en heures par rapport à UTC.
+     * @returns {number} Le décalage en heures (ex: -1 pour UTC+1 en heure d'hiver).
+     */
+    function getUserTimezoneOffset() {
+        return -new Date().getTimezoneOffset() / 60;
     }
 
     /**
@@ -122,14 +141,22 @@
                     }
                 }
 
-                const userCurrentTime = formatTime(new Date());
-
+                // CONDITION PRINCIPALE : n'afficher que si il y a un décalage différent
                 if (targetOffset !== null) {
-                    const adjustedTime = getAdjustedTime(targetOffset);
-                    injectTimeDiv(userCurrentTime, adjustedTime, countryName);
+                    const userOffset = getUserTimezoneOffset();
+
+                    // Si le décalage du DOM-TOM est différent de celui de l'utilisateur
+                    if (targetOffset !== userOffset) {
+                        const userCurrentTime = formatTime(new Date());
+                        const adjustedTime = getAdjustedTime(targetOffset);
+                        injectTimeDiv(userCurrentTime, adjustedTime, countryName);
+                    } else {
+                        // Même fuseau horaire : on supprime l'affichage
+                        removeTimeDiv();
+                    }
                 } else {
-                    // Si aucun DOM-TOM ne correspond, on affiche juste l'heure locale
-                    injectTimeDiv(userCurrentTime);
+                    // Aucun DOM-TOM détecté : on supprime l'affichage
+                    removeTimeDiv();
                 }
             }
         });
