@@ -65,7 +65,7 @@ export const analyzeMetas = async (tab) => {
                 border-radius: 8px;
                 padding: 20px;
                 box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-                z-index: 100000;
+                z-index: 3333333333;
                 width: 500px;
                 max-width: 90vw;
                 max-height: 90vh;

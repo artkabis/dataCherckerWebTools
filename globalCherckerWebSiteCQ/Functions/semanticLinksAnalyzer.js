@@ -118,7 +118,7 @@ export const semanticLinks = (tab) => {
                 // Contact et communication
                 contact: {
                     variants: [
-                        'contact', 'contactez', 'nous contacter', 'me contacter', 'formulaire', 'message',
+                        'contact', 'contactez', 'nous contacter', 'contactez-nous', 'me contacter', 'formulaire', 'message',
                         'écrire', 'écrivez', 'coordonnées', 'adresse', 'téléphone', 'tel', 'mail', 'email',
                         'courriel', 'joindre', 'appeler', 'appelez', 'demande', 'devis', 'rdv', 'rendez-vous',
                         'discussion', 'échange', 'dialogue', 'correspondance', 'communication', 'parler',

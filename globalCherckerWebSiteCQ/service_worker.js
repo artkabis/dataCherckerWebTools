@@ -1,25 +1,49 @@
+/**
+ * Service Worker Modernisé - Health Checker Website
+ * Version corrigée avec appState et fonctions manquantes
+ */
+
 "use strict";
 
+// === IMPORTS MODERNES ===
+import { CORSManager } from "./core/CORSManager.js";
 import { createDB } from "./Functions/createIndexDB.js";
 import { SitemapAnalyzer } from "./Functions/sitemapAnalyzer.js";
 import { CONFIG, initConfig } from "./config.js";
 
-// ==================== STATE MANAGEMENT ====================
+// === INSTANCES GLOBALES ===
+const corsManager = new CORSManager();
 
-// Application state
-const state = {
-  config: null,
-  sitemapAnalyzer: null,
-  user: null,
-  allTabs: [],
-  globalData: {},
-  dbName: "db_datas_checker",
-  processStep: 0,
-  cors: {
-    isEnabled: false,
-    scanInProgress: false
+// === STATE MANAGEMENT MODERNE AVEC CLASSE ===
+class ApplicationState {
+  constructor() {
+    this.config = null;
+    this.sitemapAnalyzer = null;
+    this.user = null;
+    this.allTabs = [];
+    this.globalData = {};
+    this.dbName = "db_datas_checker";
+    this.processStep = 0;
+    this.cors = {
+      isEnabled: false,
+      scanInProgress: false
+    };
   }
-};
+
+  async reset() {
+    this.sitemapAnalyzer = null;
+    this.globalData = {};
+    await this.#resetProcessStep();
+  }
+
+  async #resetProcessStep() {
+    await chrome.storage.local.set({ 'processStep': 0 });
+  }
+}
+
+const appState = new ApplicationState();
+
+// Helper function pour les messages Chrome
 function sendMessagePromise(tabId, message) {
   return new Promise((resolve, reject) => {
     chrome.tabs.sendMessage(tabId, message, response => {
@@ -31,61 +55,446 @@ function sendMessagePromise(tabId, message) {
     });
   });
 }
-// Process step management
-const ProcessStepManager = {
-  async get() {
+
+// === PROCESS STEP MANAGER MODERNISÉ ===
+class ProcessStepManager {
+  static async get() {
     const result = await chrome.storage.local.get(['processStep']);
     return result.processStep || 0;
-  },
+  }
 
-  async increment() {
+  static async increment() {
     const currentStep = await this.get();
     const newStep = currentStep + 1;
     await chrome.storage.local.set({ 'processStep': newStep });
-    console.log(`Process step incremented: ${currentStep} -> ${newStep}`);
+    console.log(`[Process] Step incremented: ${currentStep} -> ${newStep}`);
     return newStep;
-  },
+  }
 
-  async reset() {
-    console.log("Resetting process step");
+  static async reset() {
+    console.log("[Process] Resetting step");
     await chrome.storage.local.set({ 'processStep': 0 });
     return 0;
-  },
+  }
 
-  async validate() {
+  static async validate() {
     const step = await this.get();
     if (step > 2) {
-      console.warn(`Inconsistent process step (${step}), forced reset`);
+      console.warn(`[Process] Inconsistent step (${step}), forced reset`);
       return await this.reset();
     }
     return step;
   }
-};
+}
 
-// ==================== INITIALIZATION ====================
+// === ANALYZER MODERNISÉ ===
+class Analyzer {
+  /**
+   * Injecter les scripts d'analyse de manière moderne
+   */
+  static async injectScriptsForAnalysis(tabId) {
+    if (!tabId) {
+      throw new Error("[Analyzer] TabId is required to inject scripts");
+    }
 
-// Main initialization function
+    const analysisId = `page-analysis-${Date.now()}`;
+    console.log(`[Analyzer] Injecting scripts into tab ${tabId}, ID: ${analysisId}`);
+
+    try {
+      // Activer CORS avec le nouveau manager
+      await corsManager.enable(analysisId);
+
+      // Injection moderne avec gestion d'erreur
+      await this.#injectCoreScripts(tabId);
+      await this.#waitAndInjectAnalysisScripts(tabId);
+
+      // Attendre la fin d'analyse avec timeout plus long
+      await this.#waitForAnalysisComplete(analysisId, tabId);
+
+    } catch (error) {
+      console.error(`[Analyzer] Error in analysis ${analysisId}:`, error);
+      throw error;
+    } finally {
+      // S'assurer que CORS est désactivé
+      await corsManager.disable(analysisId);
+      console.log(`[Analyzer] CORS disabled after analysis ${analysisId}`);
+    }
+  }
+
+  /**
+   * Démarrer une analyse avec gestion CORS sécurisée
+   */
+  static async startAnalysis(source, mode = 'sitemap') {
+    const analysisId = `analysis-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+    try {
+      console.log(`[Analyzer] Starting ${mode} analysis, ID: ${analysisId}`);
+
+      // Réinitialiser les états
+      await chrome.storage.local.set({ 'linksAnalysisComplete': false });
+
+      // Créer l'analyseur avec configuration
+      appState.sitemapAnalyzer = new SitemapAnalyzer({
+        batchSize: 3,
+        pauseBetweenBatches: 750,
+        tabTimeout: 45000,
+        maxRetries: 2,
+        analysisId
+      });
+
+      // Configuration des écouteurs
+      this.#setupAnalyzerListeners(analysisId);
+
+      // Utiliser le CORSManager moderne avec runWithSafe
+      const results = await corsManager.runWithSafe(async () => {
+        if (mode === 'urlList' && Array.isArray(source)) {
+          console.log(`[Analyzer] Analyzing ${source.length} URLs`);
+          return await appState.sitemapAnalyzer.startWithUrlList(source);
+        } else {
+          console.log(`[Analyzer] Analyzing sitemap: ${source}`);
+          return await appState.sitemapAnalyzer.start(source);
+        }
+      }, analysisId);
+
+      // Stocker les résultats
+      await chrome.storage.local.set({ 'sitemapAnalysis': results });
+      console.log(`[Analyzer] Analysis ${analysisId} completed successfully`);
+
+      return results;
+
+    } catch (error) {
+      console.error(`[Analyzer] Error in analysis ${analysisId}:`, error);
+      appState.sitemapAnalyzer = null;
+      throw error;
+    }
+  }
+
+  // === MÉTHODES PRIVÉES ===
+
+  static async #injectCoreScripts(tabId) {
+    console.log(`[Analyzer] Injecting core scripts into tab ${tabId}`);
+    return chrome.scripting.executeScript({
+      target: { tabId },
+      files: [
+        "./assets/jquery-3.6.4.min.js",
+        "./Functions/clear.js",
+        "./assets/console.image.min.js",
+        "./Functions/checkAndAddJquery.js",
+        "./Functions/settingsOptions.js",
+      ],
+    });
+  }
+
+  static async #waitAndInjectAnalysisScripts(tabId) {
+    // Délai pour s'assurer que jQuery est chargé
+    await new Promise(resolve => setTimeout(resolve, 500)); // Augmenté à 500ms
+
+    console.log(`[Analyzer] Injecting analysis scripts into tab ${tabId}`);
+    return chrome.scripting.executeScript({
+      target: { tabId },
+      files: [
+        "./Functions/settingsWords.js",
+        "./Functions/dataCheckerSchema.js",
+        "./Functions/initLighthouse.js",
+        "./Functions/counterWords.js",
+        "./Functions/checkAltImages.js",
+        "./Functions/checkMetas.js",
+        "./Functions/checkLogoHeader.js",
+        "./Functions/checkOldRGPD.js",
+        "./Functions/checkBold.js",
+        "./Functions/checkOutlineHn.js",
+        "./Functions/checkColorContrast.js",
+        "./Functions/counterLettersHn.js",
+        "./Functions/initDataChecker.js",
+        "./Functions/checkDataBindingDuda.js",
+        "./Functions/checkBreakLinks.js",
+        "./Functions/checkLinkAndImages.js",
+      ],
+    });
+  }
+
+  static async #waitForAnalysisComplete(analysisId, tabId) {
+    console.log(`[Analyzer] Waiting for analysis completion ${analysisId}`);
+
+    return new Promise((resolve, reject) => {
+      let analysisComplete = false;
+      let messageListenerAdded = false;
+
+      const messageListener = (message) => {
+        if (message.action === 'dataCheckerAnalysisComplete') {
+          console.log(`[Analyzer] Analysis complete event received for ${analysisId}`);
+          analysisComplete = true;
+
+          if (messageListenerAdded) {
+            chrome.runtime.onMessage.removeListener(messageListener);
+          }
+
+          // Délai pour s'assurer que toutes les requêtes sont terminées
+          setTimeout(() => {
+            console.log(`[Analyzer] Analysis ${analysisId} fully complete`);
+            resolve();
+          }, 3000); // Augmenté à 3 secondes
+        }
+      };
+
+      // Ajouter l'écouteur
+      chrome.runtime.onMessage.addListener(messageListener);
+      messageListenerAdded = true;
+
+      // Vérifier périodiquement si l'analyse est terminée via le DOM
+      const checkInterval = setInterval(async () => {
+        try {
+          const results = await chrome.scripting.executeScript({
+            target: { tabId },
+            function: () => {
+              // Vérifier si window.dataCheckerAnalysisComplete existe et est true
+              return {
+                analysisComplete: window.dataCheckerAnalysisComplete || false,
+                dataChecker: window.dataChecker ? 'present' : 'missing'
+              };
+            }
+          });
+
+          const result = results[0]?.result;
+          if (result) {
+            console.log(`[Analyzer] DOM check for ${analysisId}:`, result);
+
+            if (result.analysisComplete && !analysisComplete) {
+              console.log(`[Analyzer] Analysis completed detected via DOM check for ${analysisId}`);
+              analysisComplete = true;
+              clearInterval(checkInterval);
+
+              if (messageListenerAdded) {
+                chrome.runtime.onMessage.removeListener(messageListener);
+              }
+
+              setTimeout(resolve, 2000);
+            }
+          }
+        } catch (error) {
+          console.log(`[Analyzer] DOM check error for ${analysisId}:`, error);
+          // Continue checking
+        }
+      }, 2000); // Vérifier toutes les 2 secondes
+
+      // Timeout de sécurité augmenté
+      setTimeout(() => {
+        if (!analysisComplete) {
+          console.warn(`[Analyzer] Timeout reached for analysis ${analysisId}, completing anyway`);
+          clearInterval(checkInterval);
+
+          if (messageListenerAdded) {
+            chrome.runtime.onMessage.removeListener(messageListener);
+          }
+
+          // Résoudre quand même pour éviter de bloquer
+          resolve();
+        }
+      }, 30000); // Augmenté à 30 secondes
+    });
+  }
+
+  static #setupAnalyzerListeners(analysisId) {
+    // Écouteur de progression
+    appState.sitemapAnalyzer.on('progress', (progress) => {
+      progress.analysisId = analysisId;
+      chrome.runtime.sendMessage({
+        action: 'analysisProgress',
+        progress
+      });
+    });
+
+    // Écouteur d'état d'analyse de liens
+    appState.sitemapAnalyzer.on('linksAnalysisStatus', (status) => {
+      status.analysisId = analysisId;
+      chrome.runtime.sendMessage({
+        action: 'linksAnalysisStatus',
+        status
+      });
+
+      if (status.completed) {
+        chrome.storage.local.set({
+          'linksAnalysisComplete': true,
+          'linksAnalysisId': analysisId
+        });
+      }
+    });
+
+    // Écouteur d'achèvement
+    appState.sitemapAnalyzer.on('complete', async (results) => {
+      results.analysisId = analysisId;
+
+      console.log(`[Analyzer] Complete results for ${analysisId}:`, results);
+
+      await chrome.storage.local.set({
+        'sitemapAnalysis': results,
+        'analysisCompleteId': analysisId,
+        'analysisCompleteTime': Date.now()
+      });
+
+      this.#checkAllAnalysesComplete(results);
+      appState.sitemapAnalyzer = null;
+    });
+  }
+
+  static #checkAllAnalysesComplete(results) {
+    chrome.storage.local.get(['linksAnalysisComplete'], (data) => {
+      const allComplete = data.linksAnalysisComplete || results?.analysisComplete === true;
+
+      if (allComplete) {
+        console.log('[Analyzer] All analyses complete');
+
+        chrome.runtime.sendMessage({
+          action: 'allAnalysesComplete',
+          results: results
+        });
+
+        // Reset pour futures analyses
+        chrome.storage.local.set({ 'linksAnalysisComplete': false });
+      }
+    });
+  }
+
+  // Méthodes additionnelles pour compatibilité avec votre code existant
+  static async analyzeURLWithLinks(url) {
+    let tab = null;
+    console.group(`🔍 [Analyzer] Analyzing links for: ${url}`);
+
+    try {
+      // Create new tab for analysis
+      tab = await chrome.tabs.create({
+        url: url,
+        active: false
+      });
+
+      // Wait for page to load completely
+      await new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          reject(new Error('Timeout: page loading took too long'));
+        }, 30000);
+
+        chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
+          if (tabId === tab.id && info.status === 'complete') {
+            chrome.tabs.onUpdated.removeListener(listener);
+            clearTimeout(timeoutId);
+            resolve();
+          }
+        });
+      });
+
+      console.log('[Analyzer] Page loaded, injecting checkLinks.js module');
+
+      // Inject necessary dependencies
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: [
+          "./assets/jquery-3.6.4.min.js",
+          "./Functions/checkAndAddJquery.js",
+          "./Functions/settingsOptions.js"
+        ]
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Inject checkLinks.js module
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ["./Functions/checkLinks.js"]
+      });
+
+      console.log('[Analyzer] checkLinks.js module injected, starting analysis');
+
+      // Start links analysis
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        function: () => {
+          if (typeof window.startLinksAnalysis === 'function') {
+            console.log('Starting links analysis');
+            window.startLinksAnalysis();
+
+            window.addEventListener('linksAnalysisComplete', (event) => {
+              console.log('Links analysis complete, sending results to service worker');
+              chrome.runtime.sendMessage({
+                action: 'linksAnalysisComplete',
+                detail: event.detail
+              });
+            });
+          } else {
+            console.error('checkLinks.js module not found or not initialized');
+          }
+        }
+      });
+
+      // Wait for links analysis to complete
+      await this.waitForLinksAnalysisComplete(tab.id);
+
+      if (tab) {
+        await chrome.tabs.remove(tab.id);
+        console.log('[Analyzer] Tab closed after link analysis');
+      }
+
+      console.groupEnd();
+      return { url, status: 'analyzed' };
+
+    } catch (error) {
+      console.error('[Analyzer] Error during link analysis:', error);
+      if (tab) {
+        try {
+          await chrome.tabs.remove(tab.id);
+        } catch (e) {
+          console.error('[Analyzer] Error closing tab:', e);
+        }
+      }
+      console.groupEnd();
+      throw error;
+    }
+  }
+
+  static waitForLinksAnalysisComplete(tabId) {
+    return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error('Timeout: links analysis took too long'));
+      }, 60000);
+
+      function checkStatus() {
+        chrome.scripting.executeScript({
+          target: { tabId },
+          function: () => {
+            return window.isLinksAnalysisComplete ? window.isLinksAnalysisComplete() : false;
+          }
+        })
+          .then(result => {
+            if (result[0].result === true) {
+              clearTimeout(timeoutId);
+              resolve();
+            } else {
+              setTimeout(checkStatus, 1000);
+            }
+          })
+          .catch(error => {
+            clearTimeout(timeoutId);
+            reject(error);
+          });
+      }
+
+      checkStatus();
+    });
+  }
+}
+
+// === INITIALISATION MODERNE ===
 const initialize = async () => {
-  // Reset process step at startup
   await ProcessStepManager.reset();
-
-  // Initialize configuration
-  state.config = await initConfig();
-  console.log("Configuration initialized:", state.config);
-
-  // Setup CORS lifecycle
-  CORSManager.setupLifecycle();
-
-  // Detect Soprod tabs at startup
+  appState.config = await initConfig();
+  console.log("[App] Configuration initialized:", appState.config);
+  // Note: corsManager.setupLifecycle() est appelé automatiquement dans le constructeur
   await detectTabsAndInterfaces();
 };
 
-// Initialize immediately
+// Initialiser immédiatement
 initialize();
 
-// ==================== RESOURCE CACHING ====================
-
-// List of resources to cache
+// === RESOURCE CACHING (gardé de votre code existant) ===
 const resourcesToCache = [
   "./popup.html",
   "./popup.js",
@@ -160,1209 +569,268 @@ const cacheResource = (url) => {
     });
 };
 
-// ==================== CORS MANAGEMENT ====================
-
-// CORS Manager
-// CORSManager complet avec toutes les fonctionnalités originales + améliorations
-const CORSManager = {
-  // HTTP methods constants (conservées de l'original)
-  DEFAULT_METHODS: [
-    "GET", "PUT", "POST", "DELETE", "HEAD", "OPTIONS", "PATCH",
-    "PROPFIND", "PROPPATCH", "MKCOL", "COPY", "MOVE", "LOCK",
-  ],
-
-  DEFAULT_STATUS_METHODS: [
-    "GET", "POST", "PUT", "OPTIONS", "PATCH", "PROPFIND", "PROPPATCH",
-  ],
-
-  // Core ruleset functions (conservées de l'original)
-  core: {
-    "overwrite-origin": (isEnabled) => CORSManager.updateRules("overwrite-origin", isEnabled)
-    // Other rules can be uncommented as needed
-    /*
-    'csp': (isEnabled) => CORSManager.updateRules('csp', isEnabled),
-    'allow-shared-array-buffer': (isEnabled) => CORSManager.updateRules('allow-shared-array-buffer', isEnabled),
-    'x-frame': (isEnabled) => CORSManager.updateRules('x-frame', isEnabled),
-    'allow-credentials': (isEnabled) => CORSManager.updateRules('allow-credentials', isEnabled),
-    'allow-headers': (isEnabled) => CORSManager.updateRules('allow-headers', isEnabled),
-    'referer': (isEnabled) => CORSManager.updateRules('referer', isEnabled),
-    */
-  },
-
-  // État amélioré avec plus de détails
-  _state: {
-    isEnabled: false,
-    refCount: 0,
-    activeScans: new Set(),
-    scanInProgress: false,
-    lastActionTimestamp: 0,
-    lastRuleCheck: 0,
-    enableAttempts: 0
-  },
-
-  // Vérifier que les règles sont réellement actives
-  async verifyRulesActive(expectedRules = ["overwrite-origin"]) {
-    try {
-      const enabledRulesets = await chrome.declarativeNetRequest.getEnabledRulesets();
-      const allActive = expectedRules.every(rule => enabledRulesets.includes(rule));
-
-      console.log(`Rules verification: expected ${expectedRules}, active ${enabledRulesets}, allActive: ${allActive}`);
-      return allActive;
-    } catch (error) {
-      console.error("Error verifying rules:", error);
-      return false;
-    }
-  },
-
-  // Activer CORS avec vérifications robustes
-  async enable(scanId = null) {
-    this._state.lastActionTimestamp = Date.now();
-    this._state.refCount++;
-    this._state.enableAttempts++;
-
-    if (scanId) {
-      this._state.activeScans.add(scanId);
-    }
-
-    console.log(`CORS enable called. RefCount: ${this._state.refCount}, Attempt: ${this._state.enableAttempts}`);
-
-    // Si déjà activé, vérifier quand même que les règles sont actives
-    if (this._state.isEnabled) {
-      const rulesActive = await this.verifyRulesActive();
-      if (rulesActive) {
-        console.log("CORS already enabled and rules verified active");
-        this.syncState();
-        return Promise.resolve();
-      } else {
-        console.warn("CORS marked as enabled but rules not active, forcing re-enable");
-        this._state.isEnabled = false; // Forcer la réactivation
-      }
-    }
-
-    // Activer les règles
-    this._state.scanInProgress = true;
-
-    const ruleNames = ["overwrite-origin"];
-    let allRulesEnabled = true;
-
-    for (const ruleName of ruleNames) {
-      const success = await this.updateRules(ruleName, true);
-      if (!success) {
-        allRulesEnabled = false;
-        console.error(`Failed to enable rule: ${ruleName}`);
-      }
-    }
-
-    if (!allRulesEnabled) {
-      console.error("Some rules failed to enable, attempting retry...");
-      // Tentative supplémentaire après délai
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      for (const ruleName of ruleNames) {
-        await this.updateRules(ruleName, true);
-      }
-    }
-
-    // Attendre et vérifier plusieurs fois
-    const maxAttempts = 5;
-    let attempt = 0;
-    let rulesVerified = false;
-
-    while (attempt < maxAttempts && !rulesVerified) {
-      await new Promise(resolve => setTimeout(resolve, 200 + (attempt * 100)));
-      rulesVerified = await this.verifyRulesActive();
-
-      if (!rulesVerified) {
-        console.warn(`Rules verification failed, attempt ${attempt + 1}/${maxAttempts}`);
-        // Réessayer d'activer les règles
-        for (const ruleName of ruleNames) {
-          await this.updateRules(ruleName, true);
-        }
-      }
-
-      attempt++;
-    }
-
-    if (rulesVerified) {
-      await chrome.storage.sync.set({ corsEnabled: true });
-      this._state.isEnabled = true;
-      this._state.lastRuleCheck = Date.now();
-
-      // 🔴 NOUVEAU : Afficher le badge rouge
-      chrome.action.setBadgeText({ text: 'CORS' });
-      chrome.action.setBadgeBackgroundColor({ color: '#CC0000' }); // Rouge foncé
-      chrome.action.setBadgeTextColor({ color: 'white' });
-      chrome.action.setTitle({ title: 'Website Health Checker - CORS Activé' });
-      console.log(`CORS successfully enabled after ${attempt} attempts`);
-    } else {
-
-      // 🔴 NOUVEAU : Afficher le badge même en cas de problème
-      chrome.action.setBadgeText({ text: 'CORS' });
-      chrome.action.setBadgeBackgroundColor({ color: '#CC0000' }); // Rouge foncé
-      chrome.action.setTitle({ title: 'Website Health Checker - CORS Activé' });
-      chrome.action.setBadgeTextColor({ color: 'white' });
-      console.error("Failed to verify CORS rules after maximum attempts");
-      // Marquer comme partiellement activé pour permettre les tentatives
-      this._state.isEnabled = true;
-      await chrome.storage.sync.set({ corsEnabled: true });
-    }
-
-    // Synchroniser l'état
-    this.syncState();
-
-    return Promise.resolve();
-  },
-
-  // Désactiver avec vérifications (fonction originale améliorée)
-  async disable(scanId = null) {
-    this._state.lastActionTimestamp = Date.now();
-
-    if (this._state.refCount > 0) {
-      this._state.refCount--;
-    }
-
-    if (scanId && this._state.activeScans.has(scanId)) {
-      this._state.activeScans.delete(scanId);
-    }
-
-    console.log(`CORS disable called. RefCount: ${this._state.refCount}, ActiveScans: ${this._state.activeScans.size}`);
-
-    // Désactiver seulement si toutes les références sont libérées
-    if (this._state.isEnabled && this._state.refCount === 0 && this._state.activeScans.size === 0) {
-      await chrome.storage.sync.set({ corsEnabled: false });
-      this._state.isEnabled = false;
-      this._state.scanInProgress = false;
-
-      const ruleNames = ["overwrite-origin"];
-      for (const ruleName of ruleNames) {
-        await this.updateRules(ruleName, false);
-        console.log(`CORS rule ${ruleName} disabled`);
-      }
-
-      console.log("CORS disabled after all scans complete");
-      // 🔴 NOUVEAU : Enlever le badge
-      chrome.action.setBadgeText({ text: '' });
-      chrome.action.setTitle({ title: 'Website Health Checker' });
-
-      // Force disable une seconde fois pour plus de certitude (original)
-      setTimeout(() => this.forceDisable(), 300);
-    }
-
-    // Synchroniser l'état
-    this.syncState();
-    return Promise.resolve();
-  },
-
-  // Obtenir l'état actuel des CORS (fonction originale)
-  getState() {
-    return {
-      isEnabled: this._state.isEnabled,
-      refCount: this._state.refCount,
-      activeScans: Array.from(this._state.activeScans),
-      scanInProgress: this._state.scanInProgress,
-      lastActionTimestamp: this._state.lastActionTimestamp
-    };
-  },
-
-  // Force disable CORS (fonction originale conservée)
-  forceDisable() {
-    const ruleNames = ["overwrite-origin"];
-    ruleNames.forEach(rule => {
-      chrome.declarativeNetRequest.updateEnabledRulesets({
-        disableRulesetIds: [rule]
-      })
-        .then(() => console.log(`Forced disable of rule '${rule}' successful`))
-        .catch(error => console.error(`Error during forced disable of '${rule}':`, error));
-    });
-
-    // Réinitialiser complètement l'état
-    this._state.isEnabled = false;
-    this._state.refCount = 0;
-    this._state.activeScans.clear();
-    this._state.scanInProgress = false;
-
-    // Synchroniser l'état avec state.cors
-    this.syncState();
-    // 🔴 NOUVEAU : Enlever le badge lors du force disable
-    chrome.action.setBadgeText({ text: '' });
-    chrome.action.setTitle({ title: 'Website Health Checker' });
-
-    console.log("CORS force disabled - all state reset");
-  },
-
-  // Mettre à jour les règles CORS avec gestion d'erreurs améliorée
-  async updateRules(rule, enable) {
-    console.log(`Updating rule '${rule}' to ${enable ? 'enabled' : 'disabled'}`);
-
-    try {
-      const operation = enable
-        ? { enableRulesetIds: [rule] }
-        : { disableRulesetIds: [rule] };
-
-      await chrome.declarativeNetRequest.updateEnabledRulesets(operation);
-
-      // Vérification immédiate (nouvelle fonctionnalité)
-      const enabledRules = await chrome.declarativeNetRequest.getEnabledRulesets();
-      const isActive = enabledRules.includes(rule);
-
-      if (enable && !isActive) {
-        console.error(`Rule '${rule}' should be enabled but is not in active list`);
-        return false;
-      }
-
-      if (!enable && isActive) {
-        console.error(`Rule '${rule}' should be disabled but is still in active list`);
-        return false;
-      }
-
-      console.log(`Rule '${rule}' ${enable ? 'enabled' : 'disabled'} successfully`);
-      return true;
-    } catch (error) {
-      console.error(`Error updating rule '${rule}':`, error);
-      return false;
-    }
-  },
-
-  // Exécuter une tâche avec gestion sécurisée des CORS (fonction originale améliorée)
-  async runWithSafe(taskFunction, scanId = `scan-${Date.now()}`) {
-    const maxRetries = 3;
-    let attempt = 0;
-
-    while (attempt < maxRetries) {
-      try {
-        // Vérifier l'état avant d'activer (nouveau)
-        await this.performHealthCheck();
-
-        // Activer CORS avant la tâche
-        await this.enable(scanId);
-        console.log(`Task ${scanId} started with CORS enabled (attempt ${attempt + 1})`);
-
-        // Vérifier que les règles sont réellement actives (nouveau)
-        const rulesActive = await this.verifyRulesActive();
-        if (!rulesActive) {
-          throw new Error("CORS rules not active after enable");
-        }
-
-        // Exécuter la fonction passée en paramètre
-        const result = await taskFunction();
-        return result;
-
-      } catch (error) {
-        console.error(`Error during task ${scanId} execution (attempt ${attempt + 1}):`, error);
-
-        if (attempt === maxRetries - 1) {
-          throw error; // Dernière tentative échouée
-        }
-
-        // Attendre avant de réessayer
-        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
-        attempt++;
-
-      } finally {
-        // Désactiver CORS dans tous les cas, même en cas d'erreur
-        await this.disable(scanId);
-        console.log(`Task ${scanId} completed, CORS reference released`);
-      }
-    }
-  },
-
-  // Initialiser l'état des CORS au démarrage (fonction originale)
-  initState() {
-    chrome.storage.sync.get("corsEnabled", (result) => {
-      // Par défaut, on désactive les CORS au démarrage par sécurité
-      const shouldBeEnabled = false;
-
-      if (result.corsEnabled !== shouldBeEnabled) {
-        chrome.storage.sync.set({ corsEnabled: shouldBeEnabled });
-      }
-
-      this._state.isEnabled = shouldBeEnabled;
-      this._state.refCount = 0;
-      this._state.activeScans.clear();
-      this._state.scanInProgress = false;
-
-      // Synchroniser l'état
-      this.syncState();
-
-      const ruleNames = ["overwrite-origin"];
-      ruleNames.forEach((ruleName) => {
-        this.updateRules(ruleName, shouldBeEnabled);
-
-      });
-      // 🔴 NOUVEAU : Initialiser le badge au démarrage
-      if (shouldBeEnabled) {
-        chrome.action.setBadgeText({ text: '·' });
-        chrome.action.setBadgeBackgroundColor({ color: '#FF0000' });
-        chrome.action.setTitle({ title: 'Website Health Checker - CORS Activé' });
-      } else {
-        chrome.action.setBadgeText({ text: '' });
-        chrome.action.setTitle({ title: 'Website Health Checker' });
-      }
-
-      console.log("CORS state initialized:", shouldBeEnabled);
-    });
-  },
-
-  // Gestionnaire de messages pour la gestion des CORS (fonction originale)
-  messageHandler(request, sender, sendResponse) {
-    // Activer/désactiver CORS
-    if (request.corsEnabled !== undefined) {
-      if (request.corsEnabled) {
-        this.enable(request.scanId || null).then(() => {
-          sendResponse && sendResponse({
-            success: true,
-            corsState: this.getState()
-          });
-        });
-      } else {
-        this.disable(request.scanId || null).then(() => {
-          sendResponse && sendResponse({
-            success: true,
-            corsState: this.getState()
-          });
-        });
-      }
-      return true;
-    }
-
-    // Obtenir l'état des CORS
-    if (request.action === 'getCORSStatus') {
-      sendResponse(this.getState());
-      return true;
-    }
-
-    return false; // Indique que ce gestionnaire n'a pas traité le message
-  },
-
-  // Configurer le cycle de vie pour la gestion des CORS (fonction originale)
-  setupLifecycle() {
-    // Initialiser les CORS au démarrage
-    this.initState();
-
-    // S'assurer que les CORS sont désactivés lorsque l'extension est suspendue
-    chrome.runtime.onSuspend.addListener(() => {
-      console.log("Extension being suspended, forced CORS disable");
-      this.forceDisable();
-    });
-
-    // Vérifier périodiquement si les CORS sont activés sans scan actif
-    setInterval(() => {
-      if (this._state.isEnabled && this._state.refCount === 0 && this._state.activeScans.size === 0) {
-        const idleTime = Date.now() - this._state.lastActionTimestamp;
-        // Si inactif depuis plus de 60 secondes, forcer la désactivation
-        if (idleTime > 60000) {
-          console.warn(`CORS has been enabled without active scans for ${idleTime}ms, forcing disable`);
-          this.forceDisable();
-        }
-      }
-    }, 30000); // Vérifier toutes les 30 secondes
-  },
-
-  // === NOUVELLES FONCTIONS AJOUTÉES ===
-
-  // Synchroniser l'état avec state.cors
-  syncState() {
-    if (typeof state !== 'undefined' && state.cors) {
-      state.cors.isEnabled = this._state.isEnabled;
-      state.cors.scanInProgress = this._state.scanInProgress;
-      state.cors.refCount = this._state.refCount;
-    }
-  },
-
-  // Diagnostic amélioré
-  async performHealthCheck() {
-    console.group("🏥 CORS Health Check");
-
-    try {
-      const internalState = this._state.isEnabled;
-      const storageData = await chrome.storage.sync.get(["corsEnabled"]);
-      const storageState = storageData.corsEnabled;
-      const rulesActive = await this.verifyRulesActive();
-
-      const issues = [];
-
-      if (internalState !== storageState) {
-        issues.push("Internal state mismatch with storage");
-      }
-
-      if (internalState && !rulesActive) {
-        issues.push("CORS enabled but rules not active");
-      }
-
-      if (!internalState && rulesActive) {
-        issues.push("CORS disabled but rules still active");
-      }
-
-      if (this._state.refCount > 0 && this._state.activeScans.size === 0) {
-        issues.push("Ref count > 0 but no active scans");
-      }
-
-      const result = {
-        healthy: issues.length === 0,
-        issues: issues,
-        state: {
-          internal: internalState,
-          storage: storageState,
-          rulesActive: rulesActive,
-          refCount: this._state.refCount,
-          activeScans: this._state.activeScans.size,
-          enableAttempts: this._state.enableAttempts
-        }
-      };
-
-      console.log("Health check result:", result);
-
-      // Auto-réparation si problème détecté
-      if (!result.healthy) {
-        console.log("Issues detected, attempting auto-repair...");
-        await this.autoRepair();
-      }
-
-      return result;
-    } catch (error) {
-      console.error("Health check failed:", error);
-      return { healthy: false, error: error.message };
-    } finally {
-      console.groupEnd();
-    }
-  },
-
-  // Auto-réparation
-  async autoRepair() {
-    console.log("🔧 Starting auto-repair...");
-
-    try {
-      // 1. Forcer la désactivation complète
-      await this.forceDisable();
-
-      // 2. Attendre un peu
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // 3. Réinitialiser l'état
-      this._state.isEnabled = false;
-      this._state.refCount = 0;
-      this._state.activeScans.clear();
-      this._state.scanInProgress = false;
-
-      // 4. Synchroniser avec le storage
-      await chrome.storage.sync.set({ corsEnabled: false });
-
-      // 5. Vérifier que tout est bien désactivé
-      const rulesStillActive = await this.verifyRulesActive();
-      if (rulesStillActive) {
-        console.warn("Rules still active after repair, manual intervention may be needed");
-      }
-
-      console.log("Auto-repair completed");
-      return true;
-    } catch (error) {
-      console.error("Auto-repair failed:", error);
-      return false;
-    }
-  }
-};
-// ==================== SCRIPT INJECTION & ANALYSIS ====================
-
-// Analyzer Module
-const Analyzer = {
-  // Inject scripts for page analysis
-  async injectScriptsForAnalysis(tabId) {
-    if (!tabId) {
-      console.error("Error: tabId is required to inject scripts");
-      return Promise.reject(new Error("No tabId provided"));
-    }
-
-    const analysisId = `page-analysis-${Date.now()}`;
-    console.log(`Injecting analysis scripts into tab ${tabId}, analysisId: ${analysisId}`);
-
-    // Activer explicitement CORS pour cette analyse
-    await CORSManager.enable(analysisId);
-
-    return new Promise((resolve, reject) => {
-      let scriptsInjected = false;
-      let analysisComplete = false;
-
-      // Premier ensemble de scripts
-      chrome.scripting.executeScript(
-        {
-          target: { tabId: tabId },
-          files: [
-            "./assets/jquery-3.6.4.min.js",
-            "./Functions/clear.js",
-            "./assets/console.image.min.js",
-            "./Functions/checkAndAddJquery.js",
-            "./Functions/settingsOptions.js",
-          ],
-        },
-        (injectionResults) => {
-          if (chrome.runtime.lastError) {
-            console.error("Error during script injection:", chrome.runtime.lastError);
-            CORSManager.disable(analysisId);
-            reject(chrome.runtime.lastError);
-            return;
-          }
-
-          console.log(`First set of scripts injected successfully for ${analysisId}`);
-
-          // Petit délai avant d'injecter le second ensemble
-          setTimeout(() => {
-            chrome.scripting.executeScript(
-              {
-                target: { tabId: tabId },
-                files: [
-                  "./Functions/settingsWords.js",
-                  "./Functions/dataCheckerSchema.js",
-                  "./Functions/initLighthouse.js",
-                  "./Functions/counterWords.js",
-                  "./Functions/checkAltImages.js",
-                  "./Functions/checkMetas.js",
-                  "./Functions/checkLogoHeader.js",
-                  "./Functions/checkOldRGPD.js",
-                  "./Functions/checkBold.js",
-                  "./Functions/checkOutlineHn.js",
-                  "./Functions/checkColorContrast.js",
-                  "./Functions/counterLettersHn.js",
-                  "./Functions/initDataChecker.js",
-                  "./Functions/checkDataBindingDuda.js",
-                  "./Functions/checkBreakLinks.js",
-                  "./Functions/checkLinkAndImages.js",
-                ],
-              },
-              (secondInjectionResults) => {
-                if (chrome.runtime.lastError) {
-                  console.error("Error during second set script injection:", chrome.runtime.lastError);
-                  CORSManager.disable(analysisId);
-                  reject(chrome.runtime.lastError);
-                } else {
-                  console.log(`Second set of scripts injected successfully for ${analysisId}`);
-                  scriptsInjected = true;
-
-                  // Si l'analyse est déjà terminée, résoudre maintenant
-                  if (analysisComplete) {
-                    CORSManager.disable(analysisId);
-                    resolve();
-                  }
-                }
-              }
-            );
-          }, 100); // Délai légèrement augmenté
-        }
-      );
-
-      // Écouter l'événement de fin d'analyse
-      const messageListener = (message) => {
-        if (message.action === 'dataCheckerAnalysisComplete') {
-          console.log(`Analysis complete event received for ${analysisId}`);
-          analysisComplete = true;
-
-          // Si les scripts sont injectés, c'est terminé
-          if (scriptsInjected) {
-            chrome.runtime.onMessage.removeListener(messageListener);
-
-            // Désactiver CORS après un délai pour s'assurer que toutes les requêtes sont terminées
-            setTimeout(() => {
-              CORSManager.disable(analysisId);
-              console.log(`CORS disabled after page analysis completion ${analysisId}`);
-              resolve();
-            }, 2000);
-          }
-        }
-      };
-
-      chrome.runtime.onMessage.addListener(messageListener);
-
-      // Timeout de sécurité (augmenté à 30s)
-      setTimeout(() => {
-        if (!analysisComplete) {
-          console.warn(`Timeout reached for analysis ${analysisId}, force completing`);
-          chrome.runtime.onMessage.removeListener(messageListener);
-          CORSManager.disable(analysisId);
-          // On résout quand même pour éviter de bloquer
-          resolve();
-        }
-      }, 15000);
-    });
-  },
-
-  // Start analysis with secure CORS handling
-  async startAnalysis(source, mode = 'sitemap') {
-    // Générer un ID unique pour cette analyse
-    const analysisId = `analysis-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-
-    try {
-      console.log(`Starting analysis in ${mode} mode, ID: ${analysisId}`);
-
-      // Réinitialiser les états d'analyse
-      await chrome.storage.local.set({
-        'linksAnalysisComplete': false
-      });
-
-      // Créer l'analyseur avec options améliorées
-      state.sitemapAnalyzer = new SitemapAnalyzer({
-        batchSize: 3,
-        pauseBetweenBatches: 750, // Augmenter pour réduire la charge
-        tabTimeout: 45000,        // Augmenter pour les pages lentes
-        maxRetries: 2,
-        analysisId: analysisId    // Transmettre l'ID d'analyse
-      });
-
-      // Configurer les écouteurs d'événements
-      this.setupAnalyzerListeners(analysisId);
-
-      // Activer CORS explicitement avant l'analyse
-      await CORSManager.enable(analysisId);
-      console.log(`CORS explicitly enabled for analysis ${analysisId}`);
-
-      try {
-        // Démarrer l'analyse
-        let results;
-        if (mode === 'urlList' && Array.isArray(source)) {
-          console.log(`Starting analysis of ${source.length} URLs with ID ${analysisId}`);
-          results = await state.sitemapAnalyzer.startWithUrlList(source);
-        } else {
-          console.log(`Starting sitemap analysis: ${source} with ID ${analysisId}`);
-          results = await state.sitemapAnalyzer.start(source);
-        }
-
-        // Stocker les résultats
-        await chrome.storage.local.set({ 'sitemapAnalysis': results });
-        console.log(`Analysis ${analysisId} completed successfully`);
-
-        return results;
-      } finally {
-        // S'assurer que CORS est désactivé à la fin, même en cas d'erreur
-        await CORSManager.disable(analysisId);
-        console.log(`CORS explicitly disabled after analysis ${analysisId}`);
-      }
-
-    } catch (error) {
-      console.error(`Error starting analysis ${analysisId}:`, error);
-      state.sitemapAnalyzer = null;
-
-      // S'assurer que CORS est désactivé en cas d'erreur
-      await CORSManager.disable(analysisId);
-      console.log(`CORS disabled after analysis error ${analysisId}`);
-
-      throw error;
-    }
-  },
-
-  // Mettre à jour la fonction setupAnalyzerListeners pour utiliser l'ID d'analyse
-  setupAnalyzerListeners(analysisId) {
-    // Écouteur de progression
-    state.sitemapAnalyzer.on('progress', (progress) => {
-      // Ajouter l'ID d'analyse aux informations de progression
-      progress.analysisId = analysisId;
-
-      // Diffuser la progression à toutes les pages d'analyse ouvertes
-      chrome.runtime.sendMessage({
-        action: 'analysisProgress',
-        progress: progress
-      });
-    });
-
-    // Écouteur d'état d'analyse de liens
-    state.sitemapAnalyzer.on('linksAnalysisStatus', (status) => {
-      // Ajouter l'ID d'analyse aux informations d'état
-      status.analysisId = analysisId;
-
-      // Diffuser l'état d'analyse des liens
-      chrome.runtime.sendMessage({
-        action: 'linksAnalysisStatus',
-        status: status
-      });
-
-      // Si l'analyse des liens est terminée, stocker l'état
-      if (status.completed) {
-        chrome.storage.local.set({
-          'linksAnalysisComplete': true,
-          'linksAnalysisId': analysisId
-        });
-      }
-    });
-
-    // Écouteur d'achèvement
-    state.sitemapAnalyzer.on('complete', async (results) => {
-      // Ajouter l'ID d'analyse aux résultats
-      results.analysisId = analysisId;
-
-      // Journaliser les résultats complets
-      console.log(`Complete results for analysis ${analysisId} before saving:`, results);
-
-      // Vérifier spécifiquement les données de liens
-      let totalLinks = 0;
-      let totalPages = 0;
-
-      Object.entries(results.results).forEach(([url, data]) => {
-        totalPages++;
-        if (data.link_check && Array.isArray(data.link_check.link)) {
-          totalLinks += data.link_check.link.length;
-          console.log(`Page ${url}: ${data.link_check.link.length} links`);
-        }
-      });
-
-      console.log(`Analysis ${analysisId} complete: ${totalPages} pages, ${totalLinks} links`);
-
-      // Sauvegarder les résultats
-      await chrome.storage.local.set({
-        'sitemapAnalysis': results,
-        'analysisCompleteId': analysisId,
-        'analysisCompleteTime': Date.now()
-      });
-
-      // Vérifier si toutes les analyses sont terminées
-      this.checkAllAnalysesComplete(results);
-
-      // Libérer explicitement la référence CORS
-      await CORSManager.disable(analysisId);
-      console.log(`CORS explicitly disabled after analysis completion ${analysisId}`);
-
-      state.sitemapAnalyzer = null; // Libérer la référence
-    });
-  },
-
-  // Check if all analyses are complete
-  checkAllAnalysesComplete(results) {
-    chrome.storage.local.get(['linksAnalysisComplete'], (data) => {
-      const allComplete = (data.linksAnalysisComplete) ||
-        (results && results.analysisComplete === true);
-
-      if (allComplete) {
-        console.log('All analyses are complete');
-
-        // Retrieve and combine analysis results
-        chrome.storage.local.get(['sitemapAnalysis', 'linksAnalysisResults'], (results) => {
-          // Enrich site analysis results with link results
-          if (results.sitemapAnalysis && results.linksAnalysisResults) {
-            console.log('Enriching results with link data');
-            // You can implement result merging logic here
-          }
-
-          // End of all analyses notification
-          chrome.runtime.sendMessage({
-            action: 'allAnalysesComplete',
-            results: results.sitemapAnalysis
-          });
-        });
-
-        // Reset states for future analyses
-        chrome.storage.local.set({
-          'linksAnalysisComplete': false
-        });
-      }
-    });
-  },
-
-  // Analyze URL with the checkLinks.js module
-  async analyzeURLWithLinks(url) {
-    let tab = null;
-    console.group(`🔍 Analyzing links for: ${url}`);
-
-    try {
-      // Create new tab for analysis
-      tab = await chrome.tabs.create({
-        url: url,
-        active: false
-      });
-
-      // Wait for page to load completely
-      await new Promise((resolve, reject) => {
-        const timeoutId = setTimeout(() => {
-          reject(new Error('Timeout: page loading took too long'));
-        }, 30000); // 30s timeout
-
-        chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
-          if (tabId === tab.id && info.status === 'complete') {
-            chrome.tabs.onUpdated.removeListener(listener);
-            clearTimeout(timeoutId);
-            resolve();
-          }
-        });
-      });
-
-      console.log('Page loaded, injecting checkLinks.js module');
-
-      // Inject necessary dependencies
-      await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        files: [
-          "./assets/jquery-3.6.4.min.js",
-          "./Functions/checkAndAddJquery.js",
-          "./Functions/settingsOptions.js"
-        ]
-      });
-
-      // Small delay to ensure jQuery is loaded
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Inject checkLinks.js module
-      await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        files: ["./Functions/checkLinks.js"]
-      });
-
-      console.log('checkLinks.js module injected, starting analysis');
-
-      // Start links analysis
-      await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        function: () => {
-          // Check if module is loaded
-          if (typeof window.startLinksAnalysis === 'function') {
-            console.log('Starting links analysis');
-            window.startLinksAnalysis();
-
-            // Create event listener for analysis completion
-            window.addEventListener('linksAnalysisComplete', (event) => {
-              console.log('Links analysis complete, sending results to service worker');
-              chrome.runtime.sendMessage({
-                action: 'linksAnalysisComplete',
-                detail: event.detail
-              });
-            });
-          } else {
-            console.error('checkLinks.js module not found or not initialized');
-          }
-        }
-      });
-
-      // Wait for links analysis to complete
-      await this.waitForLinksAnalysisComplete(tab.id);
-
-      // Close tab
-      if (tab) {
-        await chrome.tabs.remove(tab.id);
-        console.log('Tab closed after link analysis');
-      }
-
-      console.groupEnd();
-      return { url, status: 'analyzed' };
-
-    } catch (error) {
-      console.error('Error during link analysis:', error);
-      if (tab) {
-        try {
-          await chrome.tabs.remove(tab.id);
-        } catch (e) {
-          console.error('Error closing tab:', e);
-        }
-      }
-      console.groupEnd();
-      throw error;
-    }
-  },
-
-  // Wait for links analysis to complete
-  waitForLinksAnalysisComplete(tabId) {
-    return new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error('Timeout: links analysis took too long'));
-      }, 60000); // 60 seconds timeout
-
-      function checkStatus() {
-        chrome.scripting.executeScript({
-          target: { tabId },
-          function: () => {
-            return window.isLinksAnalysisComplete ? window.isLinksAnalysisComplete() : false;
-          }
-        })
-          .then(result => {
-            if (result[0].result === true) {
-              clearTimeout(timeoutId);
-              resolve();
-            } else {
-              // Check again after a short delay
-              setTimeout(checkStatus, 1000);
-            }
-          })
-          .catch(error => {
-            clearTimeout(timeoutId);
-            reject(error);
-          });
-      }
-
-      // Start checking
-      checkStatus();
-    });
-  }
-};
-
-// ==================== MESSAGE HANDLERS & EVENT LISTENERS ====================
-
-// Main message listener for extension
+// === GESTIONNAIRE DE MESSAGES MODERNISÉ ===
 chrome.runtime.onMessage.addListener(async function (request, sender, sendResponse) {
-  // === CORS MANAGEMENT ===
-  if (CORSManager.messageHandler(request, sender, sendResponse)) {
-    return true; // Message handled by CORS manager
-  }
+  try {
+    // Déléguer la gestion CORS au manager moderne
+    if (corsManager.handleMessage(request, sender, sendResponse)) {
+      return true;
+    }
 
-  // === ANALYSIS MANAGEMENT ===
-  // Sitemap analysis
-  if (request.action === 'startSitemapAnalysis') {
-    // Répondre immédiatement que l'analyse est démarrée
-    sendResponse({ status: 'started' });
+    // Gestion des analyses avec switch moderne
+    switch (request.action) {
+      case 'startSitemapAnalysis':
+        return await handleSitemapAnalysis(request, sendResponse);
 
-    // Ouvrir immédiatement la page de suivi de progression
-    chrome.tabs.create({
-      url: chrome.runtime.getURL('analysis-progress.html')
-    });
+      case 'startUrlListAnalysis':
+        return await handleUrlListAnalysis(request, sendResponse);
 
-    // Démarrer l'analyse en arrière-plan
-    Analyzer.startAnalysis(request.sitemapUrl)
-      .then(results => {
-        // Une fois l'analyse terminée, ouvrir la page de résultats
-        chrome.tabs.create({
-          url: chrome.runtime.getURL('results.html')
-        });
-      })
-      .catch(error => {
-        console.error('Error during analysis:', error);
-        // Notifier l'erreur
-        chrome.runtime.sendMessage({
-          action: 'analysisError',
-          error: error.message
-        });
-      });
+      case 'startCurrentPageAnalysis':
+        return await handleCurrentPageAnalysis(request, sendResponse);
 
+      case 'getAnalysisStatus':
+        return handleGetAnalysisStatus(sendResponse);
+
+      case 'pauseAnalysis':
+        return handlePauseAnalysis(sendResponse);
+
+      case 'resumeAnalysis':
+        return handleResumeAnalysis(sendResponse);
+
+      case 'cancelAnalysis':
+        return await handleCancelAnalysis(sendResponse);
+
+      case 'linksAnalysisComplete':
+        return await handleLinksAnalysisComplete(request, sendResponse);
+
+      case 'getLinksAnalysisStatus':
+        return handleGetLinksAnalysisStatus(sendResponse);
+
+      case 'diagnoseCORS':
+        return await handleCORSDiagnosis(sendResponse);
+
+      case 'open_interface':
+        return await handleOpenInterface(request);
+
+      // === AUTRES MESSAGES ===
+      default:
+        return handleOtherMessages(request, sender, sendResponse);
+    }
+  } catch (error) {
+    console.error("[Messages] Error handling message:", error);
+    sendResponse?.({ status: 'error', message: error.message });
     return true;
   }
+});
 
-  // URL list analysis
-  if (request.action === 'startUrlListAnalysis') {
-    // Répondre immédiatement que l'analyse est démarrée
-    sendResponse({ status: 'started' });
+// === HANDLERS SPÉCIFIQUES ===
+async function handleSitemapAnalysis(request, sendResponse) {
+  sendResponse({ status: 'started' });
 
-    // Ouvrir immédiatement la page de suivi de progression
-    chrome.tabs.create({
-      url: chrome.runtime.getURL('analysis-progress.html')
+  chrome.tabs.create({
+    url: chrome.runtime.getURL('analysis-progress.html')
+  });
+
+  Analyzer.startAnalysis(request.sitemapUrl)
+    .then(() => {
+      chrome.tabs.create({
+        url: chrome.runtime.getURL('results.html')
+      });
+    })
+    .catch(error => {
+      console.error('[Handler] Analysis error:', error);
+      chrome.runtime.sendMessage({
+        action: 'analysisError',
+        error: error.message
+      });
     });
 
-    // Démarrer l'analyse en arrière-plan
-    Analyzer.startAnalysis(request.urls, 'urlList')
-      .then(results => {
-        // Une fois l'analyse terminée, ouvrir la page de résultats
-        chrome.tabs.create({
-          url: chrome.runtime.getURL('results.html')
-        });
-      })
-      .catch(error => {
-        console.error('Error during analysis:', error);
-        // Notifier l'erreur
-        chrome.runtime.sendMessage({
-          action: 'analysisError',
-          error: error.message
-        });
+  return true;
+}
+
+async function handleUrlListAnalysis(request, sendResponse) {
+  sendResponse({ status: 'started' });
+
+  chrome.tabs.create({
+    url: chrome.runtime.getURL('analysis-progress.html')
+  });
+
+  Analyzer.startAnalysis(request.urls, 'urlList')
+    .then(() => {
+      chrome.tabs.create({
+        url: chrome.runtime.getURL('results.html')
       });
+    })
+    .catch(error => {
+      console.error('[Handler] Analysis error:', error);
+      chrome.runtime.sendMessage({
+        action: 'analysisError',
+        error: error.message
+      });
+    });
 
-    return true;
+  return true;
+}
+
+async function handleCurrentPageAnalysis(request, sendResponse) {
+  try {
+    await Analyzer.injectScriptsForAnalysis(request.tabId);
+    console.log('[Handler] Page analysis scripts injected successfully');
+    sendResponse({ status: 'started' });
+  } catch (error) {
+    console.error('[Handler] Error during script injection:', error);
+    sendResponse({ status: 'error', message: error.message });
   }
+  return true;
+}
 
-  // Analysis control management
-  if (request.action === 'pauseAnalysis' && state.sitemapAnalyzer) {
-    state.sitemapAnalyzer.pause();
+function handleGetAnalysisStatus(sendResponse) {
+  const corsState = corsManager.getState();
+
+  if (appState.sitemapAnalyzer) {
+    sendResponse({
+      active: true,
+      isPaused: appState.sitemapAnalyzer.isPaused,
+      progress: appState.sitemapAnalyzer.getProgress(),
+      corsState
+    });
+  } else {
+    sendResponse({
+      active: false,
+      corsState
+    });
+  }
+  return true;
+}
+
+function handlePauseAnalysis(sendResponse) {
+  if (appState.sitemapAnalyzer) {
+    appState.sitemapAnalyzer.pause();
     sendResponse({ status: 'paused' });
-    return true;
+  } else {
+    sendResponse({ status: 'error', message: 'No active analysis' });
   }
+  return true;
+}
 
-  if (request.action === 'resumeAnalysis' && state.sitemapAnalyzer) {
-    state.sitemapAnalyzer.resume();
+function handleResumeAnalysis(sendResponse) {
+  if (appState.sitemapAnalyzer) {
+    appState.sitemapAnalyzer.resume();
     sendResponse({ status: 'resumed' });
-    return true;
+  } else {
+    sendResponse({ status: 'error', message: 'No active analysis' });
   }
+  return true;
+}
 
-  if (request.action === 'cancelAnalysis' && state.sitemapAnalyzer) {
-    // Capturer l'ID d'analyse avant d'annuler
-    const analysisId = state.sitemapAnalyzer.analysisId || 'unknown-analysis';
+async function handleCancelAnalysis(sendResponse) {
+  if (appState.sitemapAnalyzer) {
+    const analysisId = appState.sitemapAnalyzer.analysisId || 'unknown-analysis';
 
-    state.sitemapAnalyzer.cancel();
-    state.sitemapAnalyzer = null;
+    appState.sitemapAnalyzer.cancel();
+    appState.sitemapAnalyzer = null;
 
-    // Assurer que CORS est désactivé si l'analyse est annulée
     try {
-      await CORSManager.disable(analysisId);
-      console.log(`CORS disabled after cancelling analysis ${analysisId}`);
+      await corsManager.disable(analysisId);
+      console.log(`[Handler] CORS disabled after cancelling analysis ${analysisId}`);
       sendResponse({ status: 'cancelled' });
     } catch (error) {
-      console.error('Error disabling CORS after cancel:', error);
+      console.error('[Handler] Error disabling CORS after cancel:', error);
       sendResponse({ status: 'cancelled', error: error.message });
     }
-
-    return true;
+  } else {
+    sendResponse({ status: 'error', message: 'No active analysis' });
   }
+  return true;
+}
 
-  // Current page analysis
-  if (request.action === 'startCurrentPageAnalysis') {
-    // Injecter des scripts pour analyser la page courante
-    try {
-      await Analyzer.injectScriptsForAnalysis(request.tabId);
-      console.log('Page analysis scripts injected successfully');
-      sendResponse({ status: 'started' });
-    } catch (error) {
-      console.error('Error during script injection:', error);
-      sendResponse({ status: 'error', message: error.message });
-    }
+async function handleLinksAnalysisComplete(request, sendResponse) {
+  console.log('[Handler] Message received: link analysis complete', request.detail);
 
-    return true;
-  }
+  await chrome.storage.local.set({
+    'linksAnalysisComplete': true,
+    'linksAnalysisResults': request.detail,
+    'linksAnalysisTimestamp': Date.now()
+  });
 
-  // Get current analysis state
-  if (request.action === 'getAnalysisStatus') {
-    const corsState = CORSManager.getState();
+  Analyzer.checkAllAnalysesComplete();
+  sendResponse({ status: 'success' });
+  return true;
+}
 
-    if (state.sitemapAnalyzer) {
-      sendResponse({
-        active: true,
-        isPaused: state.sitemapAnalyzer.isPaused,
-        progress: state.sitemapAnalyzer.getProgress(),
-        corsState: corsState
-      });
-    } else {
-      sendResponse({
-        active: false,
-        corsState: corsState
-      });
-    }
-    return true;
-  }
+function handleGetLinksAnalysisStatus(sendResponse) {
+  chrome.storage.local.get(['linksAnalysisComplete', 'linksAnalysisResults', 'linksAnalysisTimestamp'], (data) => {
+    sendResponse({
+      complete: data.linksAnalysisComplete || false,
+      results: data.linksAnalysisResults || null,
+      timestamp: data.linksAnalysisTimestamp || null
+    });
+  });
+  return true;
+}
 
-  // Link analysis listener
-  if (request.action === 'linksAnalysisComplete') {
-    console.log('Message received: link analysis complete', request.detail);
+async function handleCORSDiagnosis(sendResponse) {
+  sendResponse({ received: true });
+
+  try {
+    const result = await corsManager.performHealthCheck();
 
     await chrome.storage.local.set({
-      'linksAnalysisComplete': true,
-      'linksAnalysisResults': request.detail,
-      'linksAnalysisTimestamp': Date.now()
+      'corsResult': result,
+      'corsResultTimestamp': Date.now()
     });
 
-    Analyzer.checkAllAnalysesComplete();
-    sendResponse({ status: 'success' });
-    return true;
-  }
-
-  // Respond to link analysis status requests
-  if (request.action === 'getLinksAnalysisStatus') {
-    chrome.storage.local.get(['linksAnalysisComplete', 'linksAnalysisResults', 'linksAnalysisTimestamp'], (data) => {
-      sendResponse({
-        complete: data.linksAnalysisComplete || false,
-        results: data.linksAnalysisResults || null,
-        timestamp: data.linksAnalysisTimestamp || null
-      });
+    chrome.runtime.sendMessage({
+      action: 'corsResultReady',
+      result
     });
-    return true;
-  }
+  } catch (error) {
+    console.error("[Handler] CORS Diagnosis error:", error);
 
-  // Analysis control management
-  if (request.action === 'pauseAnalysis' && state.sitemapAnalyzer) {
-    state.sitemapAnalyzer.pause();
-    sendResponse({ status: 'paused' });
-    return true;
-  }
-
-  if (request.action === 'resumeAnalysis' && state.sitemapAnalyzer) {
-    state.sitemapAnalyzer.resume();
-    sendResponse({ status: 'resumed' });
-    return true;
-  }
-
-  if (request.action === 'cancelAnalysis' && state.sitemapAnalyzer) {
-    state.sitemapAnalyzer.cancel();
-    state.sitemapAnalyzer = null;
-
-    // Ensure CORS are disabled if analysis is cancelled
-    CORSManager.disable().then(() => {
-      sendResponse({ status: 'cancelled' });
+    await chrome.storage.local.set({
+      'corsResult': {
+        status: 'error',
+        error: error.message,
+        details: error.stack
+      },
+      'corsResultTimestamp': Date.now()
     });
-    return true;
-  }
 
-  // Current page analysis
-  if (request.action === 'startCurrentPageAnalysis') {
-    // Enable CORS before page analysis
-    CORSManager.enable().then(() => {
-      // Inject scripts to analyze current page
-      Analyzer.injectScriptsForAnalysis(request.tabId);
-
-      // Once analysis is complete, ensure CORS are disabled
-      setTimeout(() => {
-        CORSManager.disable();
-      }, 10000); // Reasonable timeout for page analysis
-
-      sendResponse({ status: 'started' });
+    chrome.runtime.sendMessage({
+      action: 'corsResultReady',
+      error: true
     });
-    return true;
   }
 
-  // Get current analysis state
-  if (request.action === 'getAnalysisStatus') {
-    if (state.sitemapAnalyzer) {
-      sendResponse({
-        active: true,
-        isPaused: state.sitemapAnalyzer.isPaused,
-        progress: state.sitemapAnalyzer.getProgress(),
-        corsState: state.cors
-      });
-    } else {
-      sendResponse({
-        active: false,
-        corsState: state.cors
-      });
-    }
-    return true;
+  return true;
+}
+
+async function handleOpenInterface(request) {
+  console.log("[Handler] Interface open request received");
+
+  await ProcessStepManager.validate();
+  appState.globalData.dataChecker = request.data;
+  console.log("[Handler] dataChecker data stored");
+
+  console.log("[Handler] Launch detected soprod tab and snip username");
+  detecteSoprod();
+  console.log("[Handler] dataChecker data:", request.data);
+
+  const step = await ProcessStepManager.get();
+  if (step === 1) {
+    await ProcessStepManager.increment();
+    console.log("[Handler] Step incremented to 2 (data complete) from interface request");
+    await checkDatas(appState.user || "Customer");
   }
 
-  // Link analysis listener
-  if (request.action === 'linksAnalysisComplete') {
-    console.log('Message received: link analysis complete', request.detail);
-    chrome.storage.local.set({
-      'linksAnalysisComplete': true,
-      'linksAnalysisResults': request.detail
-    });
-    Analyzer.checkAllAnalysesComplete();
-    sendResponse({ status: 'success' });
-    return true;
-  }
+  return true;
+}
 
-  // Respond to link analysis status requests
-  if (request.action === 'getLinksAnalysisStatus') {
-    chrome.storage.local.get(['linksAnalysisComplete', 'linksAnalysisResults'], (data) => {
-      sendResponse({
-        complete: data.linksAnalysisComplete || false,
-        results: data.linksAnalysisResults || null
-      });
-    });
-    return true;
-  }
+// === FONCTION MANQUANTE AJOUTÉE ===
+function handleOtherMessages(request, sender, sendResponse) {
+  console.log('[Handler] Processing other message type:', request.action);
 
-  // === INTERFACE MANAGEMENT ===
-  if (request.action === "open_interface") {
-    console.log("Interface open request received");
-    // Validate and reset if needed
-    await ProcessStepManager.validate();
-
-    // Store received data
-    state.globalData.dataChecker = request.data;
-    console.log("dataChecker data stored");
-
-    console.log("launch detected soprod tab and snip username");
-    detecteSoprod();
-    console.log("dataChecker data:", request.data);
-
-    // Vérifier si nous sommes déjà à l'étape 1 (user détecté)
-    const step = await ProcessStepManager.get();
-    if (step === 1) {
-      // Si nous avons déjà l'étape 1 (user détecté), passer à 2 (données complètes)
-      await ProcessStepManager.increment();
-      console.log("Step incremented to 2 (data complete) from interface request");
-
-      // Vérifier les données maintenant que nous sommes à l'étape 2
-      await checkDatas(state.user || "Customer");
-    }
-
-    return true;
-  }
-
-  // === FETCH FOR CONTENT SCRIPTS ===
+  // Gestion des messages fetch pour les content scripts
   if (request.from === "content_script" && request.subject === "fetch") {
     fetch(request.url)
       .then((response) => response.text())
@@ -1374,7 +842,11 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
       });
     return true;
   }
-});
+
+  // Log des messages non traités pour debug
+  console.log('[Handler] Unhandled message:', request);
+  return false;
+}
 
 // ==================== SOPROD DETECTION AND UI ELEMENTS ====================
 
@@ -1388,7 +860,7 @@ const detectTabsAndInterfaces = async () => {
     if (solocalmsTabs.length > 0) {
       console.log("Soprod tab detected...");
       // Tabs with solocalms.fr were detected
-      state.allTabs.push(...solocalmsTabs);
+      appState.allTabs.push(...solocalmsTabs);
     } else {
       // No tab with solocalms.fr detected, add only active tab
       const activeTab = await chrome.tabs.query({
@@ -1396,13 +868,13 @@ const detectTabsAndInterfaces = async () => {
         active: true,
       });
       console.log("Active tab (no Soprod tab):", activeTab);
-      state.allTabs.push(activeTab[0]);
+      appState.allTabs.push(activeTab[0]);
     }
   } catch (error) {
     console.error("Error:", error);
   } finally {
     // Log detected tabs
-    console.log("allTabs:", state.allTabs);
+    console.log("allTabs:", appState.allTabs);
   }
 };
 
@@ -1472,9 +944,9 @@ const detecteSoprod = async () => {
 const handleUserSoprod = async (user) => {
   console.log("Processing Soprod user:", user);
 
-  // Update user in global state
-  state.user = user;
-  state.globalData.user = user;
+  // Update user in global appState
+  appState.user = user;
+  appState.globalData.user = user;
 
   // Validate and get current step
   let step = await ProcessStepManager.validate();
@@ -1487,7 +959,7 @@ const handleUserSoprod = async (user) => {
   }
 
   // Si nous avons déjà des données dataChecker stockées, on peut incrémenter à 2
-  if (step === 1 && state.globalData.dataChecker) {
+  if (step === 1 && appState.globalData.dataChecker) {
     step = await ProcessStepManager.increment();
     console.log("Step incremented to 2 (data complete)");
   }
@@ -1706,18 +1178,18 @@ const checkDatas = async (user_soprod) => {
 
   console.log("Both required data arrived");
 
-  if (!state.globalData.dataChecker) {
+  if (!appState.globalData.dataChecker) {
     console.error("dataChecker data missing");
     await ProcessStepManager.reset(); // Reset to allow a new attempt
     return;
   }
 
-  const user = user_soprod || state.globalData.user || "Customer";
+  const user = user_soprod || appState.globalData.user || "Customer";
   console.log("User for indexDB:", user);
-  state.globalData.user = user;
+  appState.globalData.user = user;
 
   try {
-    const dataCheckerParse = JSON.parse(state.globalData.dataChecker);
+    const dataCheckerParse = JSON.parse(appState.globalData.dataChecker);
 
     // Store data in local storage
     await chrome.storage.local.set({
@@ -1730,8 +1202,8 @@ const checkDatas = async (user_soprod) => {
 
     // Create database
     try {
-      createDB(user, state.dbName, dataCheckerParse);
-      console.log("CREATEDB -> launched with data: user =", user, { dbName: state.dbName });
+      createDB(user, appState.dbName, dataCheckerParse);
+      console.log("CREATEDB -> launched with data: user =", user, { dbName: appState.dbName });
 
       // Reset step BEFORE opening interface
       await ProcessStepManager.reset();
@@ -1769,12 +1241,12 @@ async function diagnoseCORSIssues() {
 
   try {
     // 1. Vérifier l'état actuel
-    const corsState = CORSManager.getState();
-    console.log("Current CORS state:", corsState);
+    const corsState = corsManager.getState();
+    console.log("Current CORS appState:", corsState);
 
     // 2. Vérifier la cohérence avec le storage
     const storageData = await chrome.storage.sync.get(["corsEnabled"]);
-    console.log("Storage CORS state:", storageData);
+    console.log("Storage CORS appState:", storageData);
 
     // 3. Vérifier les règles actives
     let enabledRulesets = [];
@@ -1793,7 +1265,7 @@ async function diagnoseCORSIssues() {
     const inconsistencies = [];
 
     if (corsState.isEnabled !== storageData.corsEnabled) {
-      inconsistencies.push("CORS state mismatch between memory and storage");
+      inconsistencies.push("CORS appState mismatch between memory and storage");
     }
 
     if (corsState.isEnabled && !enabledRulesets.includes("overwrite-origin")) {
@@ -1824,11 +1296,11 @@ async function diagnoseCORSIssues() {
       console.log("Attempting automatic correction...");
 
       // Réinitialiser l'état CORS
-      await CORSManager.forceDisable();
+      await corsManager.forceDisable();
 
       // Vérifier l'état après correction
-      const updatedState = CORSManager.getState();
-      console.log("CORS state after correction:", updatedState);
+      const updatedState = corsManager.getState();
+      console.log("CORS appState after correction:", updatedState);
 
       // Vérifier les analyses en cours
       const runningAnalyses = await chrome.storage.local.get(['sitemapAnalysis', 'linksAnalysisComplete']);
@@ -1866,11 +1338,11 @@ async function diagnoseCORSIssues() {
 
 // Fonction pour corriger automatiquement les problèmes CORS
 async function repairCORSState() {
-  console.log("🛠️ Repairing CORS state...");
+  console.log("🛠️ Repairing CORS appState...");
 
   try {
     // 1. Désactiver complètement CORS
-    await CORSManager.forceDisable();
+    await corsManager.forceDisable();
 
     // 2. Mettre à jour le stockage
     await chrome.storage.sync.set({ corsEnabled: false });

@@ -1,3 +1,6 @@
+// === CORRECTION DANS Functions/wordsCountLexical.js ===
+// Remplacer la section problématique (lignes ~350-380) par ceci :
+
 if (typeof window.wordsCloudCounter === 'undefined') {
   window.wordsCloudCounter = () => {
     // Vérifier les dépendances
@@ -110,273 +113,410 @@ if (typeof window.wordsCloudCounter === 'undefined') {
 
     console.log("Top 20 des mots les plus utilisés :", topWords);
     let cloudWindow = window.open("", "_blank", "width=500,height=600,toolbar=no");
+
+    // === CONSTRUCTION MODERNE ET SÉCURISÉE DU DOM ===
     cloudWindow.document.open();
-    const head = cloudWindow.document.createElement('head');
-    const title = cloudWindow.document.createElement('title');
-    title.textContent = 'Nuage de mots-clés';
+    cloudWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Nuage de mots-clés</title>
+          <style>
+            :root {
+              --bg-color: #efefef;
+              --text-color: #333;
+              --cloud-color: #3f6a8e;
+            }
 
-    const style = cloudWindow.document.createElement('style');
-    style.textContent = `
-     :root {
-            --bg-color: #efefef;
-            --text-color: #333;
-            --cloud-color: #3f6a8e;
-          }
+            body.dark-theme {
+              --bg-color: #1a1a1a;
+              --text-color: #fff;
+              --cloud-color: #8FB3D9;
+            }
 
-          body.dark-theme {
-            --bg-color: #1a1a1a;
-            --text-color: #fff;
-            --cloud-color: #8FB3D9;
-          }
+            body {
+              background-color: var(--bg-color);
+              color: var(--text-color);
+              transition: all 0.3s ease;
+              margin: 0;
+              padding: 20px;
+              font-family: Arial, sans-serif;
+            }
 
-          body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            transition: all 0.3s ease;
-          }
+            .word-cloud {
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              min-height: 100vh;
+              width: 100%;
+            }
 
-          .word-cloud {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100%;
-            width: 100%;
-            padding: 20px;
-          }
-          .cloud {
-              position: fixed;
-              top: 20px;
+            .cloud {
               text-align: center;
               max-width: 500px;
-              height: 100vh;
-              padding: 20px;
-          }
-          .cloud-toolbar {
-            margin-bottom: 20px;
-          }
+              width: 100%;
+            }
 
-          .controls-wrapper {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 15px;
-          }
+            .cloud-toolbar {
+              margin-bottom: 20px;
+              padding: 15px;
+              background: rgba(255,255,255,0.1);
+              border-radius: 8px;
+            }
 
-          .word-search {
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            width: 200px;
-          }
+            .controls-wrapper {
+              display: flex;
+              gap: 10px;
+              justify-content: center;
+              align-items: center;
+              flex-wrap: wrap;
+            }
 
-          .word-limit {
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-          }
+            .word-search {
+              padding: 8px 12px;
+              border: 1px solid #ddd;
+              border-radius: 4px;
+              width: 200px;
+              font-size: 14px;
+            }
 
-          .theme-toggle {
-            padding: 8px 12px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            background: #f0f0f0;
-            transition: background 0.3s ease;
-          }
+            .word-limit {
+              padding: 8px 12px;
+              border: 1px solid #ddd;
+              border-radius: 4px;
+              font-size: 14px;
+            }
 
-          .theme-toggle:hover {
-            background: #e0e0e0;
-          }
+            .theme-toggle {
+              padding: 8px 12px;
+              border: none;
+              border-radius: 4px;
+              cursor: pointer;
+              background: #f0f0f0;
+              transition: all 0.3s ease;
+              font-size: 16px;
+              min-width: 45px;
+            }
 
-        .cloud1,.cloud2 {
-          display: inline-block;
-          font-size: 39px;
-          letter-spacing: 1px;
-          color: var(--cloud-color);
-          opacity: 1;
-          padding: 5px;
-          cursor: pointer;
-          transition: transform 0.2s;
-        }
+            .theme-toggle:hover {
+              background: #e0e0e0;
+              transform: scale(1.05);
+            }
 
-        /* Deuxième groupe */
-        .cloud3,.cloud4,.cloud5 {
-          display: inline-block;
-          font-size: 33px;
-          letter-spacing: 1px;
-          color: var(--cloud-color);
-          opacity: 0.95;
-          padding: 5px;
-          cursor: pointer;
-          transition: transform 0.2s;
-        }
+            .words-wrapper {
+              line-height: 1.6;
+            }
 
-        /* Troisième groupe */
-        .cloud6,.cloud7,.cloud8 {
-          display: inline-block;
-          font-size: 28px;
-          letter-spacing: 1px;
-          color: var(--cloud-color);
-          opacity: 0.9;
-          padding: 5px;
-          cursor: pointer;
-          transition: transform 0.2s;
-        }
+            /* Styles pour les mots (inchangés) */
+            .cloud1,.cloud2 {
+              display: inline-block;
+              font-size: 39px;
+              letter-spacing: 1px;
+              color: var(--cloud-color);
+              opacity: 1;
+              padding: 5px;
+              cursor: pointer;
+              transition: transform 0.2s;
+            }
 
-        /* Quatrième groupe */
-        .cloud9,.cloud10,.cloud11,.cloud12 {
-          display: inline-block;
-          font-size: 26px;
-          letter-spacing: 1px;
-          color: var(--cloud-color);
-          opacity: 0.85;
-          padding: 5px;
-          cursor: pointer;
-          transition: transform 0.2s;
-        }
+            .cloud3,.cloud4,.cloud5 {
+              display: inline-block;
+              font-size: 33px;
+              letter-spacing: 1px;
+              color: var(--cloud-color);
+              opacity: 0.95;
+              padding: 5px;
+              cursor: pointer;
+              transition: transform 0.2s;
+            }
 
-        /* Cinquième groupe */
-        .cloud13,.cloud14,.cloud15,.cloud16,.cloud17 {
-          display: inline-block;
-          font-size: 24px;
-          letter-spacing: 1px;
-          color: var(--cloud-color);
-          opacity: 0.8;
-          padding: 5px;
-          cursor: pointer;
-          transition: transform 0.2s;
-        }
+            .cloud6,.cloud7,.cloud8 {
+              display: inline-block;
+              font-size: 28px;
+              letter-spacing: 1px;
+              color: var(--cloud-color);
+              opacity: 0.9;
+              padding: 5px;
+              cursor: pointer;
+              transition: transform 0.2s;
+            }
 
-        /* Sixième groupe */
-        .cloud18,.cloud19,.cloud20,.cloud21,.cloud22,.cloud23 {
-          display: inline-block;
-          font-size: 22px;
-          letter-spacing: 1px;
-          color: var(--cloud-color);
-          opacity: 0.75;
-          padding: 5px;
-          cursor: pointer;
-          transition: transform 0.2s;
-        }
+            .cloud9,.cloud10,.cloud11,.cloud12 {
+              display: inline-block;
+              font-size: 26px;
+              letter-spacing: 1px;
+              color: var(--cloud-color);
+              opacity: 0.85;
+              padding: 5px;
+              cursor: pointer;
+              transition: transform 0.2s;
+            }
 
-        /* Septième groupe */
-        .cloud24,.cloud25,.cloud26,.cloud27,.cloud28,.cloud29 {
-          display: inline-block;
-          font-size: 20px;
-          letter-spacing: 1px;
-          color: var(--cloud-color);
-          opacity: 0.7;
-          padding: 5px;
-          cursor: pointer;
-          transition: transform 0.2s;
-        }
+            .cloud13,.cloud14,.cloud15,.cloud16,.cloud17 {
+              display: inline-block;
+              font-size: 24px;
+              letter-spacing: 1px;
+              color: var(--cloud-color);
+              opacity: 0.8;
+              padding: 5px;
+              cursor: pointer;
+              transition: transform 0.2s;
+            }
 
-        /* Huitième groupe */
-        .cloud30,.cloud31,.cloud32,.cloud33,.cloud34,.cloud35 {
-          display: inline-block;
-          font-size: 18px;
-          letter-spacing: 1px;
-          color: var(--cloud-color);
-          opacity: 0.65;
-          padding: 5px;
-          cursor: pointer;
-          transition: transform 0.2s;
-        }
+            .cloud18,.cloud19,.cloud20,.cloud21,.cloud22,.cloud23 {
+              display: inline-block;
+              font-size: 22px;
+              letter-spacing: 1px;
+              color: var(--cloud-color);
+              opacity: 0.75;
+              padding: 5px;
+              cursor: pointer;
+              transition: transform 0.2s;
+            }
 
-        /* Neuvième groupe */
-        .cloud36,.cloud37,.cloud38,.cloud39,.cloud40,.cloud41,.cloud42 {
-          display: inline-block;
-          font-size: 16px;
-          letter-spacing: 1px;
-          color: var(--cloud-color);
-          opacity: 0.6;
-          padding: 5px;
-          cursor: pointer;
-          transition: transform 0.2s;
-        }
+            .cloud24,.cloud25,.cloud26,.cloud27,.cloud28,.cloud29 {
+              display: inline-block;
+              font-size: 20px;
+              letter-spacing: 1px;
+              color: var(--cloud-color);
+              opacity: 0.7;
+              padding: 5px;
+              cursor: pointer;
+              transition: transform 0.2s;
+            }
 
-        /* Dernier groupe */
-        .cloud43,.cloud44,.cloud45,.cloud46,.cloud47,.cloud48,.cloud49,.cloud50 {
-          display: inline-block;
-          font-size: 13px;
-          letter-spacing: 1px;
-          color: var(--cloud-color);
-          opacity: 0.55;
-          padding: 5px;
-          cursor: pointer;
-          transition: transform 0.2s;
-        }
+            .cloud30,.cloud31,.cloud32,.cloud33,.cloud34,.cloud35 {
+              display: inline-block;
+              font-size: 18px;
+              letter-spacing: 1px;
+              color: var(--cloud-color);
+              opacity: 0.65;
+              padding: 5px;
+              cursor: pointer;
+              transition: transform 0.2s;
+            }
 
-          [class^="cloud"]:hover {
-            transform: scale(1.1);
-          }
+            .cloud36,.cloud37,.cloud38,.cloud39,.cloud40,.cloud41,.cloud42 {
+              display: inline-block;
+              font-size: 16px;
+              letter-spacing: 1px;
+              color: var(--cloud-color);
+              opacity: 0.6;
+              padding: 5px;
+              cursor: pointer;
+              transition: transform 0.2s;
+            }
 
-          body.dark-theme .word-search,
-          body.dark-theme .word-limit {
-            background: #333;
-            color: #fff;
-            border-color: #444;
-          }
+            .cloud43,.cloud44,.cloud45,.cloud46,.cloud47,.cloud48,.cloud49,.cloud50 {
+              display: inline-block;
+              font-size: 13px;
+              letter-spacing: 1px;
+              color: var(--cloud-color);
+              opacity: 0.55;
+              padding: 5px;
+              cursor: pointer;
+              transition: transform 0.2s;
+            }
 
-          body.dark-theme .theme-toggle {
-            background: #333;
-            color: #fff;
-          }
+            [class^="cloud"]:hover {
+              transform: scale(1.1);
+            }
 
-          body.dark-theme .theme-toggle:hover {
-            background: #444;
-          }
-    `;
-    head.appendChild(style);
-    head.appendChild(title);
+            /* Dark theme styles */
+            body.dark-theme .word-search,
+            body.dark-theme .word-limit {
+              background: #333;
+              color: #fff;
+              border-color: #444;
+            }
 
-    const body = cloudWindow.document.createElement('body');
-    const wordCloudDiv = cloudWindow.document.createElement('div');
-    wordCloudDiv.className = 'word-cloud';
-    body.appendChild(wordCloudDiv);
-    const script = cloudWindow.document.createElement('script');
-    script.textContent = `
-     function toggleTheme() {
-            document.body.classList.toggle('dark-theme');
-          }
-    `;
+            body.dark-theme .theme-toggle {
+              background: #333;
+              color: #fff;
+            }
 
-    body.appendChild(script);
+            body.dark-theme .theme-toggle:hover {
+              background: #444;
+            }
 
-    // Création de la structure HTML
-    const html = cloudWindow.document.createElement('html');
-    html.appendChild(head);
-    html.appendChild(body);
-
-    // Ajout au document
-    cloudWindow.document.appendChild(html);
+            body.dark-theme .cloud-toolbar {
+              background: rgba(255,255,255,0.05);
+            }
+          </style>
+        </head>
+        <body>
+          <div class="word-cloud">
+            <div class="cloud">
+              <div class="cloud-toolbar">
+                <div class="controls-wrapper">
+                  <input type="text" class="word-search" placeholder="Rechercher un mot...">
+                  <select class="word-limit">
+                    <option value="10">10 mots</option>
+                    <option value="20" selected>20 mots</option>
+                    <option value="30">30 mots</option>
+                    <option value="50">50 mots</option>
+                  </select>
+                  <button class="theme-toggle" title="Basculer le thème">🌙</button>
+                </div>
+              </div>
+              <div class="words-wrapper"></div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `);
     cloudWindow.document.close();
 
+    // === ATTENDRE QUE LE DOM SOIT PRÊT PUIS CONFIGURER LES INTERACTIONS ===
+    // === ATTENDRE QUE LE DOM SOIT PRÊT PUIS CONFIGURER LES INTERACTIONS ===
+    cloudWindow.addEventListener('load', () => {
+      console.log("🎨 Configuration des interactions du nuage de mots");
 
-    cloudWindow.onload = function () {
-      const container = cloudWindow.document.querySelector(".word-cloud");
-      container.appendChild(cloudContainer);
+      // === SOLUTION : Utiliser le document de la nouvelle fenêtre explicitement ===
+      const newWindowDocument = cloudWindow.document;
+      const themeToggle = newWindowDocument.querySelector('.theme-toggle');
+      const wordSearch = newWindowDocument.querySelector('.word-search');
+      const wordLimit = newWindowDocument.querySelector('.word-limit');
+      const wordsWrapper = newWindowDocument.querySelector('.words-wrapper');
+      const body = newWindowDocument.body; // Crucial : utiliser le body de la nouvelle fenêtre
 
-      // Événements
-      const searchInput = cloudContainer.querySelector('.word-search');
-      const limitSelect = cloudContainer.querySelector('.word-limit');
-      const themeButton = cloudContainer.querySelector('.theme-toggle');
-
-      searchInput.addEventListener('input', (e) => {
-        updateWordCloud(e.target.value, parseInt(limitSelect.value));
+      // Debug - vérifier que les éléments existent
+      console.log("🔍 Éléments trouvés:", {
+        themeToggle: themeToggle,
+        wordSearch: wordSearch,
+        wordLimit: wordLimit,
+        wordsWrapper: wordsWrapper,
+        body: body,
+        bodyClasses: body ? body.className : 'body introuvable'
       });
 
-      limitSelect.addEventListener('change', (e) => {
-        updateWordCloud(searchInput.value, parseInt(e.target.value));
-      });
+      // === FONCTION POUR METTRE À JOUR LE NUAGE ===
+      function updateWordCloud(searchTerm = '', limit = 20) {
+        console.log(`🔄 Mise à jour nuage: "${searchTerm}", limite: ${limit}`);
 
-      themeButton.addEventListener('click', () => {
-        cloudWindow.document.body.classList.toggle('dark-theme');
-      });
+        if (!wordsWrapper) {
+          console.error("❌ wordsWrapper introuvable");
+          return;
+        }
 
-      // Affichage initial
-      updateWordCloud();
-    };
-  };
+        wordsWrapper.innerHTML = '';
+        const filteredWords = topWords
+          .filter(wordInfo => wordInfo.word.toLowerCase().includes(searchTerm.toLowerCase()))
+          .slice(0, limit);
+
+        rand.forEach((index) => {
+          const wordInfo = filteredWords[index - 1];
+          if (wordInfo) {
+            const word = wordInfo.word;
+            const iteration = wordInfo.iteration;
+            const cloudElement = newWindowDocument.createElement("div"); // Utiliser le document de la nouvelle fenêtre
+            cloudElement.className = `cloud${index}`;
+            cloudElement.innerHTML = `${word} (<span class="iteration">${iteration}</span>)`;
+            wordsWrapper.appendChild(cloudElement);
+          }
+        });
+      }
+
+      // === CONFIGURATION DU TOGGLE THEME (CORRIGÉE) ===
+      console.log('>>>>>>>>>>>>>>>>>>>>>>>>>', themeToggle, body)
+      if (themeToggle && body) {
+        console.log("🎨 Configuration du toggle theme");
+
+        themeToggle.addEventListener('click', (e) => {
+          console.log("🎨 Clic sur toggle theme");
+          e.preventDefault();
+
+          // Vérifier l'état actuel avant le toggle
+          const wasLightTheme = !body.classList.contains('dark-theme');
+          console.log(`🎨 État avant toggle: ${wasLightTheme ? 'clair' : 'sombre'}`);
+          console.log(`🎨 Classes avant toggle:`, body.className);
+
+          // Toggle la classe
+          body.classList.toggle('dark-theme');
+
+          // Vérifier l'état après le toggle
+          const isDarkTheme = body.classList.contains('dark-theme');
+          console.log(`🎨 État après toggle: ${isDarkTheme ? 'sombre' : 'clair'}`);
+          console.log(`🎨 Classes après toggle:`, body.className);
+
+          // Mettre à jour l'icône
+          themeToggle.textContent = isDarkTheme ? '☀️' : '🌙';
+          themeToggle.title = isDarkTheme ? 'Mode clair' : 'Mode sombre';
+
+          // Force un repaint si nécessaire
+          body.style.display = 'none';
+          body.offsetHeight; // Trigger reflow
+          body.style.display = '';
+
+          console.log(`🎨 Thème final: ${isDarkTheme ? 'sombre' : 'clair'}`);
+        });
+
+        // Test initial pour vérifier que le DOM est accessible
+        console.log("🧪 Test initial de manipulation du DOM:");
+        console.log("Classes initiales du body:", body.className);
+
+        // Test rapide d'ajout/suppression de classe
+        body.classList.add('test-class');
+        console.log("Après ajout test-class:", body.className);
+        body.classList.remove('test-class');
+        console.log("Après suppression test-class:", body.className);
+
+      } else {
+        console.error("❌ Impossible de configurer le toggle theme:", {
+          themeToggle: !!themeToggle,
+          body: !!body
+        });
+      }
+
+      // === CONFIGURATION DE LA RECHERCHE ===
+      if (wordSearch) {
+        wordSearch.addEventListener('input', (e) => {
+          const searchTerm = e.target.value;
+          const limit = parseInt(wordLimit?.value || 20);
+          updateWordCloud(searchTerm, limit);
+        });
+      }
+
+      // === CONFIGURATION DE LA LIMITE ===
+      if (wordLimit) {
+        wordLimit.addEventListener('change', (e) => {
+          const limit = parseInt(e.target.value);
+          const searchTerm = wordSearch?.value || '';
+          updateWordCloud(searchTerm, limit);
+        });
+      }
+
+      // === INITIALISATION DU NUAGE ===
+      console.log("🚀 Initialisation du nuage de mots");
+      updateWordCloud('', 20);
+    });
+  }
 }
+
+// === ALTERNATIVE SI LE PROBLÈME PERSISTE ===
+// Si l'événement 'load' ne fonctionne pas correctement, vous pouvez essayer :
+
+/*
+// Utiliser un setTimeout pour être sûr que le DOM est prêt
+setTimeout(() => {
+  console.log("🎨 Configuration différée des interactions");
+  
+  const newWindowDocument = cloudWindow.document;
+  const themeToggle = newWindowDocument.querySelector('.theme-toggle');
+  const body = newWindowDocument.body;
+  
+  if (themeToggle && body) {
+    themeToggle.addEventListener('click', (e) => {
+      e.preventDefault();
+      body.classList.toggle('dark-theme');
+      
+      const isDark = body.classList.contains('dark-theme');
+      themeToggle.textContent = isDark ? '☀️' : '🌙';
+      
+      console.log("Classes du body après toggle:", body.className);
+    });
+  }
+  
+  // Reste de la configuration...
+}, 100);
+*/
