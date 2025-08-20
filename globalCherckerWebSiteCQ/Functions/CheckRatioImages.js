@@ -65,32 +65,75 @@ export const CheckRatioImages = async (tab) => {
                 return null;
             }
 
-            // Fonction pour créer l'overlay d'information
+            // Fonction pour créer l'overlay d'information injecté dans le parent
             function createInfoOverlay(img, info) {
                 const overlay = document.createElement('div');
                 overlay.style.cssText = `
-            position: absolute;
-            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 30, 30, 0.9));
-            color: white;
-            padding: 10px;
-            font-family: 'Segoe UI', Arial, sans-serif;
-            font-size: 12px;
-            border-radius: 6px;
-            z-index: 10000;
-            pointer-events: none;
-            white-space: nowrap;
-            line-height: 1.4;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        `;
+                    position: absolute;
+                    background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 30, 30, 0.9));
+                    color: white;
+                    padding: 10px;
+                    font-family: 'Segoe UI', Arial, sans-serif;
+                    font-size: 12px;
+                    border-radius: 6px;
+                    z-index: 10000;
+                    pointer-events: none;
+                    white-space: nowrap;
+                    line-height: 1.4;
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                    top: 5px;
+                    left: 5px;
+                `;
                 overlay.innerHTML = info;
 
-                // Positionner l'overlay près de l'image
-                const rect = img.getBoundingClientRect();
-                overlay.style.left = (window.scrollX + rect.left + 5) + 'px';
-                overlay.style.top = (window.scrollY + rect.top + 5) + 'px';
+                // Trouver le conteneur approprié (parent ou grand-parent)
+                let container = img.parentElement;
 
-                document.body.appendChild(overlay);
+                // Vérifier si le parent a une position relative/absolue, sinon remonter
+                const computedStyle = window.getComputedStyle(container);
+                if (computedStyle.position === 'static') {
+                    // Si le parent est en position static, on essaie le grand-parent
+                    if (container.parentElement && window.getComputedStyle(container.parentElement).position !== 'static') {
+                        container = container.parentElement;
+                    } else {
+                        // Sinon on force la position relative sur le parent direct
+                        container.style.position = 'relative';
+                    }
+                }
+
+                // Ajouter l'overlay au conteneur approprié
+                container.appendChild(overlay);
+
+                // Ajuster la position selon l'espace disponible dans le conteneur
+                const containerRect = container.getBoundingClientRect();
+                const imgRect = img.getBoundingClientRect();
+
+                // Position relative à l'image dans son conteneur
+                const relativeLeft = imgRect.left - containerRect.left;
+                const relativeTop = imgRect.top - containerRect.top;
+
+                // Vérifier si on peut placer l'overlay en haut à gauche de l'image
+                let finalLeft = relativeLeft + 5;
+                let finalTop = relativeTop + 5;
+
+                // Si l'overlay dépasse à droite du conteneur, le placer à droite de l'image
+                if ((relativeLeft + 250) > containerRect.width) {
+                    finalLeft = relativeLeft + imgRect.width - 250 - 5;
+                }
+
+                // Si l'overlay dépasse en bas du conteneur, le placer en bas de l'image
+                if ((relativeTop + 120) > containerRect.height) {
+                    finalTop = relativeTop + imgRect.height - 120 - 5;
+                }
+
+                // S'assurer qu'on reste dans les limites du conteneur
+                finalLeft = Math.max(5, Math.min(finalLeft, containerRect.width - 250));
+                finalTop = Math.max(5, Math.min(finalTop, containerRect.height - 120));
+
+                overlay.style.left = finalLeft + 'px';
+                overlay.style.top = finalTop + 'px';
+
                 return overlay;
             }
 
@@ -120,21 +163,21 @@ export const CheckRatioImages = async (tab) => {
                         const standardRatio = findClosestStandardRatio(width, height);
 
                         let info = `
-                    <div style="font-weight: bold; color: #4CAF50;">📷 Image ${index + 1}</div>
-                    <div style="margin: 2px 0;">📐 <strong>${width} × ${height}px</strong></div>
-                    <div style="margin: 2px 0;">📊 Ratio exact: <strong>${ratio}</strong></div>
-                `;
+                            <div style="font-weight: bold; color: #4CAF50;">📷 Image ${index + 1}</div>
+                            <div style="margin: 2px 0;">📐 <strong>${width} × ${height}px</strong></div>
+                            <div style="margin: 2px 0;">📊 Ratio exact: <strong>${ratio}</strong></div>
+                        `;
 
                         if (standardRatio) {
                             standardMatches++;
                             info += `
-                        <div style="margin: 2px 0; color: #FFD700;">
-                            ⭐ <strong>${standardRatio.name}</strong> (${standardRatio.desc})
-                        </div>
-                        <div style="margin: 2px 0; font-size: 11px; color: #90EE90;">
-                            📏 Écart: ${standardRatio.difference.toFixed(1)}%
-                        </div>
-                    `;
+                                <div style="margin: 2px 0; color: #FFD700;">
+                                    ⭐ <strong>${standardRatio.name}</strong> (${standardRatio.desc})
+                                </div>
+                                <div style="margin: 2px 0; font-size: 11px; color: #90EE90;">
+                                    📏 Écart: ${standardRatio.difference.toFixed(1)}%
+                                </div>
+                            `;
                             // Bordure dorée pour les ratios standards
                             img.style.outline = '3px solid #FFD700';
                         } else {
@@ -172,44 +215,44 @@ export const CheckRatioImages = async (tab) => {
             function createSummaryPanel() {
                 const summary = document.createElement('div');
                 summary.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(30, 30, 30, 0.95));
-            color: white;
-            padding: 20px;
-            font-family: 'Segoe UI', Arial, sans-serif;
-            font-size: 14px;
-            border-radius: 10px;
-            z-index: 10001;
-            max-width: 320px;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-        `;
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(30, 30, 30, 0.95));
+                    color: white;
+                    padding: 20px;
+                    font-family: 'Segoe UI', Arial, sans-serif;
+                    font-size: 14px;
+                    border-radius: 10px;
+                    z-index: 10001;
+                    max-width: 320px;
+                    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    backdrop-filter: blur(10px);
+                `;
 
                 const percentageStandard = ((standardMatches / totalImages) * 100).toFixed(0);
 
                 summary.innerHTML = `
-            <div style="font-weight: bold; margin-bottom: 15px; font-size: 16px;">
-                📊 Analyse des Ratios
-            </div>
-            <div style="margin: 8px 0;">
-                📷 Images analysées: <strong>${totalImages}</strong>
-            </div>
-            <div style="margin: 8px 0; color: #FFD700;">
-                ⭐ Ratios standards: <strong>${standardMatches}</strong> (${percentageStandard}%)
-            </div>
-            <div style="margin: 8px 0; color: #ff6b6b;">
-                🔴 Ratios personnalisés: <strong>${totalImages - standardMatches}</strong>
-            </div>
-            <div style="margin: 15px 0 10px 0; font-size: 12px; color: #90EE90;">
-                📏 Tolérance: ±${TOLERANCE}%
-            </div>
-            <div style="margin-top: 15px; font-size: 12px; color: #ccc; cursor: pointer; text-align: center; padding: 8px; background: rgba(255,255,255,0.1); border-radius: 5px;">
-                👆 Cliquez pour fermer
-            </div>
-        `;
+                    <div style="font-weight: bold; margin-bottom: 15px; font-size: 16px;">
+                        📊 Analyse des Ratios
+                    </div>
+                    <div style="margin: 8px 0;">
+                        📷 Images analysées: <strong>${totalImages}</strong>
+                    </div>
+                    <div style="margin: 8px 0; color: #FFD700;">
+                        ⭐ Ratios standards: <strong>${standardMatches}</strong> (${percentageStandard}%)
+                    </div>
+                    <div style="margin: 8px 0; color: #ff6b6b;">
+                        🔴 Ratios personnalisés: <strong>${totalImages - standardMatches}</strong>
+                    </div>
+                    <div style="margin: 15px 0 10px 0; font-size: 12px; color: #90EE90;">
+                        📏 Tolérance: ±${TOLERANCE}%
+                    </div>
+                    <div style="margin-top: 15px; font-size: 12px; color: #ccc; cursor: pointer; text-align: center; padding: 8px; background: rgba(255,255,255,0.1); border-radius: 5px;">
+                        👆 Cliquez pour fermer
+                    </div>
+                `;
 
                 summary.addEventListener('click', () => {
                     // Supprimer tous les overlays et le panneau
@@ -227,12 +270,7 @@ export const CheckRatioImages = async (tab) => {
                 summary.setAttribute('data-ratio-overlay', 'true');
                 document.body.appendChild(summary);
 
-                // Auto-suppression après 60 secondes
-                setTimeout(() => {
-                    if (document.body.contains(summary)) {
-                        summary.click();
-                    }
-                }, 60000);
+                // Plus de fermeture automatique - seulement manuelle via le bouton
             }
         }
     });
