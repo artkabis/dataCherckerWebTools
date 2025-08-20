@@ -7,6 +7,7 @@ import { HnOutlineValidity } from "./Functions/HnOutlineValidity.js";
 import { downloaderWPMedia } from "./Functions/downloaderWPMedias.js";
 import { analyzeMetas } from "./Functions/metaAnalyzer.js";
 import { semanticLinks } from "./Functions/semanticLinksAnalyzer.js";
+import { CheckRatioImages } from "./Functions/CheckRatioImages.js";
 
 document.addEventListener('DOMContentLoaded', () => {
   // Affichage de la version dans le popup
@@ -305,6 +306,13 @@ function setupTools() {
     this.classList.toggle("active");
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       toggleDesignMode(tabs[0]);
+    });
+  });
+
+  // Outil Ratio Images
+  document.getElementById("ratioImg").addEventListener("click", function () {
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      CheckRatioImages(tabs[0]);
     });
   });
 
