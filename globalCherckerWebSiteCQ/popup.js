@@ -9,6 +9,363 @@ import { analyzeMetas } from "./Functions/metaAnalyzer.js";
 import { semanticLinks } from "./Functions/semanticLinksAnalyzer.js";
 import { CheckRatioImages } from "./Functions/CheckRatioImages.js";
 
+
+function setupWebScanner() {
+  // Vérifier que l'onglet Web Scanner existe
+  const scannerTab = document.getElementById("scanner-tab");
+  if (!scannerTab) {
+    console.log("[WebScanner] Onglet Web Scanner non trouvé dans le DOM");
+    return;
+  }
+
+  console.log("[WebScanner] Interface WebScanner initialisée");
+
+  // Configuration des boutons
+  const startBtn = document.getElementById("startScannerBtn");
+  const stopBtn = document.getElementById("scannerStopBtn");
+  const viewBtn = document.getElementById("viewScannerResultsBtn");
+
+  if (startBtn) {
+    startBtn.addEventListener("click", startWebScanner);
+  }
+
+  if (stopBtn) {
+    stopBtn.addEventListener("click", stopWebScanner);
+  }
+
+  if (viewBtn) {
+    viewBtn.addEventListener("click", viewScannerResults);
+  }
+
+  // Initialisation de l'état
+  checkScannerStatus();
+  checkScannerResults();
+  setupScannerMessageListeners();
+}
+// COMPORTEMENT 1 : Garder le popup ouvert pendant l'analyse
+function startWebScannerWithPopup() {
+  const domain = document.getElementById('scannerDomain').value.trim();
+  const searchQuery = document.getElementById('scannerQuery').value.trim();
+  const useRegex = document.getElementById('scannerUseRegex').checked;
+  const caseSensitive = document.getElementById('scannerCaseSensitive').checked;
+  const searchMode = document.querySelector('input[name="scannerMode"]:checked').value;
+
+  showScannerLoading();
+
+  chrome.runtime.sendMessage({
+    action: "startWebScanner",
+    domain,
+    searchQuery,
+    useRegex,
+    caseSensitive,
+    searchMode
+  }, (response) => {
+    // Gérer l'erreur "message port closed" sans arrêter le processus
+    if (chrome.runtime.lastError) {
+      console.log('[Popup] Message sent but port closed (normal behavior)');
+    }
+
+    if (response && response.status === 'started') {
+      showScannerStatus();
+      showNotification("Analyse démarrée - Restez sur cette page pour suivre la progression", "success");
+    } else if (response && response.status === 'error') {
+      showNotification(response.message, "error");
+      resetScannerUI();
+    } else {
+      showScannerStatus();
+      showNotification("Analyse démarrée", "success");
+    }
+  });
+}
+
+
+
+
+function startWebScanner() {
+  const domain = document.getElementById('scannerDomain').value.trim();
+  const searchQuery = document.getElementById('scannerQuery').value.trim();
+  const useRegex = document.getElementById('scannerUseRegex').checked;
+  const caseSensitive = document.getElementById('scannerCaseSensitive').checked;
+  const searchMode = document.querySelector('input[name="scannerMode"]:checked').value;
+
+  // NOUVEAU : Récupérer le comportement choisi par l'utilisateur
+  const popupBehavior = document.querySelector('input[name="popupBehavior"]:checked').value;
+
+  // Validation
+  if (!domain) {
+    showNotification("Veuillez entrer un domaine valide", "error");
+    return;
+  }
+
+  if (!searchQuery) {
+    showNotification("Veuillez entrer une recherche", "error");
+    return;
+  }
+
+  try {
+    new URL(domain);
+  } catch (e) {
+    showNotification("URL invalide. Incluez http:// ou https://", "error");
+    return;
+  }
+
+  // Comportement selon le choix de l'utilisateur
+  if (popupBehavior === 'close-and-follow') {
+    startWebScannerDetached();
+  } else {
+    startWebScannerWithPopup();
+  }
+}
+
+function stopWebScanner() {
+  chrome.runtime.sendMessage({
+    action: "stopWebScanner"
+  }, (response) => {
+    if (chrome.runtime.lastError) {
+      console.log('[Popup] Stop message sent');
+    }
+
+    if (response && response.status === 'stopped') {
+      hideScannerStatus();
+      resetScannerUI();
+      showNotification("Analyse arrêtée", "info");
+    }
+  });
+}
+// NOUVELLE FONCTION : Alternative pour utilisateurs qui préfèrent fermer le popup
+function startWebScannerDetached() {
+  const domain = document.getElementById('scannerDomain').value.trim();
+  const searchQuery = document.getElementById('scannerQuery').value.trim();
+  const useRegex = document.getElementById('scannerUseRegex').checked;
+  const caseSensitive = document.getElementById('scannerCaseSensitive').checked;
+  const searchMode = document.querySelector('input[name="scannerMode"]:checked').value;
+
+  // Même validation...
+  if (!domain || !searchQuery) {
+    showNotification("Veuillez remplir tous les champs", "error");
+    return;
+  }
+
+  try {
+    new URL(domain);
+  } catch (e) {
+    showNotification("URL invalide", "error");
+    return;
+  }
+
+  // Lancer l'analyse
+  chrome.runtime.sendMessage({
+    action: "startWebScanner",
+    domain,
+    searchQuery,
+    useRegex,
+    caseSensitive,
+    searchMode
+  });
+
+  // Ouvrir immédiatement la page de résultats pour le suivi en temps réel
+  chrome.tabs.create({
+    url: chrome.runtime.getURL('web-scanner-results.html')
+  });
+
+  // Fermer le popup
+  window.close();
+}
+function viewScannerResults() {
+  chrome.tabs.create({
+    url: chrome.runtime.getURL('web-scanner-results.html')
+  });
+  window.close();
+}
+
+function checkScannerStatus() {
+  // CORRECTION : Gestion d'erreur pour éviter les ports fermés
+  try {
+    chrome.runtime.sendMessage({
+      action: "getWebScannerStatus"
+    }, (response) => {
+      // Vérifier si la réponse est valide
+      if (chrome.runtime.lastError) {
+        console.log('[Popup] Runtime error (normal if popup closed):', chrome.runtime.lastError.message);
+        return;
+      }
+
+      if (response && response.active) {
+        showScannerStatus();
+        if (response.progress) {
+          updateScannerProgress(response.progress);
+        }
+      } else {
+        hideScannerStatus();
+        resetScannerUI();
+      }
+    });
+  } catch (error) {
+    console.log('[Popup] Error checking scanner status:', error);
+  }
+}
+
+function checkScannerResults() {
+  try {
+    chrome.runtime.sendMessage({
+      action: "getWebScannerResults"
+    }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.log('[Popup] Runtime error checking results:', chrome.runtime.lastError.message);
+        return;
+      }
+
+      if (response && response.status === 'success' && response.results.length > 0) {
+        const viewBtn = document.getElementById("viewScannerResultsBtn");
+        if (viewBtn) {
+          viewBtn.disabled = false;
+          viewBtn.innerHTML = `<span class="icon">📊</span> Résultats (${response.results.length})`;
+        }
+      }
+    });
+  } catch (error) {
+    console.log('[Popup] Error checking results:', error);
+  }
+}
+
+function setupScannerMessageListeners() {
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    try {
+      switch (message.action) {
+        case 'webScannerProgress':
+          updateScannerProgress(message.progress);
+          break;
+
+        case 'webScannerNewResult':
+          updateResultsButton();
+          break;
+
+        case 'webScannerComplete':
+          handleScannerComplete(message.results, message.summary);
+          break;
+
+        case 'webScannerError':
+          handleScannerError(message.error);
+          break;
+      }
+    } catch (error) {
+      console.error('[Popup] Error handling message:', error);
+    }
+  });
+}
+
+function showScannerLoading() {
+  const startBtn = document.getElementById("startScannerBtn");
+  if (startBtn) {
+    startBtn.disabled = true;
+    startBtn.innerHTML = '<span class="icon">⏳</span> Initialisation...';
+  }
+}
+
+function showScannerStatus() {
+  const statusPanel = document.getElementById("scannerStatus");
+  const startBtn = document.getElementById("startScannerBtn");
+
+  if (statusPanel) {
+    statusPanel.classList.remove("hidden");
+  }
+
+  if (startBtn) {
+    startBtn.disabled = true;
+    startBtn.innerHTML = '<span class="icon">⏳</span> En cours...';
+  }
+}
+
+function hideScannerStatus() {
+  const statusPanel = document.getElementById("scannerStatus");
+  if (statusPanel) {
+    statusPanel.classList.add("hidden");
+  }
+}
+
+// Mise à jour de la progression (seulement en mode popup ouvert)
+function updateScannerProgress(progress) {
+  const statusMessage = document.getElementById("scannerStatusMessage");
+  const progressBar = document.getElementById("scannerProgressBar");
+  const progressText = document.getElementById("scannerProgressText");
+
+  if (statusMessage) {
+    statusMessage.textContent = progress.message || "Analyse en cours...";
+  }
+
+  if (progress.percentage !== undefined) {
+    if (progressBar) {
+      progressBar.style.width = progress.percentage + '%';
+    }
+    if (progressText) {
+      progressText.textContent = progress.percentage + '%';
+    }
+  }
+
+  if (progress.current && progress.total && progressText) {
+    progressText.textContent = `${progress.current}/${progress.total} (${progress.percentage}%)`;
+  }
+}
+
+function updateResultsButton() {
+  chrome.runtime.sendMessage({
+    action: "getWebScannerResults"
+  }, (response) => {
+    if (response && response.status === 'success') {
+      const viewBtn = document.getElementById("viewScannerResultsBtn");
+      if (viewBtn) {
+        viewBtn.disabled = false;
+        const resultCount = response.results.length;
+        if (resultCount > 0) {
+          viewBtn.innerHTML = `<span class="icon">📊</span> Résultats (${resultCount})`;
+        }
+      }
+    }
+  });
+}
+
+function handleScannerComplete(results, summary) {
+  hideScannerStatus();
+  resetScannerUI();
+
+  const message = `Analyse terminée!\n${summary.totalPages} pages analysées\n${summary.pagesWithMatches} pages avec résultats\n${summary.totalMatches} correspondances`;
+
+  showNotification(message, "success");
+
+  // Activer le bouton de résultats
+  const viewBtn = document.getElementById("viewScannerResultsBtn");
+  if (viewBtn) {
+    viewBtn.disabled = false;
+    viewBtn.innerHTML = `<span class="icon">📊</span> Voir les résultats (${summary.pagesWithMatches})`;
+  }
+
+  // Proposer d'ouvrir les résultats si il y en a
+  if (summary.pagesWithMatches > 0) {
+    const openResults = confirm(`Analyse terminée avec ${summary.pagesWithMatches} résultats trouvés.\n\nVoulez-vous ouvrir la page de résultats ?`);
+    if (openResults) {
+      chrome.tabs.create({
+        url: chrome.runtime.getURL('web-scanner-results.html')
+      });
+      window.close();
+    }
+  }
+}
+
+function handleScannerError(error) {
+  hideScannerStatus();
+  resetScannerUI();
+  showNotification(`Erreur: ${error}`, "error");
+  // NE PAS fermer le popup en cas d'erreur pour que l'utilisateur puisse réessayer
+}
+
+function resetScannerUI() {
+  const startBtn = document.getElementById("startScannerBtn");
+  if (startBtn) {
+    startBtn.disabled = false;
+    startBtn.innerHTML = '<span class="icon">🕷️</span> Lancer l\'analyse';
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // Affichage de la version dans le popup
   const manifest = chrome.runtime.getManifest();
@@ -29,6 +386,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Configuration des outils
   setupTools();
+
+  // Configuration du Web Scanner
+  setupWebScanner();
 });
 
 function setupTabs() {

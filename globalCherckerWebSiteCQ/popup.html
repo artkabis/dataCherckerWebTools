@@ -29,6 +29,10 @@
             Analyse de page
           </button>
           <button class="tab-btn" data-tab="multi">Analyse multi-pages</button>
+          <button class="tab-btn" data-tab="scanner">
+            <span class="icon">🕷️</span>
+            Web Scanner
+          </button>
         </div>
 
         <!-- Single page analysis panel -->
@@ -78,11 +82,88 @@
             </button>
           </div>
         </div>
+        <div class="tab-panel" id="scanner-tab">
+          <div class="input-group">
+            <div class="input-wrapper">
+              <input
+                type="url"
+                id="scannerDomain"
+                placeholder="Domaine à analyser (ex: https://example.com)"
+              />
+            </div>
+
+            <div class="radio-group">
+              <label class="radio-label">
+                <input type="radio" name="scannerMode" value="text" checked />
+                <span>Texte visible</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="scannerMode" value="dom" />
+                <span>DOM complet</span>
+              </label>
+            </div>
+
+            <div class="input-wrapper">
+              <input
+                type="text"
+                id="scannerQuery"
+                placeholder="Recherche ou expression régulière"
+              />
+            </div>
+
+            <div class="checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="scannerUseRegex" />
+                <span>Expression régulière</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="scannerCaseSensitive" />
+                <span>Sensible à la casse</span>
+              </label>
+            </div>
+
+            <!-- NOUVEAU : Option de comportement du popup -->
+            <div class="behavior-options">
+              <label class="behavior-title">Comportement du popup :</label>
+              <div class="radio-group">
+                <label class="radio-label">
+                  <input type="radio" name="popupBehavior" value="keep-open" checked />
+                  <span>Garder ouvert pendant l'analyse</span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" name="popupBehavior" value="close-and-follow" />
+                  <span>Fermer et suivre dans la page de résultats</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Status panel (hidden by default) -->
+            <div id="scannerStatus" class="scanner-status hidden">
+              <div class="status-info">
+                <span id="scannerStatusMessage">Initialisation...</span>
+                <button id="scannerStopBtn" class="btn-stop">Arrêter</button>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" id="scannerProgressBar"></div>
+              </div>
+              <div class="progress-text" id="scannerProgressText">0%</div>
+            </div>
+
+            <div class="button-group">
+              <button type="button" class="btn primary-btn" id="startScannerBtn">
+                <span class="icon">🕷️</span> Lancer l'analyse
+              </button>
+              <button type="button" class="btn secondary-btn" id="viewScannerResultsBtn" disabled>
+                <span class="icon">📊</span> Résultats
+              </button>
+            </div>
+          </div>
+        </div>
+        </div>
       </section>
 
       <!-- Tools section -->
       <section class="tools-section">
-        <h2>Outils</h2>
         <div class="tools-grid">
           <button id="metaAnalyzer" class="tool-btn" title="Analyse Meta Tags">
             <span class="tool-icon">📊</span>
@@ -127,7 +208,7 @@
             class="tool-btn"
             title="Validation Schema"
           >
-            <span class="tool-icon">🔍</span>
+            <span class="tool-icon">🌐</span>
             <span class="tool-name">Schema</span>
           </button>
 

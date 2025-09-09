@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Résultats Web Scanner</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      .header {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 16px;
+        padding: 30px;
+        margin-bottom: 30px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .header-content h1 {
+        color: #333;
+        font-size: 2rem;
+        margin-bottom: 10px;
+      }
+
+      .subtitle {
+        color: #666;
+        font-size: 1rem;
+      }
+
+      .header-actions {
+        display: flex;
+        gap: 15px;
+      }
+
+      .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+
+      .btn-secondary {
+        background: #f5f5f5;
+        color: #666;
+      }
+
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      }
+
+      .summary-panel {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 16px;
+        padding: 30px;
+        margin-bottom: 30px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      }
+
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+      }
+
+      .summary-item {
+        text-align: center;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 12px;
+        border-left: 4px solid #667eea;
+      }
+
+      .summary-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #667eea;
+        margin-bottom: 8px;
+      }
+
+      .summary-label {
+        font-size: 0.9rem;
+        color: #666;
+      }
+
+      .controls-panel {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 30px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      }
+
+      .controls-grid {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .search-box {
+        flex: 1;
+        min-width: 250px;
+      }
+
+      .search-input {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+      }
+
+      .search-input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+
+      .results-panel {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 16px;
+        padding: 30px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      }
+
+      .results-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .results-count {
+        color: #666;
+        font-size: 0.9rem;
+      }
+
+      .results-container {
+        max-height: 70vh;
+        overflow-y: auto;
+      }
+
+      .result-item {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+      }
+
+      .result-item:hover {
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+      }
+
+      .result-url {
+        color: #667eea;
+        font-weight: 600;
+        margin-bottom: 12px;
+        word-break: break-all;
+        font-size: 1.1rem;
+      }
+
+      .result-url a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .result-url a:hover {
+        text-decoration: underline;
+      }
+
+      .match-count {
+        color: #666;
+        font-size: 0.9rem;
+        margin-bottom: 15px;
+      }
+
+      .matches-container {
+        margin-top: 15px;
+      }
+
+      .match-item {
+        background: #fff3cd;
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 10px;
+        font-family: "Courier New", monospace;
+        font-size: 0.9rem;
+        line-height: 1.4;
+        border-left: 3px solid #ffc107;
+        overflow-x: auto;
+      }
+
+      .match-item.hidden-match {
+        display: none;
+      }
+
+      .highlight {
+        background: #ffeb3b;
+        padding: 2px 4px;
+        border-radius: 2px;
+        font-weight: 600;
+      }
+
+      .toggle-matches-btn {
+        margin-top: 10px;
+        background: none;
+        border: none;
+        color: #667eea;
+        font-size: 0.9rem;
+        cursor: pointer;
+        padding: 8px 12px;
+        border-radius: 4px;
+        transition: all 0.3s ease;
+      }
+
+      .toggle-matches-btn:hover {
+        background: rgba(102, 126, 234, 0.1);
+      }
+
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+      }
+
+      .loading-spinner {
+        display: inline-block;
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 15px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .no-results {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+      }
+
+      .no-results-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+        opacity: 0.5;
+      }
+
+      @media (max-width: 768px) {
+        .header {
+          flex-direction: column;
+          gap: 15px;
+          text-align: center;
+        }
+
+        .controls-grid {
+          flex-direction: column;
+        }
+
+        .search-box {
+          min-width: 100%;
+        }
+
+        .summary-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="header-content">
+          <h1>🕷️ Résultats Web Scanner</h1>
+          <p class="subtitle">
+            Résultats de l'analyse et recherche dans le contenu web
+          </p>
+        </div>
+        <div class="header-actions">
+          <button id="refreshBtn" class="btn btn-secondary">
+            🔄 Actualiser
+          </button>
+          <button id="clearBtn" class="btn btn-secondary">🗑️ Effacer</button>
+          <button id="exportBtn" class="btn btn-primary">📥 Exporter</button>
+        </div>
+      </div>
+
+      <div id="summaryPanel" class="summary-panel" style="display: none">
+        <div class="summary-grid">
+          <div class="summary-item">
+            <div class="summary-number" id="totalPages">0</div>
+            <div class="summary-label">Pages analysées</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-number" id="pagesWithMatches">0</div>
+            <div class="summary-label">Pages avec correspondances</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-number" id="totalMatches">0</div>
+            <div class="summary-label">Correspondances trouvées</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-number" id="analysisTime">-</div>
+            <div class="summary-label">Temps d'analyse</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls-panel">
+        <div class="controls-grid">
+          <div class="search-box">
+            <input
+              type="text"
+              id="filterInput"
+              class="search-input"
+              placeholder="Filtrer les résultats par URL..."
+            />
+          </div>
+          <button id="expandAllBtn" class="btn btn-secondary">
+            📋 Tout développer
+          </button>
+          <button id="collapseAllBtn" class="btn btn-secondary">
+            📄 Tout réduire
+          </button>
+        </div>
+      </div>
+
+      <div class="results-panel">
+        <div class="results-header">
+          <h3>Résultats détaillés</h3>
+          <div class="results-count" id="resultsCount">Chargement...</div>
+        </div>
+
+        <div id="loadingContainer" class="loading">
+          <div class="loading-spinner"></div>
+          <div>Chargement des résultats...</div>
+        </div>
+
+        <div id="noResultsContainer" class="no-results" style="display: none">
+          <div class="no-results-icon">🔍</div>
+          <div>Aucun résultat trouvé</div>
+          <div style="margin-top: 10px; font-size: 0.9rem; opacity: 0.7">
+            Aucune analyse n'a été effectuée ou aucun résultat ne correspond aux
+            critères de recherche.
+          </div>
+        </div>
+
+        <div id="resultsContainer" class="results-container">
+          <!-- Les résultats seront ajoutés ici dynamiquement -->
+        </div>
+      </div>
+    </div>
+
+    <!-- JavaScript externe pour éviter les erreurs CSP -->
+    <script src="./web-scanner-results.js"></script>
+  </body>
+</html>

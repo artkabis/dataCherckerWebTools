@@ -9,10 +9,14 @@
 import { CORSManager } from "./core/CORSManager.js";
 import { createDB } from "./Functions/createIndexDB.js";
 import { SitemapAnalyzer } from "./Functions/sitemapAnalyzer.js";
+import { WebScanner } from "./core/WebScanner.js";
 import { CONFIG, initConfig } from "./config.js";
+
+
 
 // === INSTANCES GLOBALES ===
 const corsManager = new CORSManager();
+let webScanner = null;
 
 // === STATE MANAGEMENT MODERNE AVEC CLASSE ===
 class ApplicationState {
@@ -568,6 +572,237 @@ const cacheResource = (url) => {
       console.error(`Error caching resource ${url}:`, error);
     });
 };
+// 3. Dans service_worker.js - Handler de vérification des résultats
+async function handleVerifyWebScannerResults(sendResponse) {
+  try {
+    const data = await chrome.storage.local.get([
+      'webScannerResults',
+      'webScannerSummary',
+      'webScannerResults_temp',
+      'webScannerProgress',
+      'webScannerTimestamp'
+    ]);
+
+    console.log('[ServiceWorker] Results verification:', {
+      hasResults: !!data.webScannerResults,
+      resultsCount: data.webScannerResults?.length || 0,
+      hasSummary: !!data.webScannerSummary,
+      hasTemp: !!data.webScannerResults_temp,
+      tempCount: data.webScannerResults_temp?.length || 0,
+      timestamp: data.webScannerTimestamp,
+      progress: data.webScannerProgress
+    });
+
+    // Si pas de résultats finaux mais des résultats temporaires, les promouvoir
+    if (!data.webScannerResults && data.webScannerResults_temp && data.webScannerResults_temp.length > 0) {
+      console.log('[ServiceWorker] Promoting temporary results to final results');
+
+      const tempResults = data.webScannerResults_temp;
+      const reconstructedSummary = {
+        totalPages: data.webScannerProgress?.total || tempResults.length,
+        pagesWithMatches: tempResults.length,
+        totalMatches: tempResults.reduce((sum, result) => sum + result.matches.length, 0),
+        timestamp: Date.now(),
+        analysisId: data.webScannerProgress?.analysisId || 'recovered'
+      };
+
+      await chrome.storage.local.set({
+        'webScannerResults': tempResults,
+        'webScannerSummary': reconstructedSummary
+      });
+
+      sendResponse({
+        status: 'recovered',
+        results: tempResults,
+        summary: reconstructedSummary
+      });
+    } else {
+      sendResponse({
+        status: 'success',
+        results: data.webScannerResults || [],
+        summary: data.webScannerSummary || null,
+        debug: {
+          hasResults: !!data.webScannerResults,
+          resultsCount: data.webScannerResults?.length || 0,
+          timestamp: data.webScannerTimestamp
+        }
+      });
+    }
+  } catch (error) {
+    console.error('[ServiceWorker] Error verifying results:', error);
+    sendResponse({
+      status: 'error',
+      message: error.message
+    });
+  }
+  return true;
+}
+
+async function handleStartWebScanner(request, sendResponse) {
+  const { domain, searchQuery, useRegex, caseSensitive, searchMode } = request;
+
+  if (!domain || !searchQuery) {
+    if (sendResponse) sendResponse({ status: 'error', message: 'Domaine et recherche requis' });
+    return true;
+  }
+
+  try {
+    const urlObj = new URL(domain);
+    const normalizedDomain = urlObj.origin;
+
+    console.log(`[ServiceWorker] Starting WebScanner analysis for: ${normalizedDomain}`);
+    console.log(`[ServiceWorker] Search query: "${searchQuery}"`);
+
+    // Répondre immédiatement pour éviter les ports fermés
+    if (sendResponse) {
+      sendResponse({ status: 'started', message: 'Analyse démarrée' });
+    }
+
+    // Nettoyer l'instance précédente si elle existe
+    if (webScanner) {
+      await webScanner.cleanup();
+    }
+
+    // Créer une nouvelle instance du scanner
+    webScanner = new WebScanner(corsManager);
+
+    // Stocker immédiatement les paramètres d'analyse
+    await chrome.storage.local.set({
+      'webScannerActive': true,
+      'webScannerParams': {
+        domain: normalizedDomain,
+        searchQuery,
+        useRegex,
+        caseSensitive,
+        searchMode,
+        startTime: Date.now()
+      },
+      'webScannerResults': [], // Réinitialiser les résultats
+      'webScannerSummary': null
+    });
+
+    // Démarrer le scan en arrière-plan (sans await pour éviter les timeouts)
+    webScanner.startScan({
+      domain: normalizedDomain,
+      searchQuery,
+      useRegex,
+      caseSensitive,
+      searchMode
+    }).then(() => {
+      console.log('[ServiceWorker] WebScanner analysis completed successfully');
+    }).catch(error => {
+      console.error('[ServiceWorker] WebScanner analysis failed:', error);
+      chrome.runtime.sendMessage({
+        action: 'webScannerError',
+        error: error.message
+      });
+    });
+
+  } catch (e) {
+    console.error('[ServiceWorker] Invalid URL:', e);
+    if (sendResponse) {
+      sendResponse({
+        status: 'error',
+        message: 'URL invalide. Assurez-vous d\'inclure http:// ou https://'
+      });
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Arrête l'analyse Web Scanner en cours
+ */
+async function handleStopWebScanner(sendResponse) {
+  if (webScanner && webScanner.isScanning) {
+    await webScanner.stop();
+    sendResponse({ status: 'stopped' });
+  } else {
+    sendResponse({ status: 'error', message: 'Aucun scan en cours' });
+  }
+  return true;
+}
+
+/**
+ * Retourne le statut actuel de l'analyse
+ */
+function handleGetWebScannerStatus(sendResponse) {
+  if (webScanner) {
+    const progress = webScanner.getProgress();
+    const summary = webScanner.getSummary();
+    sendResponse({
+      active: webScanner.isScanning,
+      progress: progress,
+      summary: summary
+    });
+  } else {
+    sendResponse({ active: false });
+  }
+  return true;
+}
+
+/**
+ * Récupère les résultats stockés de la dernière analyse
+ */
+async function handleGetWebScannerResults(sendResponse) {
+  try {
+    const data = await chrome.storage.local.get(['webScannerResults', 'webScannerSummary']);
+    sendResponse({
+      status: 'success',
+      results: data.webScannerResults || [],
+      summary: data.webScannerSummary || null
+    });
+  } catch (error) {
+    sendResponse({
+      status: 'error',
+      message: error.message
+    });
+  }
+  return true;
+}
+
+/**
+ * Efface les résultats stockés
+ */
+async function handleClearWebScannerResults(sendResponse) {
+  try {
+    await chrome.storage.local.remove(['webScannerResults', 'webScannerSummary']);
+
+    // Nettoyer l'instance en cours aussi
+    if (webScanner) {
+      await webScanner.cleanup();
+      webScanner = null;
+    }
+
+    sendResponse({ status: 'success' });
+  } catch (error) {
+    sendResponse({ status: 'error', message: error.message });
+  }
+  return true;
+}
+
+/**
+ * Retourne des statistiques détaillées sur l'analyse en cours
+ */
+function handleGetWebScannerStats(sendResponse) {
+  if (webScanner) {
+    const stats = {
+      isScanning: webScanner.isScanning,
+      analysisId: webScanner.analysisId,
+      domain: webScanner.domain,
+      searchMode: webScanner.searchMode,
+      sitemapSize: webScanner.sitemap.length,
+      currentResults: webScanner.results.length,
+      progress: webScanner.getProgress(),
+      summary: webScanner.getSummary()
+    };
+    sendResponse({ status: 'success', stats });
+  } else {
+    sendResponse({ status: 'error', message: 'Aucune analyse active' });
+  }
+  return true;
+}
 
 // === GESTIONNAIRE DE MESSAGES MODERNISÉ ===
 chrome.runtime.onMessage.addListener(async function (request, sender, sendResponse) {
@@ -579,8 +814,32 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
 
     // Gestion des analyses avec switch moderne
     switch (request.action) {
+      case 'startWebScanner':
+        return await handleStartWebScanner(request, sendResponse);
+
+      case 'stopWebScanner':
+        return await handleStopWebScanner(sendResponse);
+
+      case 'getWebScannerStatus':
+        return handleGetWebScannerStatus(sendResponse);
+
+      case 'getWebScannerResults':
+        return await handleGetWebScannerResults(sendResponse);
+
+      case 'clearWebScannerResults':
+        return await handleClearWebScannerResults(sendResponse);
+
+      case 'getWebScannerStats':
+        return handleGetWebScannerStats(sendResponse);
       case 'startSitemapAnalysis':
         return await handleSitemapAnalysis(request, sendResponse);
+      case 'diagnoseWebScanner':
+        const diagnosis = await diagnoseWebScanner();
+        sendResponse(diagnosis);
+        return true;
+      case 'verifyWebScannerResults':
+        return await handleVerifyWebScannerResults(sendResponse);
+
 
       case 'startUrlListAnalysis':
         return await handleUrlListAnalysis(request, sendResponse);
@@ -623,6 +882,75 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
   }
 });
 
+chrome.runtime.onSuspend.addListener(async () => {
+  console.log('[ServiceWorker] Extension suspending, cleaning up WebScanner...');
+  if (webScanner) {
+    await webScanner.cleanup();
+    webScanner = null;
+  }
+});
+/**
+ * Diagnostic de l'état du WebScanner
+ */
+async function diagnoseWebScanner() {
+  console.group("🔍 WebScanner Diagnostic Tool");
+
+  try {
+    const diagnosis = {
+      instanceExists: !!webScanner,
+      isScanning: webScanner?.isScanning || false,
+      analysisId: webScanner?.analysisId || null,
+      corsState: corsManager.getState(),
+      storageData: await chrome.storage.local.get(['webScannerResults', 'webScannerSummary']),
+      timestamp: Date.now()
+    };
+
+    if (webScanner) {
+      diagnosis.scannerState = {
+        domain: webScanner.domain,
+        searchMode: webScanner.searchMode,
+        sitemapSize: webScanner.sitemap.length,
+        resultsCount: webScanner.results.length,
+        progress: webScanner.getProgress()
+      };
+    }
+
+    console.log("WebScanner diagnosis:", diagnosis);
+
+    // Vérifier les incohérences
+    const issues = [];
+
+    if (diagnosis.isScanning && !diagnosis.corsState.isEnabled) {
+      issues.push("Scanner actif mais CORS désactivé");
+    }
+
+    if (!diagnosis.isScanning && diagnosis.corsState.activeScans.some(scan => scan.includes('web-scanner'))) {
+      issues.push("Scanner inactif mais session CORS active");
+    }
+
+    if (issues.length > 0) {
+      console.warn("Issues detected:", issues);
+      diagnosis.issues = issues;
+
+      // Auto-correction
+      if (webScanner && !webScanner.isScanning) {
+        await webScanner.cleanup();
+      }
+    }
+
+    return diagnosis;
+
+  } catch (error) {
+    console.error("Error during WebScanner diagnosis:", error);
+    return {
+      status: 'error',
+      error: error.message,
+      timestamp: Date.now()
+    };
+  } finally {
+    console.groupEnd();
+  }
+}
 // === HANDLERS SPÉCIFIQUES ===
 async function handleSitemapAnalysis(request, sendResponse) {
   sendResponse({ status: 'started' });
@@ -1439,3 +1767,4 @@ setTimeout(async () => {
   console.log("Performing startup CORS diagnosis...");
   await diagnoseCORSIssues();
 }, 3000);
+
