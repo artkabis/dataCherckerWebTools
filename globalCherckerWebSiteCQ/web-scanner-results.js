@@ -1,92 +1,127 @@
-// web-scanner-results.js
-// Fichier JavaScript séparé pour la page de résultats
-
 class WebScannerResults {
     constructor() {
         this.results = [];
         this.summary = null;
         this.filteredResults = [];
         this.allExpanded = false;
+        this.pollingInterval = null;
+        this.lastResultCount = 0;
         this.init();
     }
 
     init() {
         this.setupEventListeners();
-        this.loadResults();
+        // Commencer directement par le storage plutôt que les messages
+        this.loadResultsDirectly();
+        this.startPolling();
     }
 
     setupEventListeners() {
-        document.getElementById('refreshBtn').addEventListener('click', () => this.loadResults());
+        document.getElementById('refreshBtn').addEventListener('click', () => this.loadResultsDirectly());
         document.getElementById('clearBtn').addEventListener('click', () => this.clearResults());
         document.getElementById('exportBtn').addEventListener('click', () => this.exportResults());
         document.getElementById('filterInput').addEventListener('input', (e) => this.filterResults(e.target.value));
         document.getElementById('expandAllBtn').addEventListener('click', () => this.expandAll());
         document.getElementById('collapseAllBtn').addEventListener('click', () => this.collapseAll());
     }
+
+    startPolling() {
+        console.log('[Results] Starting polling for live updates');
+
+        this.pollingInterval = setInterval(() => {
+            this.loadResultsDirectly();
+        }, 2000);
+
+        // Arrêter le polling après 5 minutes max
+        setTimeout(() => {
+            if (this.pollingInterval) {
+                console.log('[Results] Stopping polling after 5 minutes');
+                this.stopPolling();
+            }
+        }, 300000);
+    }
+
+    stopPolling() {
+        if (this.pollingInterval) {
+            clearInterval(this.pollingInterval);
+            this.pollingInterval = null;
+            console.log('[Results] Polling stopped');
+        }
+    }
+
+    // FONCTION CORRIGÉE : Chargement direct depuis le storage SANS messages
     loadResultsDirectly() {
         chrome.storage.local.get([
             'webScannerResults',
             'webScannerSummary',
-            'webScannerResults_temp',
-            'webScannerProgress'
+            'webScannerActive',
+            'webScannerCompleted',
+            'webScannerResultsCount',
+            'webScannerLastUpdate'
         ], (data) => {
-            console.log('[Results] Direct storage access:', data);
-
-            let results = data.webScannerResults || [];
-            let summary = data.webScannerSummary || null;
-
-            // Si pas de résultats finaux mais des temporaires
-            if (results.length === 0 && data.webScannerResults_temp && data.webScannerResults_temp.length > 0) {
-                console.log('[Results] Using temporary results as fallback');
-                results = data.webScannerResults_temp;
-
-                // Reconstruire le summary
-                summary = {
-                    totalPages: data.webScannerProgress?.total || results.length,
-                    pagesWithMatches: results.length,
-                    totalMatches: results.reduce((sum, result) => sum + result.matches.length, 0),
-                    timestamp: Date.now(),
-                    analysisId: data.webScannerProgress?.analysisId || 'fallback'
-                };
+            // Vérifier s'il y a une erreur de runtime (normal dans certains cas)
+            if (chrome.runtime.lastError) {
+                console.log('[Results] Storage access error (retrying):', chrome.runtime.lastError.message);
+                return;
             }
 
-            this.results = results;
-            this.summary = summary;
+            const currentResultCount = data.webScannerResults?.length || 0;
+            const isActive = data.webScannerActive || false;
+            const isCompleted = data.webScannerCompleted || false;
 
-            if (this.results.length > 0) {
-                console.log('[Results] Successfully loaded from storage:', this.results.length, 'results');
-                this.displayResults();
-            } else {
-                console.log('[Results] No results found in storage');
-                this.showNoResults();
+            console.log('[Results] Storage check:', {
+                results: currentResultCount,
+                active: isActive,
+                completed: isCompleted,
+                lastUpdate: data.webScannerLastUpdate
+            });
+
+            // Mise à jour si nouveaux résultats ou première fois
+            if (currentResultCount !== this.lastResultCount || this.results.length === 0) {
+                console.log(`[Results] New results detected: ${this.lastResultCount} -> ${currentResultCount}`);
+
+                this.results = data.webScannerResults || [];
+                this.summary = data.webScannerSummary || null;
+                this.lastResultCount = currentResultCount;
+
+                if (this.results.length > 0) {
+                    document.getElementById('loadingContainer').style.display = 'none';
+                    this.displayResults();
+                } else if (!isActive && !isCompleted) {
+                    this.showNoResults();
+                }
             }
+
+            // Arrêter le polling si l'analyse est terminée
+            if (isCompleted && this.pollingInterval) {
+                console.log('[Results] Analysis completed, stopping polling');
+                this.stopPolling();
+            }
+
+            this.updateStatus(isActive, isCompleted, currentResultCount);
         });
     }
 
-    loadResults() {
-        console.log('[Results] Loading Web Scanner results...');
+    // FONCTION SUPPRIMÉE : Ne plus utiliser loadResults() avec messages
+    // loadResults() { ... } - SUPPRIMÉ
 
-        // D'abord vérifier les résultats
-        chrome.runtime.sendMessage({
-            action: "verifyWebScannerResults"
-        }, (response) => {
-            console.log('[Results] Verification response:', response);
+    updateStatus(isActive, isCompleted, resultCount) {
+        const statusElement = document.querySelector('.results-count');
+        if (!statusElement) return;
 
-            if (response && (response.status === 'success' || response.status === 'recovered')) {
-                this.results = response.results || [];
-                this.summary = response.summary || null;
-
-                console.log('[Results] Loaded results:', {
-                    count: this.results.length,
-                    summary: this.summary
-                });
-
-                this.displayResults();
-            } else {
-                console.warn('[Results] No results found, trying direct storage access...');
-                this.loadResultsDirectly();
-            }
-        });
+        if (isActive && !isCompleted) {
+            statusElement.textContent = `Analyse en cours... ${resultCount} résultat(s) trouvé(s)`;
+            statusElement.style.color = '#667eea';
+        } else if (isCompleted) {
+            statusElement.textContent = `Analyse terminée - ${resultCount} résultat(s)`;
+            statusElement.style.color = '#28a745';
+        } else if (resultCount > 0) {
+            statusElement.textContent = `${resultCount} résultat(s) disponible(s)`;
+            statusElement.style.color = '#333';
+        } else {
+            statusElement.textContent = 'Aucun résultat';
+            statusElement.style.color = '#666';
+        }
     }
 
     displayResults() {
@@ -97,23 +132,26 @@ class WebScannerResults {
             return;
         }
 
-        // Afficher le résumé
         this.displaySummary();
-
-        // Afficher les résultats
         this.filteredResults = [...this.results];
         this.renderResults();
 
-        document.getElementById('resultsCount').textContent =
-            `${this.results.length} page(s) avec correspondances`;
+        console.log(`[Results] Displayed ${this.results.length} results`);
     }
 
     displaySummary() {
-        if (!this.summary) return;
+        if (!this.summary) {
+            this.summary = {
+                totalPages: this.results.length,
+                pagesWithMatches: this.results.length,
+                totalMatches: this.results.reduce((sum, result) => sum + result.matches.length, 0),
+                timestamp: Date.now()
+            };
+        }
 
         document.getElementById('summaryPanel').style.display = 'block';
-        document.getElementById('totalPages').textContent = this.summary.totalPages || 0;
-        document.getElementById('pagesWithMatches').textContent = this.summary.pagesWithMatches || 0;
+        document.getElementById('totalPages').textContent = this.summary.totalPages || this.results.length;
+        document.getElementById('pagesWithMatches').textContent = this.summary.pagesWithMatches || this.results.length;
         document.getElementById('totalMatches').textContent = this.summary.totalMatches || 0;
 
         if (this.summary.timestamp) {
@@ -154,17 +192,14 @@ class WebScannerResults {
         const matchesContainer = document.createElement('div');
         matchesContainer.className = 'matches-container';
 
-        // Afficher toutes les correspondances
         result.matches.forEach((match, index) => {
             const matchDiv = document.createElement('div');
             matchDiv.className = 'match-item';
 
-            // Cacher les correspondances après la 3ème initialement
             if (index >= 3) {
                 matchDiv.classList.add('hidden-match');
             }
 
-            // Mettre en surbrillance la correspondance dans le contexte
             let highlightedContext = match.context;
             try {
                 const escapedMatch = match.match.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -173,7 +208,6 @@ class WebScannerResults {
                     '<span class="highlight">' + match.match + '</span>'
                 );
             } catch (e) {
-                // Si erreur, afficher sans surbrillance
                 highlightedContext = match.context;
             }
 
@@ -185,7 +219,6 @@ class WebScannerResults {
         resultDiv.appendChild(matchCountDiv);
         resultDiv.appendChild(matchesContainer);
 
-        // Bouton pour afficher plus si nécessaire
         if (result.matches.length > 3) {
             const toggleBtn = document.createElement('button');
             toggleBtn.className = 'toggle-matches-btn';
@@ -286,16 +319,30 @@ class WebScannerResults {
         URL.revokeObjectURL(url);
     }
 
+    // FONCTION CORRIGÉE : Suppression sans envoyer de messages
     clearResults() {
         if (confirm('Êtes-vous sûr de vouloir effacer tous les résultats ?')) {
-            chrome.runtime.sendMessage({
-                action: "clearWebScannerResults"
-            }, (response) => {
-                if (response && response.status === 'success') {
-                    this.results = [];
-                    this.summary = null;
-                    this.showNoResults();
+            this.stopPolling();
+
+            // Supprimer directement du storage SANS envoyer de messages
+            chrome.storage.local.remove([
+                'webScannerResults',
+                'webScannerSummary',
+                'webScannerActive',
+                'webScannerCompleted',
+                'webScannerResultsCount',
+                'webScannerLastUpdate'
+            ], () => {
+                if (chrome.runtime.lastError) {
+                    console.log('[Results] Error clearing storage:', chrome.runtime.lastError.message);
+                    return;
                 }
+
+                this.results = [];
+                this.summary = null;
+                this.lastResultCount = 0;
+                this.showNoResults();
+                console.log('[Results] All data cleared');
             });
         }
     }
@@ -305,7 +352,11 @@ class WebScannerResults {
         document.getElementById('noResultsContainer').style.display = 'block';
         document.getElementById('resultsContainer').innerHTML = '';
         document.getElementById('summaryPanel').style.display = 'none';
-        document.getElementById('resultsCount').textContent = 'Aucun résultat';
+
+        const statusElement = document.querySelector('.results-count');
+        if (statusElement) {
+            statusElement.textContent = 'Aucun résultat';
+        }
     }
 }
 

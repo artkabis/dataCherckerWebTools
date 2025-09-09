@@ -431,7 +431,8 @@ footer {
 .behavior-options {
     margin: 12px 0;
     padding: 10px;
-    background: #f8f9fa;
+    background: black;
+    color: white !important;
     border-radius: 6px;
     border-left: 3px solid #667eea;
 }
@@ -440,7 +441,7 @@ footer {
     display: block;
     font-size: 0.85rem;
     font-weight: 600;
-    color: #333;
+    color: #ffffff;
     margin-bottom: 8px;
 }
 
@@ -450,5 +451,11 @@ footer {
 
 .behavior-options .radio-label {
     font-size: 0.8rem;
-    color: #555;
+    color: #939393;
+}
+input#scannerDomain {
+    background: black;
+    color: white;
+    width: 75vw;
+    padding: 5px;
 }

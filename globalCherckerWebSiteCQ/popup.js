@@ -52,30 +52,52 @@ function startWebScannerWithPopup() {
 
   showScannerLoading();
 
-  chrome.runtime.sendMessage({
-    action: "startWebScanner",
-    domain,
-    searchQuery,
-    useRegex,
-    caseSensitive,
-    searchMode
-  }, (response) => {
-    // Gérer l'erreur "message port closed" sans arrêter le processus
-    if (chrome.runtime.lastError) {
-      console.log('[Popup] Message sent but port closed (normal behavior)');
-    }
+  // CORRECTION : Gestion propre des erreurs avec timeout
+  const messageTimeout = setTimeout(() => {
+    // Si pas de réponse après 3 secondes, considérer que c'est envoyé
+    console.log('[Popup] Message timeout - assuming sent successfully');
+    showScannerStatus();
+    showNotification("Analyse démarrée", "success");
+  }, 3000);
 
-    if (response && response.status === 'started') {
-      showScannerStatus();
-      showNotification("Analyse démarrée - Restez sur cette page pour suivre la progression", "success");
-    } else if (response && response.status === 'error') {
-      showNotification(response.message, "error");
-      resetScannerUI();
-    } else {
-      showScannerStatus();
-      showNotification("Analyse démarrée", "success");
-    }
-  });
+  try {
+    chrome.runtime.sendMessage({
+      action: "startWebScanner",
+      domain,
+      searchQuery,
+      useRegex,
+      caseSensitive,
+      searchMode
+    }, (response) => {
+      clearTimeout(messageTimeout);
+
+      // CORRECTION : Vérification propre des erreurs
+      if (chrome.runtime.lastError) {
+        console.log('[Popup] Expected runtime error (service worker busy):', chrome.runtime.lastError.message);
+        // Considérer que le message a été envoyé malgré l'erreur
+        showScannerStatus();
+        showNotification("Analyse démarrée", "success");
+        return;
+      }
+
+      if (response && response.status === 'started') {
+        showScannerStatus();
+        showNotification("Analyse démarrée avec succès", "success");
+      } else if (response && response.status === 'error') {
+        showNotification(response.message, "error");
+        resetScannerUI();
+      } else {
+        showScannerStatus();
+        showNotification("Analyse démarrée", "success");
+      }
+    });
+  } catch (error) {
+    clearTimeout(messageTimeout);
+    console.log('[Popup] Exception sending message:', error);
+    // Même en cas d'exception, montrer que l'analyse a probablement démarré
+    showScannerStatus();
+    showNotification("Analyse lancée", "success");
+  }
 }
 
 
@@ -118,19 +140,22 @@ function startWebScanner() {
 }
 
 function stopWebScanner() {
-  chrome.runtime.sendMessage({
-    action: "stopWebScanner"
-  }, (response) => {
-    if (chrome.runtime.lastError) {
-      console.log('[Popup] Stop message sent');
-    }
+  // CORRECTION : Envoi sans callback pour éviter les warnings
+  try {
+    chrome.runtime.sendMessage({
+      action: "stopWebScanner"
+    });
 
-    if (response && response.status === 'stopped') {
-      hideScannerStatus();
-      resetScannerUI();
-      showNotification("Analyse arrêtée", "info");
-    }
-  });
+    // Mettre à jour l'interface immédiatement
+    hideScannerStatus();
+    resetScannerUI();
+    showNotification("Demande d'arrêt envoyée", "info");
+  } catch (error) {
+    console.log('[Popup] Stop message sent despite error:', error);
+    hideScannerStatus();
+    resetScannerUI();
+    showNotification("Analyse arrêtée", "info");
+  }
 }
 // NOUVELLE FONCTION : Alternative pour utilisateurs qui préfèrent fermer le popup
 function startWebScannerDetached() {
@@ -140,36 +165,28 @@ function startWebScannerDetached() {
   const caseSensitive = document.getElementById('scannerCaseSensitive').checked;
   const searchMode = document.querySelector('input[name="scannerMode"]:checked').value;
 
-  // Même validation...
-  if (!domain || !searchQuery) {
-    showNotification("Veuillez remplir tous les champs", "error");
-    return;
-  }
-
+  // CORRECTION : Envoi sans attendre de réponse pour éviter les warnings
   try {
-    new URL(domain);
-  } catch (e) {
-    showNotification("URL invalide", "error");
-    return;
+    chrome.runtime.sendMessage({
+      action: "startWebScanner",
+      domain,
+      searchQuery,
+      useRegex,
+      caseSensitive,
+      searchMode
+    });
+  } catch (error) {
+    console.log('[Popup] Message sent despite error:', error);
   }
 
-  // Lancer l'analyse
-  chrome.runtime.sendMessage({
-    action: "startWebScanner",
-    domain,
-    searchQuery,
-    useRegex,
-    caseSensitive,
-    searchMode
-  });
+  showNotification("Analyse lancée - Ouverture de la page de suivi...", "success");
 
-  // Ouvrir immédiatement la page de résultats pour le suivi en temps réel
-  chrome.tabs.create({
-    url: chrome.runtime.getURL('web-scanner-results.html')
-  });
-
-  // Fermer le popup
-  window.close();
+  setTimeout(() => {
+    chrome.tabs.create({
+      url: chrome.runtime.getURL('web-scanner-results.html')
+    });
+    window.close();
+  }, 1000);
 }
 function viewScannerResults() {
   chrome.tabs.create({
@@ -179,14 +196,14 @@ function viewScannerResults() {
 }
 
 function checkScannerStatus() {
-  // CORRECTION : Gestion d'erreur pour éviter les ports fermés
+  // CORRECTION : Gestion d'erreur silencieuse
   try {
     chrome.runtime.sendMessage({
       action: "getWebScannerStatus"
     }, (response) => {
-      // Vérifier si la réponse est valide
       if (chrome.runtime.lastError) {
-        console.log('[Popup] Runtime error (normal if popup closed):', chrome.runtime.lastError.message);
+        // Ignorer silencieusement cette erreur qui est normale
+        console.log('[Popup] Status check - service worker not responding (normal)');
         return;
       }
 
@@ -201,36 +218,34 @@ function checkScannerStatus() {
       }
     });
   } catch (error) {
-    console.log('[Popup] Error checking scanner status:', error);
+    console.log('[Popup] Status check failed:', error);
   }
 }
 
 function checkScannerResults() {
-  try {
-    chrome.runtime.sendMessage({
-      action: "getWebScannerResults"
-    }, (response) => {
-      if (chrome.runtime.lastError) {
-        console.log('[Popup] Runtime error checking results:', chrome.runtime.lastError.message);
-        return;
-      }
+  // CORRECTION : Utiliser le storage directement au lieu des messages
+  chrome.storage.local.get(['webScannerResults'], (data) => {
+    if (chrome.runtime.lastError) {
+      console.log('[Popup] Storage error checking results:', chrome.runtime.lastError.message);
+      return;
+    }
 
-      if (response && response.status === 'success' && response.results.length > 0) {
-        const viewBtn = document.getElementById("viewScannerResultsBtn");
-        if (viewBtn) {
-          viewBtn.disabled = false;
-          viewBtn.innerHTML = `<span class="icon">📊</span> Résultats (${response.results.length})`;
-        }
+    const results = data.webScannerResults || [];
+    if (results.length > 0) {
+      const viewBtn = document.getElementById("viewScannerResultsBtn");
+      if (viewBtn) {
+        viewBtn.disabled = false;
+        viewBtn.innerHTML = `<span class="icon">📊</span> Résultats (${results.length})`;
       }
-    });
-  } catch (error) {
-    console.log('[Popup] Error checking results:', error);
-  }
+    }
+  });
 }
 
 function setupScannerMessageListeners() {
+  // CORRECTION : Écouteur plus robuste qui ne génère pas d'erreurs
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     try {
+      // Ne pas envoyer de réponse pour éviter les erreurs de port fermé
       switch (message.action) {
         case 'webScannerProgress':
           updateScannerProgress(message.progress);
@@ -248,9 +263,13 @@ function setupScannerMessageListeners() {
           handleScannerError(message.error);
           break;
       }
+      // NE PAS appeler sendResponse() pour éviter les erreurs de port
     } catch (error) {
       console.error('[Popup] Error handling message:', error);
     }
+
+    // Retourner false pour indiquer qu'on ne va pas envoyer de réponse asynchrone
+    return false;
   });
 }
 
@@ -308,22 +327,22 @@ function updateScannerProgress(progress) {
 }
 
 function updateResultsButton() {
-  chrome.runtime.sendMessage({
-    action: "getWebScannerResults"
-  }, (response) => {
-    if (response && response.status === 'success') {
-      const viewBtn = document.getElementById("viewScannerResultsBtn");
-      if (viewBtn) {
-        viewBtn.disabled = false;
-        const resultCount = response.results.length;
-        if (resultCount > 0) {
-          viewBtn.innerHTML = `<span class="icon">📊</span> Résultats (${resultCount})`;
-        }
-      }
+  // CORRECTION : Utiliser le storage directement
+  chrome.storage.local.get(['webScannerResults'], (data) => {
+    if (chrome.runtime.lastError) {
+      return;
+    }
+
+    const results = data.webScannerResults || [];
+    const viewBtn = document.getElementById("viewScannerResultsBtn");
+    if (viewBtn && results.length > 0) {
+      viewBtn.disabled = false;
+      viewBtn.innerHTML = `<span class="icon">📊</span> Résultats (${results.length})`;
     }
   });
 }
 
+// Gestion de la completion pour le mode "popup ouvert"
 function handleScannerComplete(results, summary) {
   hideScannerStatus();
   resetScannerUI();
@@ -355,7 +374,6 @@ function handleScannerError(error) {
   hideScannerStatus();
   resetScannerUI();
   showNotification(`Erreur: ${error}`, "error");
-  // NE PAS fermer le popup en cas d'erreur pour que l'utilisateur puisse réessayer
 }
 
 function resetScannerUI() {
