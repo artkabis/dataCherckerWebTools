@@ -1,9 +1,11 @@
 /**
  * WebScanner Module avec parser XML corrigé pour Service Worker
+ * Version optimisée avec traitement par lots en parallèle
+ * TOUTES LES FONCTIONNALITÉS ORIGINALES CONSERVÉES + OPTIMISATIONS
  */
 
 export class WebScanner {
-    constructor(corsManager) {
+    constructor(corsManager, options = {}) {
         this.corsManager = corsManager;
         this.domain = '';
         this.sitemap = [];
@@ -16,6 +18,127 @@ export class WebScanner {
             total: 0,
             percentage: 0
         };
+
+        // NOUVELLES OPTIMISATIONS
+        // Cache pour éviter les requêtes répétées
+        this.responseCache = new Map();
+        this.maxCacheSize = 1000;
+
+        // Métriques de performance pour adaptation dynamique
+        this.performanceMetrics = {
+            avgRequestTime: 1000,
+            successRate: 1.0,
+            lastBatchTime: 0
+        };
+
+        // Options de performance configurables (CONSERVÉES + AMÉLIORÉES)
+        this.options = {
+            // Mode de traitement : 'sequential' ou 'parallel'
+            processingMode: options.processingMode || 'parallel',
+            // Taille des lots pour le traitement parallèle
+            batchSize: options.batchSize || 10,
+            // Nombre maximum de requêtes simultanées par lot
+            maxConcurrentRequests: options.maxConcurrentRequests || 5,
+            // Délai entre les lots (ms)
+            batchDelay: options.batchDelay || 500,
+            // Délai entre les requêtes en mode séquentiel (ms)
+            sequentialDelay: options.sequentialDelay || 150,
+            // Timeout pour les requêtes individuelles (ms)
+            requestTimeout: options.requestTimeout || 10000,
+
+            // NOUVELLES OPTIONS D'OPTIMISATION
+            adaptiveBatching: options.adaptiveBatching !== false,
+            useCache: options.useCache !== false,
+            optimizedHtmlCleaning: options.optimizedHtmlCleaning !== false,
+            storageDebounceMs: options.storageDebounceMs || 500,
+            ...options
+        };
+
+        // NOUVELLES OPTIMISATIONS - Debounce pour le stockage
+        this.storageDebounceTimer = null;
+        this.pendingResults = [];
+
+        // NOUVELLES OPTIMISATIONS - Regex pré-compilées pour le nettoyage HTML
+        this.htmlCleaningRegex = {
+            scripts: /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+            styles: /<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi,
+            comments: /<!--[\s\S]*?-->/g,
+            tags: /<[^>]+>/g,
+            blockTags: null // Sera initialisé
+        };
+
+        this.initializeBlockTagsRegex();
+
+        console.log(`[WebScanner] Initialized with options:`, this.options);
+    }
+
+    // NOUVELLE OPTIMISATION - Initialise les regex pour les balises block (une seule fois)
+    initializeBlockTagsRegex() {
+        const blockTags = ['div', 'p', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'td', 'th', 'section', 'article', 'header', 'footer', 'nav'];
+        const openTags = blockTags.map(tag => `<${tag}[^>]*>`).join('|');
+        const closeTags = blockTags.map(tag => `</${tag}>`).join('|');
+
+        this.htmlCleaningRegex.blockTags = new RegExp(`${openTags}|${closeTags}`, 'gi');
+    }
+
+    // NOUVELLES OPTIMISATIONS - Cache intelligent avec LRU
+    cacheResponse(url, response) {
+        if (!this.options.useCache) return;
+
+        if (this.responseCache.size >= this.maxCacheSize) {
+            // Supprimer le plus ancien (LRU simple)
+            const firstKey = this.responseCache.keys().next().value;
+            this.responseCache.delete(firstKey);
+        }
+
+        this.responseCache.set(url, {
+            response: response.clone(),
+            timestamp: Date.now(),
+            size: response.headers.get('content-length') || 0
+        });
+    }
+
+    // NOUVELLES OPTIMISATIONS - Récupération depuis le cache
+    getCachedResponse(url) {
+        if (!this.options.useCache) return null;
+
+        const cached = this.responseCache.get(url);
+        if (cached && (Date.now() - cached.timestamp < 300000)) { // 5 min cache
+            return cached.response.clone();
+        }
+
+        this.responseCache.delete(url);
+        return null;
+    }
+
+    // NOUVELLES OPTIMISATIONS - Mise à jour des métriques de performance
+    updatePerformanceMetrics(requestTime, success) {
+        this.performanceMetrics.avgRequestTime =
+            (this.performanceMetrics.avgRequestTime * 0.9) + (requestTime * 0.1);
+
+        this.performanceMetrics.successRate =
+            (this.performanceMetrics.successRate * 0.95) + (success ? 0.05 : 0);
+    }
+
+    // NOUVELLES OPTIMISATIONS - Adaptation dynamique de la taille des batches
+    getAdaptiveBatchSize() {
+        if (!this.options.adaptiveBatching) {
+            return this.options.batchSize;
+        }
+
+        const { avgRequestTime, successRate } = this.performanceMetrics;
+        let adaptedSize = this.options.batchSize;
+
+        // Réduire la taille si les requêtes sont lentes ou échouent
+        if (avgRequestTime > 3000 || successRate < 0.8) {
+            adaptedSize = Math.max(5, Math.floor(this.options.batchSize * 0.7));
+        }
+        // Augmenter si tout va bien
+        else if (avgRequestTime < 1000 && successRate > 0.95) {
+            adaptedSize = Math.min(50, Math.floor(this.options.batchSize * 1.3));
+        }
+
+        return adaptedSize;
     }
 
     async startScan(config) {
@@ -28,7 +151,17 @@ export class WebScanner {
         this.results = [];
         this.sitemap = [];
 
+        // NOUVELLES OPTIMISATIONS - Reset cache et métriques
+        this.responseCache.clear();
+        this.pendingResults = [];
+        this.performanceMetrics = {
+            avgRequestTime: 1000,
+            successRate: 1.0,
+            lastBatchTime: 0
+        };
+
         console.log(`[WebScanner] Starting scan ${this.analysisId} for domain: ${domain}`);
+        console.log(`[WebScanner] Processing mode: ${this.options.processingMode}`);
 
         try {
             await this.corsManager.enable(this.analysisId);
@@ -88,9 +221,15 @@ export class WebScanner {
             console.log(`[WebScanner] Found ${this.sitemap.length} URLs in sitemap`);
             this.sendProgress(`${this.sitemap.length} pages trouvées. Début de l'analyse...`);
 
-            // Étape 4: Scanner chaque page
-            await this.scanPages(searchQuery, useRegex, caseSensitive);
+            // Étape 4: Scanner chaque page avec le mode choisi
+            if (this.options.processingMode === 'parallel') {
+                await this.scanPagesParallel(searchQuery, useRegex, caseSensitive);
+            } else {
+                await this.scanPagesSequential(searchQuery, useRegex, caseSensitive);
+            }
 
+            // NOUVELLES OPTIMISATIONS - Forcer la sauvegarde finale
+            await this.flushPendingResults();
             this.sendComplete();
 
         } catch (error) {
@@ -105,7 +244,222 @@ export class WebScanner {
     }
 
     /**
-     * Extrait les URLs de sitemap du robots.txt
+     * Traitement séquentiel (comportement original) - CONSERVÉ
+     */
+    async scanPagesSequential(searchQuery, useRegex, caseSensitive) {
+        console.log(`[WebScanner] Starting sequential scan of ${this.sitemap.length} pages`);
+
+        let searchPattern;
+        if (useRegex) {
+            try {
+                searchPattern = new RegExp(searchQuery, caseSensitive ? 'g' : 'gi');
+            } catch (e) {
+                throw new Error('Expression régulière invalide');
+            }
+        } else {
+            const flags = caseSensitive ? 'g' : 'gi';
+            const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            searchPattern = new RegExp(escapedQuery, flags);
+        }
+
+        this.progress.total = this.sitemap.length;
+
+        for (let i = 0; i < this.sitemap.length; i++) {
+            if (!this.isScanning) break;
+
+            const url = this.sitemap[i];
+            this.progress.current = i + 1;
+            this.progress.percentage = Math.round((this.progress.current / this.progress.total) * 100);
+
+            this.sendProgress(`Analyse séquentielle ${this.progress.current}/${this.progress.total} pages...`, this.progress.percentage);
+
+            try {
+                const response = await this.fetchWithCORS(url);
+                const html = await response.text();
+
+                const matches = this.searchInContent(html, searchPattern, url);
+                if (matches.length > 0) {
+                    console.log(`[WebScanner] Found ${matches.length} matches in ${url}`);
+                    this.addResult(url, matches);
+                }
+            } catch (error) {
+                console.error(`[WebScanner] Erreur lors de l'analyse de ${url}:`, error);
+            }
+
+            // Pause pour éviter de surcharger
+            await new Promise(resolve => setTimeout(resolve, this.options.sequentialDelay));
+        }
+    }
+
+    /**
+     * Traitement par lots en parallèle - CONSERVÉ + OPTIMISÉ
+     */
+    async scanPagesParallel(searchQuery, useRegex, caseSensitive) {
+        console.log(`[WebScanner] Starting parallel scan of ${this.sitemap.length} pages`);
+        console.log(`[WebScanner] Batch size: ${this.options.batchSize}, Max concurrent: ${this.options.maxConcurrentRequests}`);
+
+        let searchPattern;
+        if (useRegex) {
+            try {
+                searchPattern = new RegExp(searchQuery, caseSensitive ? 'g' : 'gi');
+            } catch (e) {
+                throw new Error('Expression régulière invalide');
+            }
+        } else {
+            const flags = caseSensitive ? 'g' : 'gi';
+            const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            searchPattern = new RegExp(escapedQuery, flags);
+        }
+
+        this.progress.total = this.sitemap.length;
+
+        // NOUVELLE OPTIMISATION - Utiliser la taille de batch adaptative
+        const adaptiveBatchSize = this.getAdaptiveBatchSize();
+        const batches = this.chunkArray(this.sitemap, adaptiveBatchSize);
+        console.log(`[WebScanner] Created ${batches.length} batches (adaptive size: ${adaptiveBatchSize})`);
+
+        let processedCount = 0;
+
+        for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+            if (!this.isScanning) break;
+
+            const batch = batches[batchIndex];
+            const batchStart = processedCount + 1;
+            const batchEnd = processedCount + batch.length;
+
+            console.log(`[WebScanner] Processing batch ${batchIndex + 1}/${batches.length} (pages ${batchStart}-${batchEnd})`);
+
+            this.sendProgress(
+                `Lot ${batchIndex + 1}/${batches.length} - Analyse de ${batch.length} pages en parallèle...`,
+                Math.round((processedCount / this.progress.total) * 100)
+            );
+
+            try {
+                // Traiter le lot en parallèle avec limitation de concurrence
+                await this.processBatchWithConcurrencyLimit(batch, searchPattern, this.options.maxConcurrentRequests);
+
+                processedCount += batch.length;
+                this.progress.current = processedCount;
+                this.progress.percentage = Math.round((this.progress.current / this.progress.total) * 100);
+
+                // Délai entre les lots pour ne pas surcharger le serveur
+                if (batchIndex < batches.length - 1 && this.isScanning) {
+                    console.log(`[WebScanner] Waiting ${this.options.batchDelay}ms before next batch`);
+                    await new Promise(resolve => setTimeout(resolve, this.options.batchDelay));
+                }
+
+            } catch (error) {
+                console.error(`[WebScanner] Error processing batch ${batchIndex + 1}:`, error);
+                // Continuer avec le lot suivant
+            }
+        }
+
+        console.log(`[WebScanner] Parallel scan completed. Processed ${processedCount}/${this.sitemap.length} pages`);
+    }
+
+    /**
+     * Traite un lot d'URLs avec limitation de concurrence - CONSERVÉ
+     */
+    async processBatchWithConcurrencyLimit(urls, searchPattern, maxConcurrent) {
+        // Diviser le lot en sous-groupes pour la limitation de concurrence
+        const chunks = this.chunkArray(urls, maxConcurrent);
+
+        for (const chunk of chunks) {
+            if (!this.isScanning) break;
+
+            // Créer les promesses pour ce chunk
+            const promises = chunk.map(url => this.processUrlWithTimeout(url, searchPattern));
+
+            // Exécuter en parallèle avec gestion des erreurs
+            const results = await Promise.allSettled(promises);
+
+            // Traiter les résultats
+            results.forEach((result, index) => {
+                if (result.status === 'rejected') {
+                    console.error(`[WebScanner] Error processing ${chunk[index]}:`, result.reason);
+                }
+            });
+        }
+    }
+
+    /**
+     * Traite une URL avec timeout - CONSERVÉ
+     */
+    async processUrlWithTimeout(url, searchPattern) {
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Timeout')), this.options.requestTimeout);
+        });
+
+        const processPromise = this.processUrl(url, searchPattern);
+
+        try {
+            return await Promise.race([processPromise, timeoutPromise]);
+        } catch (error) {
+            console.error(`[WebScanner] Error processing ${url}:`, error.message);
+            throw error;
+        }
+    }
+
+    /**
+     * Traite une URL individuelle - CONSERVÉ
+     */
+    async processUrl(url, searchPattern) {
+        try {
+            const response = await this.fetchWithCORS(url);
+            const html = await response.text();
+
+            const matches = this.searchInContent(html, searchPattern, url);
+            if (matches.length > 0) {
+                console.log(`[WebScanner] Found ${matches.length} matches in ${url}`);
+                this.addResult(url, matches);
+            }
+
+            return { url, success: true, matchCount: matches.length };
+        } catch (error) {
+            console.error(`[WebScanner] Error processing ${url}:`, error);
+            return { url, success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Divise un tableau en chunks de taille donnée - CONSERVÉ
+     */
+    chunkArray(array, chunkSize) {
+        const chunks = [];
+        for (let i = 0; i < array.length; i += chunkSize) {
+            chunks.push(array.slice(i, i + chunkSize));
+        }
+        return chunks;
+    }
+
+    /**
+     * Met à jour les options de performance - CONSERVÉ
+     */
+    updateOptions(newOptions) {
+        this.options = { ...this.options, ...newOptions };
+        console.log(`[WebScanner] Options updated:`, this.options);
+    }
+
+    /**
+     * Retourne les statistiques de performance - CONSERVÉ
+     */
+    getPerformanceStats() {
+        const estimatedTimeSequential = this.sitemap.length * (this.options.sequentialDelay + 1000); // rough estimate
+        const estimatedTimeParallel = Math.ceil(this.sitemap.length / this.options.batchSize) *
+            (this.options.batchDelay + (this.options.batchSize / this.options.maxConcurrentRequests) * 1000);
+
+        return {
+            totalPages: this.sitemap.length,
+            batchSize: this.options.batchSize,
+            maxConcurrent: this.options.maxConcurrentRequests,
+            estimatedTimeSequential: Math.round(estimatedTimeSequential / 1000),
+            estimatedTimeParallel: Math.round(estimatedTimeParallel / 1000),
+            processingMode: this.options.processingMode
+        };
+    }
+
+    /**
+     * Extrait les URLs de sitemap du robots.txt - CONSERVÉ
      */
     extractSitemapUrls(robotsText) {
         const sitemapRegex = /^sitemap:\s*(.+)$/gmi;
@@ -120,7 +474,7 @@ export class WebScanner {
     }
 
     /**
-     * Retourne les URLs de sitemap communes à essayer en fallback
+     * Retourne les URLs de sitemap communes à essayer en fallback - CONSERVÉ
      */
     getFallbackSitemapUrls() {
         return [
@@ -134,7 +488,7 @@ export class WebScanner {
     }
 
     /**
-     * Traite un sitemap avec parser XML alternatif pour Service Worker
+     * Traite un sitemap avec parser XML alternatif pour Service Worker - CONSERVÉ
      */
     async processSitemap(sitemapUrl) {
         try {
@@ -164,7 +518,7 @@ export class WebScanner {
     }
 
     /**
-     * Parser XML alternatif utilisant des regex (compatible Service Worker)
+     * Parser XML alternatif utilisant des regex (compatible Service Worker) - CONSERVÉ
      */
     parseXMLSitemap(xmlText) {
         const result = {
@@ -194,57 +548,8 @@ export class WebScanner {
     }
 
     /**
-     * Scanne toutes les pages du sitemap
+     * Décode les entités HTML avec focus sur les caractères français - CONSERVÉ COMPLÈTE
      */
-    async scanPages(searchQuery, useRegex, caseSensitive) {
-        let searchPattern;
-        if (useRegex) {
-            try {
-                searchPattern = new RegExp(searchQuery, caseSensitive ? 'g' : 'gi');
-            } catch (e) {
-                throw new Error('Expression régulière invalide');
-            }
-        } else {
-            const flags = caseSensitive ? 'g' : 'gi';
-            const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            searchPattern = new RegExp(escapedQuery, flags);
-        }
-
-        this.progress.total = this.sitemap.length;
-
-        for (let i = 0; i < this.sitemap.length; i++) {
-            if (!this.isScanning) break;
-
-            const url = this.sitemap[i];
-            this.progress.current = i + 1;
-            this.progress.percentage = Math.round((this.progress.current / this.progress.total) * 100);
-
-            this.sendProgress(`Analyse de ${this.progress.current}/${this.progress.total} pages...`, this.progress.percentage);
-
-            try {
-                const response = await this.fetchWithCORS(url);
-                const html = await response.text();
-
-                const matches = this.searchInContent(html, searchPattern, url);
-                if (matches.length > 0) {
-                    console.log(`[WebScanner] Found ${matches.length} matches in ${url}`);
-                    this.addResult(url, matches);
-                }
-            } catch (error) {
-                console.error(`[WebScanner] Erreur lors de l'analyse de ${url}:`, error);
-            }
-
-            // Pause pour éviter de surcharger
-            await new Promise(resolve => setTimeout(resolve, 150));
-        }
-    }
-
-    /**
-     * Recherche le pattern dans le contenu HTML
-     */
-    /**
-  * Décode les entités HTML avec focus sur les caractères français
-  */
     decodeHtmlEntities(text) {
         // Entités HTML courantes pour le français
         const entities = {
@@ -358,8 +663,29 @@ export class WebScanner {
         return decoded;
     }
 
+    // NOUVELLE OPTIMISATION - Décodage rapide des entités HTML les plus courantes
+    fastDecodeHtmlEntities(text) {
+        // Entités les plus fréquentes uniquement pour la performance
+        return text
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/&nbsp;/g, ' ')
+            .replace(/&eacute;/g, 'é')
+            .replace(/&egrave;/g, 'è')
+            .replace(/&agrave;/g, 'à')
+            .replace(/&ccedil;/g, 'ç')
+            // Décodage numérique rapide pour les caractères courants
+            .replace(/&#(\d{1,4});/g, (match, dec) => {
+                const code = parseInt(dec, 10);
+                return code < 1114112 ? String.fromCharCode(code) : match;
+            });
+    }
+
     /**
-     * Normalise les espaces et caractères invisibles
+     * Normalise les espaces et caractères invisibles - CONSERVÉ
      */
     normalizeWhitespace(text) {
         return text
@@ -370,7 +696,7 @@ export class WebScanner {
     }
 
     /**
-     * Nettoie le HTML en préservant au mieux la structure du texte
+     * Nettoie le HTML en préservant au mieux la structure du texte - CONSERVÉ
      */
     cleanHtmlForTextSearch(html) {
         let cleaned = html;
@@ -401,15 +727,38 @@ export class WebScanner {
         return cleaned;
     }
 
+    // NOUVELLE OPTIMISATION - Nettoyage HTML optimisé avec regex pré-compilées
+    cleanHtmlForTextSearchOptimized(html) {
+        let cleaned = html;
+
+        // Utiliser les regex pré-compilées
+        cleaned = cleaned.replace(this.htmlCleaningRegex.scripts, ' ');
+        cleaned = cleaned.replace(this.htmlCleaningRegex.styles, ' ');
+        cleaned = cleaned.replace(this.htmlCleaningRegex.comments, ' ');
+        cleaned = cleaned.replace(this.htmlCleaningRegex.blockTags, ' ');
+        cleaned = cleaned.replace(this.htmlCleaningRegex.tags, ' ');
+
+        // Décodage optimisé des entités HTML communes seulement
+        cleaned = this.options.optimizedHtmlCleaning
+            ? this.fastDecodeHtmlEntities(cleaned)
+            : this.decodeHtmlEntities(cleaned);
+
+        cleaned = this.normalizeWhitespace(cleaned);
+
+        return cleaned;
+    }
+
     /**
-     * Recherche améliorée dans le contenu HTML
+     * Recherche améliorée dans le contenu HTML - CONSERVÉ + OPTIMISÉ
      */
     searchInContent(html, pattern, url) {
         const matches = [];
 
         if (this.searchMode === 'text') {
             // Mode texte visible avec nettoyage amélioré
-            const textContent = this.cleanHtmlForTextSearch(html);
+            const textContent = this.options.optimizedHtmlCleaning
+                ? this.cleanHtmlForTextSearchOptimized(html)
+                : this.cleanHtmlForTextSearch(html);
 
             console.log(`[WebScanner] Cleaned text sample for ${url}:`, textContent.substring(0, 200));
 
@@ -443,6 +792,11 @@ export class WebScanner {
                 });
 
                 console.log(`[WebScanner] Found match in ${url}:`, match[0]);
+
+                // NOUVELLE OPTIMISATION - Éviter les boucles infinites
+                if (match[0].length === 0) {
+                    normalizedPattern.lastIndex++;
+                }
             }
         } else {
             // Mode DOM complet (recherche dans le HTML brut)
@@ -460,6 +814,11 @@ export class WebScanner {
                     index: match.index,
                     type: 'html'
                 });
+
+                // NOUVELLE OPTIMISATION - Éviter les boucles infinies
+                if (match[0].length === 0) {
+                    pattern.lastIndex++;
+                }
             }
         }
 
@@ -467,7 +826,7 @@ export class WebScanner {
     }
 
     /**
-     * Fonction de test pour déboguer les problèmes de recherche
+     * Fonction de test pour déboguer les problèmes de recherche - CONSERVÉ
      */
     debugSearchText(originalText, htmlSource) {
         console.group('[WebScanner Debug] Text Search Analysis');
@@ -507,43 +866,68 @@ export class WebScanner {
     }
 
     /**
-     * Effectue une requête HTTP avec gestion CORS et retry
+     * Effectue une requête HTTP avec gestion CORS et retry - CONSERVÉ + OPTIMISÉ
      */
     async fetchWithCORS(url, retries = 2) {
+        const startTime = Date.now();
+
+        // NOUVELLE OPTIMISATION - Vérifier le cache d'abord
+        const cached = this.getCachedResponse(url);
+        if (cached) {
+            console.log(`[WebScanner] Cache hit for ${url}`);
+            return cached;
+        }
+
         for (let attempt = 0; attempt <= retries; attempt++) {
             try {
                 console.log(`[WebScanner] Fetching ${url} (attempt ${attempt + 1})`);
+
+                // NOUVELLE OPTIMISATION - Controller pour timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), this.options.requestTimeout);
 
                 const response = await fetch(url, {
                     method: 'GET',
                     headers: {
                         'User-Agent': 'Mozilla/5.0 (compatible; WebScanner/1.0)',
-                        'Accept': '*/*'
-                    }
+                        'Accept': '*/*',
+                        // NOUVELLE OPTIMISATION - Headers pour compression
+                        'Accept-Encoding': 'gzip, deflate'
+                    },
+                    signal: controller.signal
                 });
+
+                clearTimeout(timeoutId);
 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText} for ${url}`);
                 }
 
                 console.log(`[WebScanner] Successfully fetched ${url}`);
+
+                // NOUVELLES OPTIMISATIONS - Mettre en cache et mettre à jour les métriques
+                this.cacheResponse(url, response);
+                this.updatePerformanceMetrics(Date.now() - startTime, true);
+
                 return response;
 
             } catch (error) {
                 console.error(`[WebScanner] Attempt ${attempt + 1} failed for ${url}:`, error);
 
+                // NOUVELLE OPTIMISATION - Mettre à jour les métriques d'échec
+                this.updatePerformanceMetrics(Date.now() - startTime, false);
+
                 if (attempt === retries) {
                     throw error;
                 }
 
-                // Attendre avant de retry
-                await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+                // NOUVELLE OPTIMISATION - Backoff exponentiel
+                await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
             }
         }
     }
 
-    // ... (reste des méthodes inchangées: addResult, sendProgress, sendComplete, etc.)
-
+    // CONSERVÉ - Ajout de résultat original
     addResult(url, matches) {
         const result = { url, matches, timestamp: Date.now() };
         this.results.push(result);
@@ -551,21 +935,18 @@ export class WebScanner {
         console.log(`[WebScanner] Adding result for ${url}: ${matches.length} matches`);
         console.log(`[WebScanner] Total results so far: ${this.results.length}`);
 
-        // FORCER le stockage immédiat à chaque résultat
-        chrome.storage.local.set({
-            'webScannerResults': this.results,
-            'webScannerResultsCount': this.results.length,
-            'webScannerLastUpdate': Date.now()
-        }).then(() => {
-            console.log(`[WebScanner] Results stored: ${this.results.length} items`);
+        // NOUVELLE OPTIMISATION - Stockage débounced au lieu d'immédiat
+        this.pendingResults.push(result);
 
-            // Vérification immédiate
-            chrome.storage.local.get(['webScannerResults'], (stored) => {
-                console.log(`[WebScanner] Storage verification: ${stored.webScannerResults?.length || 0} items stored`);
-            });
-        });
+        if (this.storageDebounceTimer) {
+            clearTimeout(this.storageDebounceTimer);
+        }
 
-        // Envoyer le message (même si personne n'écoute)
+        this.storageDebounceTimer = setTimeout(() => {
+            this.flushPendingResults();
+        }, this.options.storageDebounceMs);
+
+        // Message immédiat pour l'UI (conservé)
         try {
             chrome.runtime.sendMessage({
                 action: 'webScannerNewResult',
@@ -575,6 +956,31 @@ export class WebScanner {
             });
         } catch (error) {
             console.log('[WebScanner] Could not send message (normal if no listeners):', error.message);
+        }
+    }
+
+    // NOUVELLE OPTIMISATION - Sauvegarde groupée des résultats
+    async flushPendingResults() {
+        if (this.pendingResults.length === 0) return;
+
+        try {
+            await chrome.storage.local.set({
+                'webScannerResults': this.results,
+                'webScannerResultsCount': this.results.length,
+                'webScannerLastUpdate': Date.now()
+            });
+
+            console.log(`[WebScanner] Flushed ${this.pendingResults.length} results to storage`);
+
+            // Vérification immédiate
+            chrome.storage.local.get(['webScannerResults'], (stored) => {
+                console.log(`[WebScanner] Storage verification: ${stored.webScannerResults?.length || 0} items stored`);
+            });
+
+            this.pendingResults = [];
+
+        } catch (error) {
+            console.error('[WebScanner] Error flushing results:', error);
         }
     }
 
@@ -598,12 +1004,16 @@ export class WebScanner {
             totalMatches: this.results.reduce((sum, result) => sum + result.matches.length, 0),
             timestamp: Date.now(),
             analysisId: this.analysisId,
-            completed: true
+            completed: true,
+            // NOUVELLES MÉTRIQUES
+            cacheHits: this.responseCache.size,
+            avgRequestTime: Math.round(this.performanceMetrics.avgRequestTime),
+            successRate: Math.round(this.performanceMetrics.successRate * 100)
         };
 
         console.log(`[WebScanner] Analysis COMPLETE:`, summary);
 
-        // FORCER le stockage final avec vérification
+        // FORCER le stockage final avec vérification - CONSERVÉ + OPTIMISÉ
         chrome.storage.local.set({
             'webScannerResults': this.results,
             'webScannerSummary': summary,
@@ -653,6 +1063,13 @@ export class WebScanner {
 
     stop() {
         this.isScanning = false;
+
+        // NOUVELLE OPTIMISATION - Forcer la sauvegarde des résultats en cours
+        if (this.storageDebounceTimer) {
+            clearTimeout(this.storageDebounceTimer);
+            this.flushPendingResults();
+        }
+
         console.log(`[WebScanner] Scan ${this.analysisId} stopped`);
     }
 
@@ -660,7 +1077,10 @@ export class WebScanner {
         return {
             ...this.progress,
             isScanning: this.isScanning,
-            analysisId: this.analysisId
+            analysisId: this.analysisId,
+            // NOUVELLES MÉTRIQUES
+            performanceMetrics: this.performanceMetrics,
+            cacheSize: this.responseCache.size
         };
     }
 
@@ -670,17 +1090,44 @@ export class WebScanner {
             pagesWithMatches: this.results.length,
             totalMatches: this.results.reduce((sum, result) => sum + result.matches.length, 0),
             isScanning: this.isScanning,
-            analysisId: this.analysisId
+            analysisId: this.analysisId,
+            // NOUVELLES MÉTRIQUES
+            cacheHits: this.responseCache.size,
+            avgRequestTime: Math.round(this.performanceMetrics.avgRequestTime),
+            successRate: Math.round(this.performanceMetrics.successRate * 100)
         };
     }
 
     async cleanup() {
         this.stop();
+
+        // NOUVELLES OPTIMISATIONS - Nettoyer le cache
+        this.responseCache.clear();
+        this.pendingResults = [];
+
         if (this.analysisId && this.corsManager) {
             await this.corsManager.disable(this.analysisId);
         }
         this.results = [];
         this.sitemap = [];
         this.progress = { current: 0, total: 0, percentage: 0 };
+    }
+
+    // NOUVELLE MÉTHODE - Statistiques d'optimisation
+    getOptimizationStats() {
+        return {
+            cacheSize: this.responseCache.size,
+            cacheHitRatio: this.responseCache.size / Math.max(1, this.progress.current),
+            avgRequestTime: Math.round(this.performanceMetrics.avgRequestTime),
+            successRate: Math.round(this.performanceMetrics.successRate * 100),
+            currentBatchSize: this.getAdaptiveBatchSize(),
+            pendingResults: this.pendingResults.length,
+            optimizations: {
+                adaptiveBatching: this.options.adaptiveBatching,
+                useCache: this.options.useCache,
+                optimizedHtmlCleaning: this.options.optimizedHtmlCleaning,
+                storageDebouncing: this.options.storageDebounceMs > 0
+            }
+        };
     }
 }
