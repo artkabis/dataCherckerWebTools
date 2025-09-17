@@ -664,14 +664,7 @@ async function handleStartWebScanner(request, sendResponse) {
     }
 
     // Créer une nouvelle instance du scanner
-    // Mode parallèle personnalisé
-    webScanner = new WebScanner(corsManager, {
-      processingMode: 'parallel',
-      batchSize: 15,           // 15 pages par lot
-      maxConcurrentRequests: 8, // 8 requêtes simultanées max
-      batchDelay: 300          // 300ms entre les lots
-    });
-    //webScanner = new WebScanner(corsManager);
+    webScanner = new WebScanner(corsManager);
 
     // Stocker immédiatement les paramètres d'analyse
     await chrome.storage.local.set({
@@ -838,12 +831,15 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
 
       case 'getWebScannerStats':
         return handleGetWebScannerStats(sendResponse);
+
       case 'startSitemapAnalysis':
         return await handleSitemapAnalysis(request, sendResponse);
+
       case 'diagnoseWebScanner':
         const diagnosis = await diagnoseWebScanner();
         sendResponse(diagnosis);
         return true;
+
       case 'verifyWebScannerResults':
         return await handleVerifyWebScannerResults(sendResponse);
 
@@ -1304,7 +1300,6 @@ const handleUserSoprod = async (user) => {
 };
 
 
-
 /**
  * Cette fonction vérifie si un onglet donné correspond à l'URL de Soprod
  * et injecte le script si c'est le cas.
@@ -1327,7 +1322,7 @@ function injectScriptIfSoprod(tabId) {
 
     // On vérifie si l'URL de l'onglet correspond au pattern de Soprod
     if (tab.url.includes("solocalms.fr")) {
-      console.log(`Tab ${tabId} is a Soprod tab. Injecting script...`);
+      console.log(`🎯 Tab ${tabId} is a Soprod tab. Injecting script...`);
 
       // Injection du script depuis le fichier local
       chrome.scripting.executeScript({
@@ -1335,13 +1330,13 @@ function injectScriptIfSoprod(tabId) {
         files: ['./Functions/soprodDOMTime.js']
       })
         .then(() => {
-          console.log("Script 'soprodDOMTime.js' injected successfully.");
+          console.log("✅ Script 'soprodDOMTime.js' injected successfully.");
         })
         .catch(err => {
-          console.error("Failed to inject script:", err);
+          console.error("❌ Failed to inject script:", err);
         });
     } else {
-      console.log(`Tab ${tabId} is not a Soprod tab. No action taken.`);
+      console.log(`ℹ️ Tab ${tabId} is not a Soprod tab. No action taken.`);
     }
   });
 }
@@ -1351,7 +1346,7 @@ function injectScriptIfSoprod(tabId) {
  * Se déclenche lorsque l'utilisateur clique sur un autre onglet.
  */
 chrome.tabs.onActivated.addListener((activeInfo) => {
-  console.log("User switched tabs. Checking new active tab...");
+  console.log("👆 User switched tabs. Checking new active tab...");
   injectScriptIfSoprod(activeInfo.tabId);
 });
 
@@ -1361,11 +1356,71 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
  * On vérifie que la page est complètement chargée ('complete').
  */
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  // Log pour debug
+  if (changeInfo.status) {
+    console.log(`📊 Tab ${tabId} status changed to: ${changeInfo.status}`);
+  }
+
   if (changeInfo.status === 'complete') {
-    console.log("A tab has finished loading. Checking it...");
+    console.log("🔄 A tab has finished loading. Checking it...");
     injectScriptIfSoprod(tabId);
   }
 });
+
+/**
+ * Écouteur optionnel pour les nouvelles fenêtres/onglets créés.
+ * Utile si l'utilisateur ouvre la page dans un nouvel onglet.
+ */
+chrome.tabs.onCreated.addListener((tab) => {
+  console.log(`🆕 New tab created: ${tab.id}`);
+  // Note: l'URL n'est pas toujours disponible immédiatement lors de la création
+  // Le onUpdated se chargera de l'injection une fois la page chargée
+});
+
+/**
+ * Écouteur pour l'installation/mise à jour de l'extension.
+ * Permet d'injecter le script sur les onglets déjà ouverts lors de l'installation.
+ */
+chrome.runtime.onInstalled.addListener(async (details) => {
+  console.log(`🔧 Extension installed/updated. Reason: ${details.reason}`);
+
+  try {
+    // Récupère tous les onglets ouverts
+    const tabs = await chrome.tabs.query({});
+
+    // Vérifie chaque onglet pour voir s'il s'agit d'une page Soprod
+    for (const tab of tabs) {
+      if (tab.url && tab.url.includes("solocalms.fr")) {
+        console.log(`🔄 Found existing Soprod tab: ${tab.id}`);
+        // Petite pause pour laisser l'extension s'initialiser complètement
+        setTimeout(() => {
+          injectScriptIfSoprod(tab.id);
+        }, 1000);
+      }
+    }
+  } catch (error) {
+    console.error("❌ Error during installation check:", error);
+  }
+});
+
+/**
+ * Optionnel : Écouteur pour la navigation via webNavigation API
+ * Plus fiable que tabs.onUpdated dans certains cas
+ * Nécessite la permission "webNavigation" dans manifest.json
+ */
+if (chrome.webNavigation) {
+  chrome.webNavigation.onCompleted.addListener((details) => {
+    // Vérifie que c'est le frame principal (pas un iframe)
+    if (details.frameId === 0) {
+      console.log(`🧭 Navigation completed for tab ${details.tabId}`);
+      // Petit délai pour s'assurer que le DOM est stable
+      setTimeout(() => {
+        injectScriptIfSoprod(details.tabId);
+      }, 500);
+    }
+  });
+}
+
 
 // Interface window management
 const InterfaceManager = {

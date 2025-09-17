@@ -31,7 +31,8 @@
     "declarativeNetRequest",
     "declarativeNetRequestFeedback",
     "webRequest",
-    "debugger"
+    "debugger",
+    "webNavigation"
   ],
   "options_page": "options.html",
   "host_permissions": [
