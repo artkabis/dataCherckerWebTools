@@ -282,13 +282,13 @@ console.log("🔥 SCRIPT SOPROD DOMTIME CHARGÉ !");
             if (mutationObserver) {
                 mutationObserver.disconnect();
                 mutationObserver = null;
-                console.warn('⚠️ Timeout : MutationObserver arrêté après 30 secondes');
+                console.log('⚠️ Timeout : MutationObserver arrêté après 30 secondes');
 
                 // Tentative de dernière chance
                 if (areRequiredElementsPresent()) {
                     initializeScript();
                 } else {
-                    console.warn('⚠️ Éléments requis toujours non trouvés après timeout');
+                    console.log('⚠️ Éléments requis toujours non trouvés après timeout');
                 }
             }
         }, 30000);
