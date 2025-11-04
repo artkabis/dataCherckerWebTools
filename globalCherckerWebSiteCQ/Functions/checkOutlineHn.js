@@ -3,6 +3,7 @@
     "----------------------------- START check Hn outline validity -----------------------------"
   );
   console.log(" ------------------------------- HnOutlineValidity starting");
+
   const isHeadingValid = (currentHn, previousHn) => {
     const currentHnIndex = parseInt(currentHn.charAt(1));
     const previousHnIndex = parseInt(previousHn.charAt(1));
@@ -19,6 +20,7 @@
 
     return true;
   };
+
   const hasDuplicateH1 = () => {
     const h1Tags = document.querySelectorAll("h1");
     const h1Texts = Array.from(h1Tags).map((h1) => h1.textContent.toLowerCase());
@@ -27,7 +29,131 @@
     return h1Texts.length > 1;
   };
 
+  /****** NOUVELLE FONCTION : Détection des Hn scindés par saut de ligne ******/
+  const checkSplitHeadings = () => {
+    const dmNewParagraphs = document.querySelectorAll(".dmNewParagraph");
+    const splitHeadingsIssues = [];
 
+    dmNewParagraphs.forEach((paragraph, index) => {
+      const headings = paragraph.querySelectorAll("h1, h2, h3, h4, h5, h6");
+
+      if (headings.length > 1) {
+        // Vérifier si plusieurs Hn consécutifs du même niveau
+        const headingTypes = Array.from(headings).map(h => h.tagName.toLowerCase());
+
+        // Compter les occurrences de chaque type
+        const headingCounts = {};
+        headingTypes.forEach(type => {
+          headingCounts[type] = (headingCounts[type] || 0) + 1;
+        });
+
+        // Détecter si plusieurs Hn du même niveau (probable scindage)
+        const hasDuplicateTypes = Object.values(headingCounts).some(count => count > 1);
+
+        if (hasDuplicateTypes) {
+          const combinedText = Array.from(headings).map(h => h.textContent.trim()).join(" ");
+          const problematicType = Object.keys(headingCounts).find(key => headingCounts[key] > 1);
+
+          splitHeadingsIssues.push({
+            container: paragraph,
+            headings: Array.from(headings),
+            headingType: problematicType,
+            count: headingCounts[problematicType],
+            combinedText: combinedText,
+            index: index
+          });
+
+          // Styling visuel du conteneur problématique
+          paragraph.style.cssText = `
+            border: 3px dashed red !important;
+            outline: 5px solid rgba(255, 0, 0, 0.2) !important;
+            outline-offset: 5px !important;
+            position: relative !important;
+            background: rgba(255, 165, 0, 0.1) !important;
+          `;
+
+          // Ajouter un message d'avertissement visible
+          const warningDiv = document.createElement('div');
+          warningDiv.style.cssText = `
+            position: absolute;
+            top: -30px;
+            left: 0;
+            background: #ff4444;
+            color: white;
+            padding: 5px 10px;
+            font-size: 12px;
+            font-weight: bold;
+            border-radius: 3px;
+            z-index: 9999;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+          `;
+          warningDiv.textContent = `⚠️ ${headingCounts[problematicType]} ${problematicType.toUpperCase()} scindés détectés`;
+          warningDiv.setAttribute('title', 'Supprimez les sauts de ligne dans votre titre');
+          paragraph.style.position = 'relative';
+          paragraph.appendChild(warningDiv);
+
+          // Console warning détaillé
+          console.log(
+            `%c⚠️ ALERTE : Hn scindés détectés dans .dmNewParagraph [${index}]`,
+            'color: red; font-size: 14px; font-weight: bold;'
+          );
+          console.log(
+            `%c   Type: ${problematicType.toUpperCase()} × ${headingCounts[problematicType]}`,
+            'color: orange;'
+          );
+          console.log(
+            `%c   Texte combiné: "${combinedText}"`,
+            'color: orange;'
+          );
+          console.log(
+            `%c   ℹ️ Solution: Supprimer les sauts de ligne dans l'éditeur pour fusionner en un seul ${problematicType.toUpperCase()}`,
+            'color: blue;'
+          );
+          console.log('   Conteneur:', paragraph);
+          console.log('   Titres concernés:', headings);
+          console.log('---');
+        }
+      }
+    });
+
+    // Résumé global
+    if (splitHeadingsIssues.length > 0) {
+      console.log(
+        `%c⚠️ RÉSUMÉ: ${splitHeadingsIssues.length} bloc(s) avec des Hn scindés détecté(s)`,
+        'color: red; font-size: 16px; font-weight: bold; background: yellow; padding: 5px;'
+      );
+
+      // Ajouter au dataChecker
+      dataChecker.hn.split_headings = {
+        detected: true,
+        count: splitHeadingsIssues.length,
+        issues: splitHeadingsIssues.map(issue => ({
+          heading_type: issue.headingType,
+          split_count: issue.count,
+          combined_text: issue.combinedText,
+          container_index: issue.index
+        })),
+        global_score: 0, // Pénalité
+        message: "Des titres ont été scindés par des sauts de ligne dans l'éditeur"
+      };
+    } else {
+      console.log(
+        '%c✓ Aucun Hn scindé détecté',
+        'color: green; font-weight: bold;'
+      );
+
+      dataChecker.hn.split_headings = {
+        detected: false,
+        count: 0,
+        issues: [],
+        global_score: 5,
+        message: "Aucun titre scindé détecté"
+      };
+    }
+
+    return splitHeadingsIssues;
+  };
+  /****** FIN NOUVELLE FONCTION ******/
 
 
   let hnTagArray = [], rendu = "", validStructure = true;
@@ -88,31 +214,21 @@
     console.log("Structure des Hn invalide.");
   }
 
+  /****** APPEL DE LA FONCTION DE DÉTECTION DES Hn SCINDÉS ******/
+  console.log('\n========== Vérification des Hn scindés ==========');
+  const splitHeadingsFound = checkSplitHeadings();
+  console.log('=================================================\n');
 
 
   /****** Vérification qu'au moins deux h2 sont suivi du h1 ****************** */
   console.log('Vérification des doubles h2 après h1 >>>>')
-  // let h1Found = false;
-  // let h2Count = 0;
-  // const elements = document.querySelectorAll('h1, h2, h3');
-  // for (var i = 0; i < elements.length; i++) {
-  //   let currentElement = elements[i];
-  //   (currentElement.tagName.toLowerCase() === 'h1') ? (h1Found = true, h2Count = 0) // Réinitialiser le compteur h2Count lorsqu'un nouveau h1 est trouvé
-  //   : (currentElement.tagName.toLowerCase() === 'h2' && h1Found) ? h2Count++ : '';// Si on trouve un h3 après un h1, réinitialiser le compteur h2Count  
-  // }
 
-  // (h1Found && h2Count >= 2) ?
-  //   console.log('%cLa structure est valide : votre h1 est bien suivi d\'au moins deux h2.', 'color:green')
-  // : (!h1Found) ? console.log('%cErreur : Aucun H1 n\a été trouvé..', 'color:orange') :
-  //   console.log('%cAttention : Vous avez un h2 orphelin situé après votre h1 (ils doivent être (au minimum) au nombre de deux).', 'color:orange');
-
-  // Supposons que vous avez déjà votre structure DOM
   const headings = document.querySelectorAll('h1, h2, h3');
 
   let h1Found = false;
   let consecutiveH2Count = 0;
   let h3Detected = false;
-  const minimumConsecutiveH2Count = 2; // Modifier selon vos besoins
+  const minimumConsecutiveH2Count = 2;
 
   for (var i = 0; i < headings.length; i++) {
     var currentHeading = headings[i];
@@ -122,24 +238,13 @@
       consecutiveH2Count = 0;
     } else if (!h3Detected && currentHeading.tagName.toLowerCase() === 'h2' && h1Found) {
       consecutiveH2Count++;
-    } //else {
-    //   // Si on trouve un élément différent de h2, réinitialiser le compteur
-    //   consecutiveH2Count = 0;
-    //   h3Detected = true;
-    // }
-
+    }
   }
-  // Vérifier si la condition est satisfaite
+
   (h1Found && consecutiveH2Count >= minimumConsecutiveH2Count) && console.log('%cLa structure est valide : votre h1 est bien suivi d\'au moins deux h2.', 'color:green');
 
-  // Si on ne trouve pas de structure valide, afficher une erreur
   (consecutiveH2Count < minimumConsecutiveH2Count) ? console.log('%cAttention : Vous avez un h2 orphelin (ou absent) situé après votre h1. Ils doivent être (au minimum) au nombre de deux.', 'color:orange') :
     !h1Found ? console.log('%cErreur : Aucun H1 n\a été trouvé..', 'color:orange') : '';
-
-
-
-
-
 
 
   /*************************************** Gestion des precos liée à la longueur de Hn */
@@ -191,19 +296,12 @@
     ) {
       dataChecker.hn.hn_reco.hn.push({
         hn_type: tagName,
-
         hn_letters_count: nbLetters,
-
         hn_txt: cleanTagContent,
-
         hn_index: i,
-
         hn_words_sliced: words,
-
         hn_words_count: Number(words.length),
-
         hn_preco: "Entre 50 et 90 caractères",
-
         hn_score: 0,
       });
       globalScoreHnReco.push(0);
@@ -220,27 +318,18 @@
     } else {
       dataChecker.hn.hn_reco.hn.push({
         hn_type: tagName,
-
         hn_letters_count: nbLetters,
-
         hn_txt: cleanTagContent,
-
         hn_index: i,
-
         hn_words_sliced: words,
-
         hn_words_count: Number(words.length),
-
         hn_preco: "Entre 50 et 90 caractères",
-
         hn_score: 5,
       });
       globalScoreHnReco.push(5);
     }
   });
-  //console.log('---------------------------------- HnReco',dataChecker.hn.hn_reco.hn);
 
-  //rendu = rendu.replaceAll('"', "").replaceAll("'", "").slice(0, -1);
   let renduTab = rendu.split("_");
   let scoreOutlineHn = [];
   dataChecker.hn.hn_outline.hn = [];
@@ -248,9 +337,7 @@
     if (t.length > 0) {
       let validity = t.includes("Non valide") ? false : true;
       const score = (validity === false) ? 0 : 5;
-      //console.log('t.includes("Non valide") : ',{t}, 'include Non valide : ',t.includes("Non valide"), {score})
       const cleanT = t.replaceAll('undefined', '')
-      //console.log('    detection score validity strcture heading Hn : ',{cleanT}, {validity}, {score});
       dataChecker.hn.hn_outline.hn.push({
         hn_type: t.split(" -- ")[0],
         hn_validity: validity,
@@ -260,11 +347,13 @@
       scoreOutlineHn.push(score);
     }
   });
+
   const hasZeroInOutlineHn = (array) => {
     return array.filter((value) => {
       return value === 0;
     }).length === 0 ? 5 : 0;
   };
+
   const scoreHnOutline = hasZeroInOutlineHn(scoreOutlineHn)
   const scoreHnReco =
     globalScoreHnReco.length > 1
@@ -274,15 +363,22 @@
         ).toFixed(2)
       )
       : globalScoreHnReco[0];
+
+  // Intégrer le score des Hn scindés dans le score global
+  const scoreSplitHeadings = dataChecker.hn.split_headings?.global_score || 5;
+
   dataChecker.hn.hn_reco.hn_check_state = true;
   dataChecker.hn.hn_reco.global_score = scoreHnReco;
   dataChecker.hn.hn_outline.global_score = scoreHnOutline;
   dataChecker.hn.hn_check_state = true;
+
+  // Score global incluant la pénalité des Hn scindés
   dataChecker.hn.global_score = Number(
-    ((scoreHnReco + scoreHnOutline) / 2).toFixed(2)
+    ((scoreHnReco + scoreHnOutline + scoreSplitHeadings) / 3).toFixed(2)
   );
 
   dataChecker.hn.nb_hn = nbHn;
+
   console.log(
     "----------------------------- END check Hn outline validity -----------------------------"
   );
