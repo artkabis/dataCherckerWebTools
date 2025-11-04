@@ -759,16 +759,23 @@ function initcheckerLinksAndImages() {
               warningLinks.forEach((t, i) => {
                 const url = t.url;
                 const target = t.target;
-                let isLinkedin = url.includes("linkedin") ? "Linkedin" : "";
+                let isLinkedin = url.includes("linkedin");
                 const isNotSecure = url.includes("http:");
                 let isNotsecureMsg = isNotSecure
                   ? "ATTENTION VOTRE LIEN EST EN HTTP ET DONC NON SECURISE : AJOUTER HTTPS"
                   : "";
+                let txtLinkedin = "";
+                if (isLinkedin && res.status === 999) {
+                  console.log(`%c Vérifier le lien Linkedin : ${url} manuellement (status : ${res.status}) >>>`, `color:orange`);
+                  txtLinkedin = "Lien Linkedin à vérifier - status : 999";
+                } else if (isLinkedin && res.status === 200) {
+                  console.log(`%c Lien Linkedin : ${url} valide (status : ${res.status}) >>>`, `color:green`);
+                }
 
                 verifExcludesUrls(url) &&
-                  (!url.includes("tel:") && isLinkedin && !isNotSecure) &&
+                  (!url.includes("tel:") && !isNotSecure) &&
                   console.log(
-                    `%c Vérifier le lien  ${isLinkedin}: 
+                    `%c Vérifier le lien : 
             ${url} manuellement >>>`,
                     `color:${isNotSecure ? "red" : "orange"}`
                   );
@@ -782,8 +789,7 @@ function initcheckerLinksAndImages() {
           clearTimeout(fetchTimeout);
           response.status = res.status;
           response.document = res.responseText;
-          isLinkedin = res.status === 999;
-          txtLinkedin = isLinkedin ? "Lien Linkedin : " : "";
+
 
           const isCTA =
             (_node &&
@@ -931,7 +937,7 @@ function initcheckerLinksAndImages() {
           resolve(response);
           if (res.ok || isLinkedin) {
             console.log(
-              `url: ${txtLinkedin} ${_url} %c${_txt} -> %cstatus: %c${response.status
+              `url: ${_url} %c${_txt} -> %cstatus: %c${response.status
               } %c ${!isMenuLink ? isCTALog : ""} %c${isMenuLinkLog} %c${!isImageLink ? permalienLog : ""
               } %c${isImageLinkLog} %c${isImageProductShopLog} %c${isElementVisible(_node) ? "Visible" : "Non visible"
               }`,
@@ -1177,15 +1183,7 @@ function initcheckerLinksAndImages() {
           check(url, txtContent, t.target);
           (url?.at(-1) === "#") && console.log('%cAttention, le lien est une ancre interne pouvant poser problème : ' + url, 'color:orange;');
 
-          if (url.includes("linkedin")) {
-            console.log(
-              `%c Vérifier le lien "Linkedin" : ${txtContent} manuellement >>>`,
-              "color:orange"
-            );
-            console.log(new URL(url).href, t.target);
-            await delay(delayTime);
-            check(new URL(url).href, txtContent, t.target);
-          } else if (url.includes("http:")) {
+          if (url.includes("http:")) {
             console.log(
               `%c Vérifier le lien ${txtContent} manuellement et SECURISEZ LE via "https" si ceci est possible >>>`,
               "color:red"

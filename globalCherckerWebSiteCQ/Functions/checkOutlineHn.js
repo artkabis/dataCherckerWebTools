@@ -164,7 +164,9 @@
       .replaceAll("l’", "")
       .replaceAll("t’", "")
       .replaceAll("  ", " ")
-      .replace(/\s\s+/g, ' ');
+      .replaceAll('D’', " ")
+      .replaceAll('d’', " ")
+      .replace(/\s\s+/g, " ");
     const nbLetters = cleanTagContent.length;
     const nbLettersNoSpace = cleanTagContent.replace(/\s+/g, '').length;
     const tagName = t.tagName;
