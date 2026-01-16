@@ -46,10 +46,20 @@ class AnalysisOrchestrator {
     // Heading Analyzer
     this.endpoints.set('headings', new HeadingAnalyzerEndpoint(this.configManager, this.scoringEngine));
 
-    // Autres endpoints à ajouter...
-    // this.endpoints.set('links', new LinkAnalyzerEndpoint(this.configManager, this.scoringEngine));
-    // this.endpoints.set('accessibility', new AccessibilityAnalyzerEndpoint(this.configManager, this.scoringEngine));
-    // etc.
+    // Link Analyzer
+    if (typeof LinkAnalyzerEndpoint !== 'undefined') {
+      this.endpoints.set('links', new LinkAnalyzerEndpoint(this.configManager, this.scoringEngine));
+    }
+
+    // Accessibility Analyzer
+    if (typeof AccessibilityAnalyzerEndpoint !== 'undefined') {
+      this.endpoints.set('accessibility', new AccessibilityAnalyzerEndpoint(this.configManager, this.scoringEngine));
+    }
+
+    // Performance Analyzer
+    if (typeof PerformanceAnalyzerEndpoint !== 'undefined') {
+      this.endpoints.set('performance', new PerformanceAnalyzerEndpoint(this.configManager, this.scoringEngine));
+    }
 
     console.log(`✓ ${this.endpoints.size} endpoints registered`);
   }
