@@ -31,6 +31,7 @@ class AnalysisCoordinator {
 
   /**
    * Analyse une page en utilisant les endpoints v5.0
+   * L'analyse complète est déléguée au content script
    * @param {number} tabId - ID de l'onglet à analyser
    * @param {Object} options - Options d'analyse
    * @returns {Promise<Object>} - Résultats de l'analyse
@@ -39,17 +40,14 @@ class AnalysisCoordinator {
     console.log('[AnalysisCoordinator] Starting analysis for tab:', tabId);
 
     try {
-      // 1. Extraire les données de la page via le content script
-      const pageData = await this.extractPageData(tabId);
+      // Demander au content script de faire l'analyse complète
+      const analysisResult = await this.requestAnalysis(tabId, options);
 
-      // 2. Analyser avec l'orchestrateur
-      const analysisResult = await this.analyzeWithOrchestrator(pageData, options);
+      // Sauvegarder en cache
+      this.cacheResult(analysisResult.url, analysisResult);
 
-      // 3. Sauvegarder en cache
-      this.cacheResult(pageData.url, analysisResult);
-
-      // 4. Sauvegarder dans chrome.storage
-      await this.saveToStorage(pageData.url, analysisResult);
+      // Sauvegarder dans chrome.storage
+      await this.saveToStorage(analysisResult.url, analysisResult);
 
       console.log('[AnalysisCoordinator] Analysis complete:', analysisResult);
       return analysisResult;
@@ -61,63 +59,31 @@ class AnalysisCoordinator {
   }
 
   /**
-   * Extrait les données de la page via le content script
+   * Demande au content script de faire l'analyse complète
    */
-  async extractPageData(tabId) {
-    console.log('[AnalysisCoordinator] Extracting page data from tab:', tabId);
+  async requestAnalysis(tabId, options = {}) {
+    console.log('[AnalysisCoordinator] Requesting full analysis from content script...');
 
     return new Promise((resolve, reject) => {
       chrome.tabs.sendMessage(
         tabId,
-        { action: 'getPageData' },
+        { action: 'analyzePagepData', options: options },
         response => {
           if (chrome.runtime.lastError) {
-            reject(new Error(`Failed to extract page data: ${chrome.runtime.lastError.message}`));
+            reject(new Error(`Failed to analyze page: ${chrome.runtime.lastError.message}`));
             return;
           }
 
           if (!response || !response.success) {
-            reject(new Error(response?.error || 'Unknown extraction error'));
+            reject(new Error(response?.error || 'Unknown analysis error'));
             return;
           }
 
-          console.log('[AnalysisCoordinator] Page data extracted successfully');
+          console.log('[AnalysisCoordinator] Analysis result received from content script');
           resolve(response.data);
         }
       );
     });
-  }
-
-  /**
-   * Analyse les données avec l'orchestrateur
-   * Exécute le code dans le contexte de la page via scripting API
-   */
-  async analyzeWithOrchestrator(pageData, options = {}) {
-    console.log('[AnalysisCoordinator] Analyzing with orchestrator...');
-
-    // Créer un objet analysisRequest à passer au contexte de la page
-    const analysisRequest = {
-      pageData: pageData,
-      options: options
-    };
-
-    try {
-      // Exécuter l'analyse dans le contexte du service worker
-      // Charger les modules nécessaires
-      const { default: AnalysisOrchestrator } = await import('./AnalysisOrchestrator.js');
-
-      const orchestrator = new AnalysisOrchestrator();
-      await orchestrator.init();
-
-      // Analyser la page
-      const result = await orchestrator.analyzePage(pageData, options);
-
-      return result;
-
-    } catch (error) {
-      console.error('[AnalysisCoordinator] Orchestrator analysis error:', error);
-      throw error;
-    }
   }
 
   /**
