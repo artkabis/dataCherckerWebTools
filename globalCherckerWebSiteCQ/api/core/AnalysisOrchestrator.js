@@ -308,9 +308,15 @@ class AnalysisOrchestrator {
    */
   async saveHistoryToStorage() {
     try {
-      await chrome.storage.local.set({
-        analysisHistory: this.analysisHistory
-      });
+      // Vérifier si chrome.storage est disponible (contexte extension)
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        await chrome.storage.local.set({
+          analysisHistory: this.analysisHistory
+        });
+      } else {
+        // Fallback vers localStorage pour tests hors extension
+        localStorage.setItem('analysisHistory', JSON.stringify(this.analysisHistory));
+      }
     } catch (e) {
       console.error('Error saving history:', e);
     }
@@ -321,7 +327,17 @@ class AnalysisOrchestrator {
    */
   async loadHistoryFromStorage() {
     try {
-      const result = await chrome.storage.local.get('analysisHistory');
+      let result;
+
+      // Vérifier si chrome.storage est disponible (contexte extension)
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        result = await chrome.storage.local.get('analysisHistory');
+      } else {
+        // Fallback vers localStorage pour tests hors extension
+        const stored = localStorage.getItem('analysisHistory');
+        result = stored ? { analysisHistory: JSON.parse(stored) } : {};
+      }
+
       if (result.analysisHistory) {
         this.analysisHistory = result.analysisHistory;
       }

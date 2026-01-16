@@ -1125,7 +1125,13 @@ class ConfigurationManager {
     };
 
     try {
-      await chrome.storage.local.set({ configManager: data });
+      // Vérifier si chrome.storage est disponible (contexte extension)
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        await chrome.storage.local.set({ configManager: data });
+      } else {
+        // Fallback vers localStorage pour tests hors extension
+        localStorage.setItem('configManager', JSON.stringify(data));
+      }
     } catch (e) {
       console.error('Erreur sauvegarde storage:', e);
     }
@@ -1136,7 +1142,17 @@ class ConfigurationManager {
    */
   async loadFromStorage() {
     try {
-      const result = await chrome.storage.local.get('configManager');
+      let result;
+
+      // Vérifier si chrome.storage est disponible (contexte extension)
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        result = await chrome.storage.local.get('configManager');
+      } else {
+        // Fallback vers localStorage pour tests hors extension
+        const stored = localStorage.getItem('configManager');
+        result = stored ? { configManager: JSON.parse(stored) } : {};
+      }
+
       if (result.configManager) {
         const data = result.configManager;
         this.currentConfig = data.currentConfig;

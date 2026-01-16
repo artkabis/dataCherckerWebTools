@@ -119,7 +119,7 @@ class ImageAnalyzerEndpoint extends AnalyzerEndpoint {
     const scoreData = this.scoringEngine.scoreImage({
       alt: imgData.alt,
       weight: imgData.weight,
-      ratio: analysis.ratio?.value,
+      ratio: analysis.ratio?.distortion, // Utiliser distortion (nombre) au lieu de value (objet)
       format: analysis.format?.value
     });
 
