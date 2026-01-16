@@ -11,12 +11,14 @@ import { createDB } from "./Functions/createIndexDB.js";
 import { SitemapAnalyzer } from "./Functions/sitemapAnalyzer.js";
 import { WebScanner } from "./core/WebScanner.js";
 import { CONFIG, initConfig } from "./config.js";
+import { AnalysisCoordinator } from "./api/core/AnalysisCoordinator.js";
 
 
 
 // === INSTANCES GLOBALES ===
 const corsManager = new CORSManager();
 let webScanner = null;
+const analysisCoordinator = new AnalysisCoordinator();
 
 // === STATE MANAGEMENT MODERNE AVEC CLASSE ===
 class ApplicationState {
@@ -873,6 +875,19 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
 
       case 'open_interface':
         return await handleOpenInterface(request);
+
+      // === v5.0 ENDPOINTS ANALYSIS ===
+      case 'analyzePageV5':
+        return await handleAnalyzePageV5(request, sender, sendResponse);
+
+      case 'getAnalysisResultV5':
+        return await handleGetAnalysisResultV5(request, sendResponse);
+
+      case 'getAnalysisHistoryV5':
+        return await handleGetAnalysisHistoryV5(sendResponse);
+
+      case 'clearAnalysisHistoryV5':
+        return await handleClearAnalysisHistoryV5(sendResponse);
 
       // === AUTRES MESSAGES ===
       default:
@@ -1829,4 +1844,142 @@ setTimeout(async () => {
   console.log("Performing startup CORS diagnosis...");
   await diagnoseCORSIssues();
 }, 3000);
+
+// ========================================
+// v5.0 HANDLERS - NEW ENDPOINTS ARCHITECTURE
+// ========================================
+
+/**
+ * Initialise l'AnalysisCoordinator au démarrage
+ */
+(async () => {
+  try {
+    await analysisCoordinator.init();
+    console.log('[v5.0] AnalysisCoordinator initialized successfully');
+  } catch (error) {
+    console.error('[v5.0] Failed to initialize AnalysisCoordinator:', error);
+  }
+})();
+
+/**
+ * Handler pour analyser une page avec la v5.0
+ */
+async function handleAnalyzePageV5(request, sender, sendResponse) {
+  try {
+    console.log('[v5.0] Starting page analysis...', request);
+
+    const tabId = sender.tab?.id || request.tabId;
+
+    if (!tabId) {
+      sendResponse({
+        success: false,
+        error: 'No tab ID provided'
+      });
+      return true;
+    }
+
+    // Analyser la page
+    const result = await analysisCoordinator.analyzePage(tabId, request.options || {});
+
+    sendResponse({
+      success: true,
+      data: result
+    });
+
+  } catch (error) {
+    console.error('[v5.0] Analysis error:', error);
+    sendResponse({
+      success: false,
+      error: error.message,
+      stack: error.stack
+    });
+  }
+
+  return true;
+}
+
+/**
+ * Handler pour récupérer un résultat d'analyse
+ */
+async function handleGetAnalysisResultV5(request, sendResponse) {
+  try {
+    const { url } = request;
+
+    if (!url) {
+      sendResponse({
+        success: false,
+        error: 'URL is required'
+      });
+      return true;
+    }
+
+    // Essayer le cache d'abord
+    let result = analysisCoordinator.getCachedResult(url);
+
+    // Sinon, essayer le storage
+    if (!result) {
+      result = await analysisCoordinator.getFromStorage(url);
+    }
+
+    sendResponse({
+      success: !!result,
+      data: result
+    });
+
+  } catch (error) {
+    console.error('[v5.0] Get result error:', error);
+    sendResponse({
+      success: false,
+      error: error.message
+    });
+  }
+
+  return true;
+}
+
+/**
+ * Handler pour récupérer l'historique des analyses
+ */
+async function handleGetAnalysisHistoryV5(sendResponse) {
+  try {
+    const history = await analysisCoordinator.getAllStoredResults();
+
+    sendResponse({
+      success: true,
+      data: history
+    });
+
+  } catch (error) {
+    console.error('[v5.0] Get history error:', error);
+    sendResponse({
+      success: false,
+      error: error.message
+    });
+  }
+
+  return true;
+}
+
+/**
+ * Handler pour effacer l'historique des analyses
+ */
+async function handleClearAnalysisHistoryV5(sendResponse) {
+  try {
+    await analysisCoordinator.clearAllResults();
+
+    sendResponse({
+      success: true,
+      message: 'Analysis history cleared'
+    });
+
+  } catch (error) {
+    console.error('[v5.0] Clear history error:', error);
+    sendResponse({
+      success: false,
+      error: error.message
+    });
+  }
+
+  return true;
+}
 
