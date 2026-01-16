@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Dashboard v5.0</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 15px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    h1 {
+      color: #667eea;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #718096;
+      margin-bottom: 30px;
+    }
+
+    .test-section {
+      background: #f7fafc;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-left: 4px solid #667eea;
+    }
+
+    .test-section h2 {
+      color: #2d3748;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    .status.pending { background: #ffc107; }
+    .status.success { background: #28a745; }
+    .status.error { background: #dc3545; }
+
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.3s;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+
+    button:hover {
+      background: #764ba2;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .result {
+      background: white;
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 15px;
+      border: 1px solid #e2e8f0;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    pre {
+      background: #2d3748;
+      color: #68d391;
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .score-display {
+      font-size: 48px;
+      font-weight: bold;
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    .score-display.excellent { color: #28a745; }
+    .score-display.good { color: #17a2b8; }
+    .score-display.warning { color: #ffc107; }
+    .score-display.error { color: #dc3545; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 15px;
+      text-align: center;
+    }
+
+    .card-value {
+      font-size: 32px;
+      font-weight: bold;
+      color: #667eea;
+      margin: 10px 0;
+    }
+
+    .card-label {
+      color: #718096;
+      font-size: 14px;
+    }
+
+    .alert {
+      padding: 12px 20px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+
+    .alert-success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .alert-error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .alert-info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .loading.active {
+      display: block;
+    }
+
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Test Dashboard v5.0</h1>
+    <p class="subtitle">Page de test pour les nouveaux endpoints et le système de configuration</p>
+
+    <!-- Test 1: ConfigurationManager -->
+    <div class="test-section">
+      <h2>
+        <span class="status pending" id="status-config"></span>
+        1. ConfigurationManager
+      </h2>
+      <p>Test du système de configuration avec presets et profils</p>
+      <div style="margin-top: 15px;">
+        <button onclick="testConfigManager()">Tester ConfigurationManager</button>
+        <button onclick="testPresets()">Tester tous les Presets</button>
+        <button onclick="testCustomConfig()">Config personnalisée</button>
+      </div>
+      <div id="result-config" class="result" style="display: none;"></div>
+    </div>
+
+    <!-- Test 2: MetaAnalyzerEndpoint -->
+    <div class="test-section">
+      <h2>
+        <span class="status pending" id="status-meta"></span>
+        2. MetaAnalyzerEndpoint
+      </h2>
+      <p>Test de l'analyse des meta tags</p>
+      <div style="margin-top: 15px;">
+        <button onclick="testMetaAnalyzer()">Analyser Meta Tags</button>
+        <button onclick="testMetaBadCase()">Tester cas problématique</button>
+      </div>
+      <div id="result-meta" class="result" style="display: none;"></div>
+    </div>
+
+    <!-- Test 3: ImageAnalyzerEndpoint -->
+    <div class="test-section">
+      <h2>
+        <span class="status pending" id="status-image"></span>
+        3. ImageAnalyzerEndpoint
+      </h2>
+      <p>Test de l'analyse des images</p>
+      <div style="margin-top: 15px;">
+        <button onclick="testImageAnalyzer()">Analyser Images</button>
+        <button onclick="testImageOptimization()">Rapport d'optimisation</button>
+      </div>
+      <div id="result-image" class="result" style="display: none;"></div>
+    </div>
+
+    <!-- Test 4: HeadingAnalyzerEndpoint -->
+    <div class="test-section">
+      <h2>
+        <span class="status pending" id="status-heading"></span>
+        4. HeadingAnalyzerEndpoint
+      </h2>
+      <p>Test de l'analyse des titres H1-H6</p>
+      <div style="margin-top: 15px;">
+        <button onclick="testHeadingAnalyzer()">Analyser Headings</button>
+        <button onclick="testBadHierarchy()">Tester hiérarchie invalide</button>
+      </div>
+      <div id="result-heading" class="result" style="display: none;"></div>
+    </div>
+
+    <!-- Test 5: ScoringEngine -->
+    <div class="test-section">
+      <h2>
+        <span class="status pending" id="status-scoring"></span>
+        5. ScoringEngine
+      </h2>
+      <p>Test du moteur de calcul de scores</p>
+      <div style="margin-top: 15px;">
+        <button onclick="testScoringEngine()">Calculer Score Global</button>
+        <button onclick="testScoreMetrics()">Tester métriques</button>
+      </div>
+      <div id="result-scoring" class="result" style="display: none;"></div>
+    </div>
+
+    <!-- Test 6: AnalysisOrchestrator -->
+    <div class="test-section">
+      <h2>
+        <span class="status pending" id="status-orchestrator"></span>
+        6. AnalysisOrchestrator
+      </h2>
+      <p>Test de l'orchestrateur d'analyse complète</p>
+      <div style="margin-top: 15px;">
+        <button onclick="testOrchestrator()">Analyse Complète</button>
+        <button onclick="testBatchAnalysis()">Analyse Batch</button>
+        <button onclick="testExport()">Test Export</button>
+      </div>
+      <div id="result-orchestrator" class="result" style="display: none;"></div>
+    </div>
+
+    <!-- Test 7: LinkAnalyzerEndpoint -->
+    <div class="test-section">
+      <h2>
+        <span class="status pending" id="status-link"></span>
+        7. LinkAnalyzerEndpoint
+      </h2>
+      <p>Test de l'analyse des liens (validité, sémantique, cohérence)</p>
+      <div style="margin-top: 15px;">
+        <button onclick="testLinkAnalyzer()">Analyser Liens</button>
+        <button onclick="testBrokenLinks()">Tester liens cassés</button>
+        <button onclick="testSemanticLinks()">Analyse sémantique</button>
+      </div>
+      <div id="result-link" class="result" style="display: none;"></div>
+    </div>
+
+    <!-- Test 8: AccessibilityAnalyzerEndpoint -->
+    <div class="test-section">
+      <h2>
+        <span class="status pending" id="status-accessibility"></span>
+        8. AccessibilityAnalyzerEndpoint
+      </h2>
+      <p>Test de l'analyse d'accessibilité (WCAG AA/AAA, ARIA, navigation)</p>
+      <div style="margin-top: 15px;">
+        <button onclick="testAccessibilityAnalyzer()">Analyser Accessibilité</button>
+        <button onclick="testWCAGCompliance()">Test WCAG AA/AAA</button>
+        <button onclick="testKeyboardNav()">Test Navigation Clavier</button>
+      </div>
+      <div id="result-accessibility" class="result" style="display: none;"></div>
+    </div>
+
+    <!-- Test 9: PerformanceAnalyzerEndpoint -->
+    <div class="test-section">
+      <h2>
+        <span class="status pending" id="status-performance"></span>
+        9. PerformanceAnalyzerEndpoint
+      </h2>
+      <p>Test de l'analyse de performance (Core Web Vitals, Lighthouse)</p>
+      <div style="margin-top: 15px;">
+        <button onclick="testPerformanceAnalyzer()">Analyser Performance</button>
+        <button onclick="testCoreWebVitals()">Test Core Web Vitals</button>
+        <button onclick="testResourceAnalysis()">Analyse Ressources</button>
+      </div>
+      <div id="result-performance" class="result" style="display: none;"></div>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p style="margin-top: 15px; color: #667eea;">Chargement...</p>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="api/config/ConfigurationManager.js"></script>
+  <script src="api/core/ScoringEngine.js"></script>
+  <script src="api/core/AnalyzerEndpoint.js"></script>
+  <script src="api/endpoints/MetaAnalyzerEndpoint.js"></script>
+  <script src="api/endpoints/ImageAnalyzerEndpoint.js"></script>
+  <script src="api/endpoints/HeadingAnalyzerEndpoint.js"></script>
+  <script src="api/endpoints/LinkAnalyzerEndpoint.js"></script>
+  <script src="api/endpoints/AccessibilityAnalyzerEndpoint.js"></script>
+  <script src="api/endpoints/PerformanceAnalyzerEndpoint.js"></script>
+  <script src="api/core/AnalysisOrchestrator.js"></script>
+
+  <script>
+    // Helpers
+    function showResult(id, content, status = 'success') {
+      const resultDiv = document.getElementById(`result-${id}`);
+      const statusDot = document.getElementById(`status-${id}`);
+
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = content;
+
+      if (statusDot) {
+        statusDot.className = `status ${status}`;
+      }
+    }
+
+    function showLoading(show) {
+      document.getElementById('loading').classList.toggle('active', show);
+    }
+
+    function formatJSON(obj) {
+      return `<pre>${JSON.stringify(obj, null, 2)}</pre>`;
+    }
+
+    // Test 1: ConfigurationManager
+    async function testConfigManager() {
+      showLoading(true);
+      try {
+        const config = new ConfigurationManager();
+        await config.init();
+
+        const result = {
+          currentPreset: config.currentPreset,
+          currentProfile: config.currentProfile,
+          availablePresets: Object.keys(ConfigurationManager.PRESETS),
+          availableProfiles: Object.keys(ConfigurationManager.PROFILES),
+          sampleConfig: {
+            metaTitle: config.getConfig('meta.title'),
+            imagesWeight: config.getConfig('images.weight'),
+            headingsH1: config.getConfig('headings.h1')
+          }
+        };
+
+        showResult('config', `
+          <div class="alert alert-success">✓ ConfigurationManager initialisé avec succès !</div>
+          ${formatJSON(result)}
+        `, 'success');
+      } catch (error) {
+        showResult('config', `
+          <div class="alert alert-error">✗ Erreur: ${error.message}</div>
+          <pre>${error.stack}</pre>
+        `, 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    async function testPresets() {
+      showLoading(true);
+      try {
+        const config = new ConfigurationManager();
+        await config.init();
+
+        const presets = {};
+        Object.keys(ConfigurationManager.PRESETS).forEach(preset => {
+          config.applyPreset(preset);
+          presets[preset] = {
+            name: ConfigurationManager.PRESETS[preset].name,
+            description: ConfigurationManager.PRESETS[preset].description,
+            metaTitleRange: `${config.getConfig('meta.title.min')}-${config.getConfig('meta.title.max')}`,
+            imageWeightMax: config.getConfig('images.weight.hero.max')
+          };
+        });
+
+        showResult('config', `
+          <div class="alert alert-success">✓ ${Object.keys(presets).length} presets testés !</div>
+          ${formatJSON(presets)}
+        `, 'success');
+      } catch (error) {
+        showResult('config', `
+          <div class="alert alert-error">✗ Erreur: ${error.message}</div>
+        `, 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    async function testCustomConfig() {
+      showLoading(true);
+      try {
+        const config = new ConfigurationManager();
+        await config.init();
+
+        config.applyPreset('SEO_STANDARD');
+        config.updateConfig('meta.title.max', 80);
+        config.updateConfig('images.weight.hero.max', 700000);
+
+        const saved = config.saveCustomConfig('Test Config', 'Configuration de test personnalisée');
+        const exported = config.exportConfig();
+
+        showResult('config', `
+          <div class="alert alert-success">✓ Configuration personnalisée créée !</div>
+          <h3>Configuration sauvegardée:</h3>
+          ${formatJSON(saved)}
+          <h3>Export:</h3>
+          ${formatJSON(exported)}
+        `, 'success');
+      } catch (error) {
+        showResult('config', `
+          <div class="alert alert-error">✗ Erreur: ${error.message}</div>
+        `, 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    // Test 2: MetaAnalyzerEndpoint
+    async function testMetaAnalyzer() {
+      showLoading(true);
+      try {
+        const config = new ConfigurationManager();
+        await config.init();
+
+        const scoring = new ScoringEngine(config);
+        const endpoint = new MetaAnalyzerEndpoint(config, scoring);
+
+        const pageData = {
+          url: 'https://example.com',
+          meta: {
+            title: 'Test de titre pour SEO - Ma marque',
+            description: 'Ceci est une description de test pour vérifier le fonctionnement de l\'analyseur de meta tags. Découvrez nos services et contactez-nous dès maintenant !'
+          }
+        };
+
+        const result = await endpoint.execute(pageData);
+
+        showResult('meta', `
+          <div class="alert alert-success">✓ Analyse meta réussie !</div>
+          <div class="score-display ${result.data.title.level}">${result.data.globalScore} / 5</div>
+          <div class="grid">
+            <div class="card">
+              <div class="card-label">Titre</div>
+              <div class="card-value">${result.data.title.length}</div>
+              <div class="card-label">${result.data.title.message}</div>
+            </div>
+            <div class="card">
+              <div class="card-label">Description</div>
+              <div class="card-value">${result.data.description.length}</div>
+              <div class="card-label">${result.data.description.message}</div>
+            </div>
+          </div>
+          <h3>Détails complets:</h3>
+          ${formatJSON(result)}
+        `, 'success');
+      } catch (error) {
+        showResult('meta', `
+          <div class="alert alert-error">✗ Erreur: ${error.message}</div>
+          <pre>${error.stack}</pre>
+        `, 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    async function testMetaBadCase() {
+      showLoading(true);
+      try {
+        const config = new ConfigurationManager();
+        await config.init();
+        config.applyPreset('SEO_STRICT');
+
+        const scoring = new ScoringEngine(config);
+        const endpoint = new MetaAnalyzerEndpoint(config, scoring);
+
+        const pageData = {
+          url: 'https://example.com',
+          meta: {
+            title: 'Test',
+            description: 'Trop court'
+          }
+        };
+
+        const result = await endpoint.execute(pageData);
+
+        showResult('meta', `
+          <div class="alert alert-info">ℹ Test d'un cas problématique (preset: SEO_STRICT)</div>
+          <div class="score-display ${result.data.title.level}">${result.data.globalScore} / 5</div>
+          <h3>Issues détectées:</h3>
+          ${formatJSON(result.data.issues)}
+          <h3>Recommandations:</h3>
+          ${formatJSON(result.data.recommendations)}
+        `, 'success');
+      } catch (error) {
+        showResult('meta', `
+          <div class="alert alert-error">✗ Erreur: ${error.message}</div>
+        `, 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    // Test 3: ImageAnalyzerEndpoint
+    async function testImageAnalyzer() {
+      showLoading(true);
+      try {
+        const config = new ConfigurationManager();
+        await config.init();
+
+        const scoring = new ScoringEngine(config);
+        const endpoint = new ImageAnalyzerEndpoint(config, scoring);
+
+        const pageData = {
+          url: 'https://example.com',
+          images: [
+            {
+              src: 'https://example.com/hero.jpg',
+              alt: 'Hero image descriptive alt text',
+              weight: 250000,
+              dimensions: { width: 800, height: 600, naturalWidth: 1600, naturalHeight: 1200 },
+              type: 'hero'
+            },
+            {
+              src: 'https://example.com/thumb.jpg',
+              alt: '',
+              weight: 80000,
+              dimensions: { width: 200, height: 200, naturalWidth: 200, naturalHeight: 200 },
+              type: 'thumbnail'
+            },
+            {
+              src: 'https://example.com/large.png',
+              alt: 'Large image',
+              weight: 800000,
+              dimensions: { width: 1000, height: 500, naturalWidth: 1000, naturalHeight: 500 },
+              type: 'standard'
+            }
+          ]
+        };
+
+        const result = await endpoint.execute(pageData);
+
+        showResult('image', `
+          <div class="alert alert-success">✓ Analyse images réussie !</div>
+          <div class="score-display ${result.data.level}">${result.data.globalScore} / 5</div>
+          <div class="grid">
+            <div class="card">
+              <div class="card-label">Total Images</div>
+              <div class="card-value">${result.data.totalImages}</div>
+            </div>
+            <div class="card">
+              <div class="card-label">Avec Alt</div>
+              <div class="card-value">${result.data.summary.withAlt}</div>
+            </div>
+            <div class="card">
+              <div class="card-label">Sans Alt</div>
+              <div class="card-value">${result.data.summary.withoutAlt}</div>
+            </div>
+            <div class="card">
+              <div class="card-label">Optimisées</div>
+              <div class="card-value">${result.data.summary.optimized}</div>
+            </div>
+          </div>
+          <h3>Détails complets:</h3>
+          ${formatJSON(result)}
+        `, 'success');
+      } catch (error) {
+        showResult('image', `
+          <div class="alert alert-error">✗ Erreur: ${error.message}</div>
+          <pre>${error.stack}</pre>
+        `, 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    async function testImageOptimization() {
+      showLoading(true);
+      try {
+        const config = new ConfigurationManager();
+        await config.init();
+
+        const scoring = new ScoringEngine(config);
+        const endpoint = new ImageAnalyzerEndpoint(config, scoring);
+
+        const pageData = {
+          url: 'https://example.com',
+          images: [
+            { src: 'img1.jpg', alt: 'Test', weight: 500000, type: 'standard' },
+            { src: 'img2.jpg', alt: '', weight: 300000, type: 'standard' },
+            { src: 'img3.jpg', alt: 'Ok', weight: 100000, type: 'thumbnail' }
+          ]
+        };
+
+        const result = await endpoint.execute(pageData);
+        const report = endpoint.generateOptimizationReport(result.data);
+
+        showResult('image', `
+          <div class="alert alert-info">ℹ Rapport d'optimisation généré</div>
+          <h3>Rapport d'optimisation:</h3>
+          ${formatJSON(report)}
+        `, 'success');
+      } catch (error) {
+        showResult('image', `
+          <div class="alert alert-error">✗ Erreur: ${error.message}</div>
+        `, 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    // Test 4: HeadingAnalyzerEndpoint
+    async function testHeadingAnalyzer() {
+      showLoading(true);
+      try {
+        const config = new ConfigurationManager();
+        await config.init();
+
+        const scoring = new ScoringEngine(config);
+        const endpoint = new HeadingAnalyzerEndpoint(config, scoring);
+
+        const pageData = {
+          url: 'https://example.com',
+          headings: [
+            { level: 'h1', text: 'Titre principal de la page - Exemple', hasLineBreak: false },
+            { level: 'h2', text: 'Première section importante', hasLineBreak: false },
+            { level: 'h3', text: 'Sous-section détaillée', hasLineBreak: false },
+            { level: 'h2', text: 'Deuxième section', hasLineBreak: false },
+            { level: 'h3', text: 'Autre sous-section', hasLineBreak: false }
+          ]
+        };
+
+        const result = await endpoint.execute(pageData);
+
+        showResult('heading', `
+          <div class="alert alert-success">✓ Analyse headings réussie !</div>
+          <div class="score-display ${result.data.hierarchy.valid ? 'excellent' : 'error'}">${result.data.globalScore} / 5</div>
+          <div class="grid">
+            <div class="card">
+              <div class="card-label">Total Headings</div>
+              <div class="card-value">${result.data.totalHeadings}</div>
+            </div>
+            <div class="card">
+              <div class="card-label">H1</div>
+              <div class="card-value">${result.data.byLevel.h1.length}</div>
+            </div>
+            <div class="card">
+              <div class="card-label">H2</div>
+              <div class="card-value">${result.data.byLevel.h2.length}</div>
+            </div>
+            <div class="card">
+              <div class="card-label">Hiérarchie</div>
+              <div class="card-value">${result.data.hierarchy.valid ? '✓' : '✗'}</div>
+            </div>
+          </div>
+          <h3>Détails complets:</h3>
+          ${formatJSON(result)}
+        `, 'success');
+      } catch (error) {
+        showResult('heading', `
+          <div class="alert alert-error">✗ Erreur: ${error.message}</div>
+          <pre>${error.stack}</pre>
+        `, 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    async function testBadHierarchy() {
+      showLoading(true);
+      try {
+        const config = new ConfigurationManager();
+        await config.init();
+
+        const scoring = new ScoringEngine(config);
+        const endpoint = new HeadingAnalyzerEndpoint(config, scoring);
+
+        const pageData = {
+          url: 'https://example.com',
+          headings: [
+            { level: 'h1', text: 'Premier titre', hasLineBreak: false },
+            { level: 'h1', text: 'Deuxième H1 (erreur)', hasLineBreak: false },
+            { level: 'h4', text: 'Saut de niveau', hasLineBreak: false }
+          ]
+        };
+
+        const result = await endpoint.execute(pageData);
+
+        showResult('heading', `
+          <div class="alert alert-info">ℹ Test d'une hiérarchie invalide</div>
+          <div class="score-display error">${result.data.globalScore} / 5</div>
+          <h3>Erreurs détectées:</h3>
+          ${formatJSON(result.data.hierarchy.errors)}
+          <h3>Recommandations:</h3>
+          ${formatJSON(result.data.recommendations)}
+        `, 'success');
+      } catch (error) {
+        showResult('heading', `
+          <div class="alert alert-error">✗ Erreur: ${error.message}</div>
+        `, 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    // Test 5: ScoringEngine
+    async function testScoringEngine() {
+      showLoading(true);
+      try {
+        const config = new ConfigurationManager();
+        await config.init();
+
+        const scoring = new ScoringEngine(config);
+
+        const analysisResults = {
+          meta: { globalScore: 4.2 },
+          images: { globalScore: 3.8 },
+          headings: { globalScore: 4.5 }
+        };
+
+        const globalScore = scoring.calculateGlobalScore(analysisResults);
+
+        showResult('scoring', `
+          <div class="alert alert-success">✓ Calcul de score global réussi !</div>
+          <div class="score-display ${globalScore.level}">${globalScore.globalScore} / 5</div>
+          <h3>Score global:</h3>
+          ${formatJSON(globalScore)}
+        `, 'success');
+      } catch (error) {
+        showResult('scoring', `
+          <div class="alert alert-error">✗ Erreur: ${error.message}</div>
+        `, 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    async function testScoreMetrics() {
+      showLoading(true);
+      try {
+        const config = new ConfigurationManager();
+        await config.init();
+
+        const scoring = new ScoringEngine(config);
+
+        const tests = {
+          metaTitleGood: scoring.calculateScore('meta', 'title', 58),
+          metaTitleBad: scoring.calculateScore('meta', 'title', 25),
+          imageWithAlt: scoring.scoreBooleanMetric(true, { required: true }),
+          imageNoAlt: scoring.scoreBooleanMetric(false, { required: true })
+        };
+
+        showResult('scoring', `
+          <div class="alert alert-success">✓ Tests de métriques réussis !</div>
+          <h3>Résultats des tests:</h3>
+          ${formatJSON(tests)}
+        `, 'success');
+      } catch (error) {
+        showResult('scoring', `
+          <div class="alert alert-error">✗ Erreur: ${error.message}</div>
+        `, 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    // Test 6: AnalysisOrchestrator
+    async function testOrchestrator() {
+      showLoading(true);
+      try {
+        const orchestrator = new AnalysisOrchestrator();
+        await orchestrator.init();
+
+        const pageData = {
+          url: 'https://example.com/test',
+          meta: {
+            title: 'Page de test - Exemple SEO',
+            description: 'Description de test pour vérifier le fonctionnement complet de l\'orchestrateur d\'analyse. Contactez-nous pour plus d\'informations !'
+          },
+          images: [
+            { src: 'img1.jpg', alt: 'Image test', weight: 200000, type: 'standard' }
+          ],
+          headings: [
+            { level: 'h1', text: 'Titre principal', hasLineBreak: false },
+            { level: 'h2', text: 'Section', hasLineBreak: false }
+          ]
+        };
+
+        const result = await orchestrator.analyzePage(pageData);
+
+        showResult('orchestrator', `
+          <div class="alert alert-success">✓ Analyse complète réussie !</div>
+          <div class="score-display ${result.level}">${result.globalScore} / 5</div>
+          <div class="grid">
+            <div class="card">
+              <div class="card-label">Score Global</div>
+              <div class="card-value">${result.globalScore}</div>
+            </div>
+            <div class="card">
+              <div class="card-label">Durée</div>
+              <div class="card-value">${result.duration}ms</div>
+            </div>
+            <div class="card">
+              <div class="card-label">Preset</div>
+              <div class="card-value" style="font-size: 14px;">${result.config.preset}</div>
+            </div>
+          </div>
+          <h3>Résultat complet:</h3>
+          ${formatJSON(result)}
+        `, 'success');
+      } catch (error) {
+        showResult('orchestrator', `
+          <div class="alert alert-error">✗ Erreur: ${error.message}</div>
+          <pre>${error.stack}</pre>
+        `, 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    async function testBatchAnalysis() {
+      showLoading(true);
+      try {
+        const orchestrator = new AnalysisOrchestrator();
+        await orchestrator.init();
+
+        const pagesData = [
+          { url: 'https://example.com/page1', meta: { title: 'Page 1', description: 'Desc 1' }, images: [], headings: [] },
+          { url: 'https://example.com/page2', meta: { title: 'Page 2 avec un titre plus long', description: 'Desc 2 avec description' }, images: [], headings: [] },
+          { url: 'https://example.com/page3', meta: { title: 'Page 3', description: 'Desc 3' }, images: [], headings: [] }
+        ];
+
+        const result = await orchestrator.analyzeMultiplePages(pagesData, { batchSize: 2, delay: 500 });
+
+        showResult('orchestrator', `
+          <div class="alert alert-success">✓ Analyse batch réussie !</div>
+          <div class="grid">
+            <div class="card">
+              <div class="card-label">Pages analysées</div>
+              <div class="card-value">${result.successful}</div>
+            </div>
+            <div class="card">
+              <div class="card-label">Score moyen</div>
+              <div class="card-value">${result.summary.avgScore}</div>
+            </div>
+            <div class="card">
+              <div class="card-label">Meilleure page</div>
+              <div class="card-value" style="font-size: 14px;">${result.summary.bestPage?.globalScore || 'N/A'}</div>
+            </div>
+          </div>
+          <h3>Résultat complet:</h3>
+          ${formatJSON(result)}
+        `, 'success');
+      } catch (error) {
+        showResult('orchestrator', `
+          <div class="alert alert-error">✗ Erreur: ${error.message}</div>
+        `, 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    async function testExport() {
+      showLoading(true);
+      try {
+        const orchestrator = new AnalysisOrchestrator();
+        await orchestrator.init();
+
+        const pageData = {
+          url: 'https://example.com',
+          meta: { title: 'Test', description: 'Test description' },
+          images: [],
+          headings: []
+        };
+
+        const result = await orchestrator.analyzePage(pageData);
+
+        const exportJSON = orchestrator.exportResults(result, 'json');
+        const exportCSV = orchestrator.exportResults(result, 'csv');
+
+        showResult('orchestrator', `
+          <div class="alert alert-success">✓ Export réussi !</div>
+          <h3>Export JSON (${exportJSON.length} caractères):</h3>
+          <pre>${exportJSON.substring(0, 500)}...</pre>
+          <h3>Export CSV (${exportCSV.length} caractères):</h3>
+          <pre>${exportCSV}</pre>
+        `, 'success');
+      } catch (error) {
+        showResult('orchestrator', `
+          <div class="alert alert-error">✗ Erreur: ${error.message}</div>
+        `, 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    // Test 7: LinkAnalyzerEndpoint
+    async function testLinkAnalyzer() {
+      showLoading(true);
+      try {
+        const config = new ConfigurationManager();
+        await config.init();
+
+        const scoring = new ScoringEngine(config);
+        const endpoint = new LinkAnalyzerEndpoint(config, scoring);
+
+        const pageData = {
+          url: 'https://example.com',
+          links: [
+            {
+              href: 'https://example.com/page1',
+              text: 'En savoir plus sur nos services',
+              type: 'internal',
+              rel: '',
+              target: '',
+              accessible: true
+            },
+            {
+              href: 'https://external.com',
+              text: 'Lien externe vers un partenaire',
+              type: 'external',
+              rel: 'nofollow',
+              target: '_blank',
+              accessible: true
+            },
+            {
+              href: '#section',
+              text: 'Aller à la section',
+              type: 'anchor',
+              rel: '',
+              target: '',
+              accessible: true
+            },
+            {
+              href: 'https://example.com/404',
+              text: 'Lien cassé',
+              type: 'internal',
+              rel: '',
+              target: '',
+              accessible: false,
+              broken: true
+            },
+            {
+              href: 'https://example.com/contact',
+              text: 'cliquez ici',
+              type: 'internal',
+              rel: '',
+              target: '',
+              accessible: true
+            }
+          ]
+        };
+
+        const result = await endpoint.execute(pageData);
+
+        showResult('link', `
+          <div class="alert alert-success">✓ Analyse liens réussie !</div>
+          <div class="score-display ${result.data.level}">${result.data.globalScore} / 5</div>
+          <div class="grid">
+            <div class="card">
+              <div class="card-label">Total Liens</div>
+              <div class="card-value">${result.data.totalLinks}</div>
+            </div>
+            <div class="card">
+              <div class="card-label">Internes</div>
+              <div class="card-value">${result.data.byType.internal}</div>
+            </div>
+            <div class="card">
+              <div class="card-label">Externes</div>
+              <div class="card-value">${result.data.byType.external}</div>
+            </div>
+            <div class="card">
+              <div class="card-label">Cassés</div>
+              <div class="card-value">${result.data.broken?.length || 0}</div>
+            </div>
+          </div>
+          <h3>Détails complets:</h3>
+          ${formatJSON(result)}
+        `, 'success');
+      } catch (error) {
+        showResult('link', `
+          <div class="alert alert-error">✗ Erreur: ${error.message}</div>
+          <pre>${error.stack}</pre>
+        `, 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    async function testBrokenLinks() {
+      showLoading(true);
+      try {
+        const config = new ConfigurationManager();
+        await config.init();
+
+        const scoring = new ScoringEngine(config);
+        const endpoint = new LinkAnalyzerEndpoint(config, scoring);
+
+        const pageData = {
+          url: 'https://example.com',
+          links: [
+            { href: 'https://example.com/404', text: 'Page inexistante', type: 'internal', broken: true },
+            { href: 'https://broken.com', text: 'Site inaccessible', type: 'external', broken: true },
+            { href: 'https://example.com/ok', text: 'Lien valide', type: 'internal', accessible: true }
+          ]
+        };
+
+        const result = await endpoint.execute(pageData);
+
+        showResult('link', `
+          <div class="alert alert-info">ℹ Test détection de liens cassés</div>
+          <div class="score-display error">${result.data.globalScore} / 5</div>
+          <h3>Liens cassés détectés:</h3>
+          ${formatJSON(result.data.broken)}
+          <h3>Recommandations:</h3>
+          ${formatJSON(result.data.recommendations)}
+        `, 'success');
+      } catch (error) {
+        showResult('link', `
+          <div class="alert alert-error">✗ Erreur: ${error.message}</div>
+        `, 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    async function testSemanticLinks() {
+      showLoading(true);
+      try {
+        const config = new ConfigurationManager();
+        await config.init();
+
+        const scoring = new ScoringEngine(config);
+        const endpoint = new LinkAnalyzerEndpoint(config, scoring);
+
+        const pageData = {
+          url: 'https://example.com',
+          links: [
+            { href: 'https://example.com/contact', text: 'Contactez-nous', type: 'internal', accessible: true },
+            { href: 'https://example.com/about', text: 'cliquez ici', type: 'internal', accessible: true },
+            { href: 'https://example.com/services', text: 'en savoir plus', type: 'internal', accessible: true },
+            { href: 'https://example.com/products', text: 'Découvrez nos produits premium', type: 'internal', accessible: true }
+          ]
+        };
+
+        const result = await endpoint.execute(pageData);
+
+        showResult('link', `
+          <div class="alert alert-info">ℹ Analyse sémantique des liens</div>
+          <div class="score-display ${result.data.semantics.level}">${result.data.semantics.score} / 5</div>
+          <h3>Textes génériques détectés:</h3>
+          ${formatJSON(result.data.semantics.genericTexts)}
+          <h3>Issues:</h3>
+          ${formatJSON(result.data.issues)}
+        `, 'success');
+      } catch (error) {
+        showResult('link', `
+          <div class="alert alert-error">✗ Erreur: ${error.message}</div>
+        `, 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    // Test 8: AccessibilityAnalyzerEndpoint
+    async function testAccessibilityAnalyzer() {
+      showLoading(true);
+      try {
+        const config = new ConfigurationManager();
+        await config.init();
+
+        const scoring = new ScoringEngine(config);
+        const endpoint = new AccessibilityAnalyzerEndpoint(config, scoring);
+
+        const pageData = {
+          url: 'https://example.com',
+          accessibility: {
+            wcag: {
+              level: 'AA',
+              contrast: [
+                { element: 'p', ratio: 4.8, isLargeText: false, passes: { AA: true, AAA: false } },
+                { element: 'h1', ratio: 7.2, isLargeText: true, passes: { AA: true, AAA: true } },
+                { element: 'button', ratio: 3.2, isLargeText: false, passes: { AA: false, AAA: false } }
+              ]
+            },
+            aria: {
+              total: 15,
+              valid: 13,
+              invalid: 2,
+              issues: [
+                { element: 'div[role="button"]', issue: 'Missing aria-label' },
+                { element: 'nav', issue: 'Redundant role' }
+              ]
+            },
+            semantic: {
+              hasMain: true,
+              hasNav: true,
+              hasHeader: true,
+              hasFooter: true,
+              headingsValid: true
+            },
+            keyboard: {
+              focusVisible: true,
+              tabOrder: 'sequential',
+              skipLinks: true,
+              focusTraps: []
+            }
+          }
+        };
+
+        const result = await endpoint.execute(pageData);
+
+        showResult('accessibility', `
+          <div class="alert alert-success">✓ Analyse accessibilité réussie !</div>
+          <div class="score-display ${result.data.level}">${result.data.globalScore} / 5</div>
+          <div class="grid">
+            <div class="card">
+              <div class="card-label">WCAG Level</div>
+              <div class="card-value" style="font-size: 24px;">${result.data.wcag.level}</div>
+            </div>
+            <div class="card">
+              <div class="card-label">Contraste OK</div>
+              <div class="card-value">${result.data.wcag.contrastPassing}/${result.data.wcag.contrastTotal}</div>
+            </div>
+            <div class="card">
+              <div class="card-label">ARIA Valide</div>
+              <div class="card-value">${result.data.aria.valid}/${result.data.aria.total}</div>
+            </div>
+            <div class="card">
+              <div class="card-label">Sémantique</div>
+              <div class="card-value">${result.data.semantic.score}/5</div>
+            </div>
+          </div>
+          <h3>Détails complets:</h3>
+          ${formatJSON(result)}
+        `, 'success');
+      } catch (error) {
+        showResult('accessibility', `
+          <div class="alert alert-error">✗ Erreur: ${error.message}</div>
+          <pre>${error.stack}</pre>
+        `, 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    async function testWCAGCompliance() {
+      showLoading(true);
+      try {
+        const config = new ConfigurationManager();
+        await config.init();
+        config.updateConfig('accessibility.wcag.level', 'AAA');
+
+        const scoring = new ScoringEngine(config);
+        const endpoint = new AccessibilityAnalyzerEndpoint(config, scoring);
+
+        const pageData = {
+          url: 'https://example.com',
+          accessibility: {
+            wcag: {
+              level: 'AAA',
+              contrast: [
+                { element: 'p', ratio: 4.5, isLargeText: false, passes: { AA: true, AAA: false } },
+                { element: 'p', ratio: 3.5, isLargeText: false, passes: { AA: false, AAA: false } },
+                { element: 'h1', ratio: 7.5, isLargeText: true, passes: { AA: true, AAA: true } }
+              ]
+            },
+            aria: { total: 5, valid: 5, invalid: 0, issues: [] },
+            semantic: { hasMain: true, hasNav: true, hasHeader: true, hasFooter: true },
+            keyboard: { focusVisible: true, tabOrder: 'sequential', skipLinks: true, focusTraps: [] }
+          }
+        };
+
+        const result = await endpoint.execute(pageData);
+
+        showResult('accessibility', `
+          <div class="alert alert-info">ℹ Test conformité WCAG AAA</div>
+          <div class="score-display ${result.data.wcag.level === 'AAA' ? 'excellent' : 'warning'}">${result.data.globalScore} / 5</div>
+          <h3>Résultat WCAG:</h3>
+          ${formatJSON(result.data.wcag)}
+          <h3>Issues détectées:</h3>
+          ${formatJSON(result.data.issues)}
+        `, 'success');
+      } catch (error) {
+        showResult('accessibility', `
+          <div class="alert alert-error">✗ Erreur: ${error.message}</div>
+        `, 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    async function testKeyboardNav() {
+      showLoading(true);
+      try {
+        const config = new ConfigurationManager();
+        await config.init();
+
+        const scoring = new ScoringEngine(config);
+        const endpoint = new AccessibilityAnalyzerEndpoint(config, scoring);
+
+        const pageData = {
+          url: 'https://example.com',
+          accessibility: {
+            wcag: { level: 'AA', contrast: [] },
+            aria: { total: 0, valid: 0, invalid: 0, issues: [] },
+            semantic: { hasMain: true, hasNav: true, hasHeader: true, hasFooter: true },
+            keyboard: {
+              focusVisible: false,
+              tabOrder: 'random',
+              skipLinks: false,
+              focusTraps: ['modal-1', 'dropdown-menu']
+            }
+          }
+        };
+
+        const result = await endpoint.execute(pageData);
+
+        showResult('accessibility', `
+          <div class="alert alert-info">ℹ Test navigation clavier</div>
+          <div class="score-display error">${result.data.keyboard.score} / 5</div>
+          <h3>Navigation clavier:</h3>
+          ${formatJSON(result.data.keyboard)}
+          <h3>Recommandations:</h3>
+          ${formatJSON(result.data.recommendations)}
+        `, 'success');
+      } catch (error) {
+        showResult('accessibility', `
+          <div class="alert alert-error">✗ Erreur: ${error.message}</div>
+        `, 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    // Test 9: PerformanceAnalyzerEndpoint
+    async function testPerformanceAnalyzer() {
+      showLoading(true);
+      try {
+        const config = new ConfigurationManager();
+        await config.init();
+
+        const scoring = new ScoringEngine(config);
+        const endpoint = new PerformanceAnalyzerEndpoint(config, scoring);
+
+        const pageData = {
+          url: 'https://example.com',
+          performance: {
+            lighthouse: {
+              performance: 85,
+              accessibility: 92,
+              bestPractices: 88,
+              seo: 95,
+              pwa: 0
+            },
+            coreWebVitals: {
+              LCP: 2100,
+              FID: 80,
+              CLS: 0.08,
+              FCP: 1200,
+              TTFB: 300,
+              TTI: 3500
+            },
+            resources: {
+              javascript: { count: 15, size: 450000, blocking: 3 },
+              css: { count: 8, size: 120000, blocking: 2 },
+              images: { count: 25, size: 1800000, lazy: 20 },
+              fonts: { count: 4, size: 180000 }
+            },
+            loadTime: {
+              domContentLoaded: 1800,
+              load: 4200,
+              firstPaint: 1100
+            }
+          }
+        };
+
+        const result = await endpoint.execute(pageData);
+
+        showResult('performance', `
+          <div class="alert alert-success">✓ Analyse performance réussie !</div>
+          <div class="score-display ${result.data.level}">${result.data.globalScore} / 5</div>
+          <div class="grid">
+            <div class="card">
+              <div class="card-label">Lighthouse</div>
+              <div class="card-value">${result.data.lighthouse.performance}</div>
+            </div>
+            <div class="card">
+              <div class="card-label">LCP</div>
+              <div class="card-value" style="font-size: 18px;">${result.data.coreWebVitals.LCP}ms</div>
+            </div>
+            <div class="card">
+              <div class="card-label">FID</div>
+              <div class="card-value" style="font-size: 18px;">${result.data.coreWebVitals.FID}ms</div>
+            </div>
+            <div class="card">
+              <div class="card-label">CLS</div>
+              <div class="card-value" style="font-size: 18px;">${result.data.coreWebVitals.CLS}</div>
+            </div>
+          </div>
+          <h3>Détails complets:</h3>
+          ${formatJSON(result)}
+        `, 'success');
+      } catch (error) {
+        showResult('performance', `
+          <div class="alert alert-error">✗ Erreur: ${error.message}</div>
+          <pre>${error.stack}</pre>
+        `, 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    async function testCoreWebVitals() {
+      showLoading(true);
+      try {
+        const config = new ConfigurationManager();
+        await config.init();
+
+        const scoring = new ScoringEngine(config);
+        const endpoint = new PerformanceAnalyzerEndpoint(config, scoring);
+
+        const pageData = {
+          url: 'https://example.com',
+          performance: {
+            lighthouse: { performance: 50, accessibility: 80, bestPractices: 70, seo: 85, pwa: 0 },
+            coreWebVitals: {
+              LCP: 4500,
+              FID: 250,
+              CLS: 0.35,
+              FCP: 3000,
+              TTFB: 1200,
+              TTI: 8000
+            },
+            resources: { javascript: {}, css: {}, images: {}, fonts: {} },
+            loadTime: { domContentLoaded: 5000, load: 10000, firstPaint: 3500 }
+          }
+        };
+
+        const result = await endpoint.execute(pageData);
+
+        showResult('performance', `
+          <div class="alert alert-info">ℹ Test Core Web Vitals (mauvaises performances)</div>
+          <div class="score-display error">${result.data.globalScore} / 5</div>
+          <h3>Core Web Vitals:</h3>
+          ${formatJSON(result.data.coreWebVitals)}
+          <h3>Issues:</h3>
+          ${formatJSON(result.data.issues)}
+          <h3>Recommandations:</h3>
+          ${formatJSON(result.data.recommendations)}
+        `, 'success');
+      } catch (error) {
+        showResult('performance', `
+          <div class="alert alert-error">✗ Erreur: ${error.message}</div>
+        `, 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    async function testResourceAnalysis() {
+      showLoading(true);
+      try {
+        const config = new ConfigurationManager();
+        await config.init();
+
+        const scoring = new ScoringEngine(config);
+        const endpoint = new PerformanceAnalyzerEndpoint(config, scoring);
+
+        const pageData = {
+          url: 'https://example.com',
+          performance: {
+            lighthouse: { performance: 75, accessibility: 90, bestPractices: 85, seo: 92, pwa: 0 },
+            coreWebVitals: { LCP: 2000, FID: 50, CLS: 0.05, FCP: 1000, TTFB: 200, TTI: 3000 },
+            resources: {
+              javascript: { count: 45, size: 2500000, blocking: 12 },
+              css: { count: 20, size: 450000, blocking: 8 },
+              images: { count: 80, size: 5500000, lazy: 30 },
+              fonts: { count: 8, size: 380000 }
+            },
+            loadTime: { domContentLoaded: 2500, load: 6000, firstPaint: 1500 }
+          }
+        };
+
+        const result = await endpoint.execute(pageData);
+
+        showResult('performance', `
+          <div class="alert alert-info">ℹ Analyse des ressources</div>
+          <div class="score-display warning">${result.data.resources.score} / 5</div>
+          <h3>Ressources par type:</h3>
+          ${formatJSON(result.data.resources)}
+          <h3>Optimisations suggérées:</h3>
+          ${formatJSON(result.data.recommendations)}
+        `, 'success');
+      } catch (error) {
+        showResult('performance', `
+          <div class="alert alert-error">✗ Erreur: ${error.message}</div>
+        `, 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    // Auto-test au chargement
+    window.addEventListener('load', () => {
+      console.log('✓ Page de test chargée');
+      console.log('✓ Tous les scripts sont chargés');
+      console.log('Cliquez sur les boutons pour tester les différents modules');
+    });
+  </script>
+</body>
+</html>
