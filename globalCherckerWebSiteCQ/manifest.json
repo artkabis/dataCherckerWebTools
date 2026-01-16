@@ -1,7 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Health checker Website",
-  "version": "4.5.5",
+  "name": "Web Quality Analyzer",
+  "version": "5.0.0",
+  "description": "Analyse complète de la qualité web : SEO, accessibilité, performance et conformité WCAG",
   "background": {
     "service_worker": "service_worker.js",
     "type": "module"
@@ -43,6 +44,13 @@
     "*://soprod.solocalms.fr/*",
     "*://maxcdn.bootstrapcdn.com/*"
   ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "web_accessible_resources": [
     {
       "resources": [
@@ -51,7 +59,21 @@
         "results.html",
         "Functions/sitemapAnalyzer.js",
         "results.css",
-        "results.js"
+        "results.js",
+        "api/extractors/DataExtractor.js",
+        "api/config/ConfigurationManager.js",
+        "api/core/ScoringEngine.js",
+        "api/core/AnalyzerEndpoint.js",
+        "api/core/AnalysisOrchestrator.js",
+        "api/endpoints/MetaAnalyzerEndpoint.js",
+        "api/endpoints/ImageAnalyzerEndpoint.js",
+        "api/endpoints/HeadingAnalyzerEndpoint.js",
+        "api/endpoints/LinkAnalyzerEndpoint.js",
+        "api/endpoints/AccessibilityAnalyzerEndpoint.js",
+        "api/endpoints/PerformanceAnalyzerEndpoint.js",
+        "dashboard.html",
+        "dashboard/dashboard.js",
+        "dashboard/dashboard.css"
       ],
       "matches": [
         "<all_urls>"
