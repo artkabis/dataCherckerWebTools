@@ -1410,8 +1410,10 @@ function injectScriptIfSoprod(tabId) {
           console.log("✅ Script 'soprodDOMTime.js' injected successfully.");
         })
         .catch(err => {
-          console.error("❌ Failed to inject script:", err);
-          console.error("   Tab URL was:", tab.url);
+          // Injection peut échouer si la page est en cours de chargement ou a des restrictions
+          // Ce n'est pas critique, donc on log juste en warning
+          console.warn("⚠️ Could not inject script (page may be loading or have CSP restrictions):", err.message);
+          // Note: Pas besoin de logger l'URL complète, déjà loggée plus haut
         });
     }
   });
