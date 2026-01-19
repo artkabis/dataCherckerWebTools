@@ -79,6 +79,20 @@ class AnalysisCoordinator {
         }
       } catch (error) {
         console.log(`[AnalysisCoordinator] Ping attempt ${i + 1}/${maxRetries} failed:`, error.message);
+
+        // Si premier échec, tenter d'injecter le content script
+        if (i === 0) {
+          console.log('[AnalysisCoordinator] Attempting to inject content script...');
+          try {
+            await this.injectContentScript(tabId);
+            console.log('[AnalysisCoordinator] Content script injected successfully');
+            // Attendre un peu plus après l'injection
+            await new Promise(resolve => setTimeout(resolve, 500));
+            continue;
+          } catch (injectError) {
+            console.error('[AnalysisCoordinator] Failed to inject content script:', injectError);
+          }
+        }
       }
 
       // Attendre avant de réessayer
@@ -89,6 +103,40 @@ class AnalysisCoordinator {
 
     console.error('[AnalysisCoordinator] Content script failed to respond after', maxRetries, 'attempts');
     return false;
+  }
+
+  /**
+   * Injecte le content script programmatiquement dans l'onglet
+   */
+  async injectContentScript(tabId) {
+    // Liste des scripts à injecter dans l'ordre
+    const scripts = [
+      'api/extractors/DataExtractor.js',
+      'api/config/ConfigurationManager.js',
+      'api/core/ScoringEngine.js',
+      'api/core/AnalyzerEndpoint.js',
+      'api/endpoints/MetaAnalyzerEndpoint.js',
+      'api/endpoints/ImageAnalyzerEndpoint.js',
+      'api/endpoints/HeadingAnalyzerEndpoint.js',
+      'api/endpoints/LinkAnalyzerEndpoint.js',
+      'api/endpoints/AccessibilityAnalyzerEndpoint.js',
+      'api/endpoints/PerformanceAnalyzerEndpoint.js',
+      'api/core/AnalysisOrchestrator.js',
+      'content-script.js'
+    ];
+
+    try {
+      // Injecter tous les scripts
+      await chrome.scripting.executeScript({
+        target: { tabId: tabId },
+        files: scripts
+      });
+
+      console.log('[AnalysisCoordinator] All scripts injected');
+    } catch (error) {
+      console.error('[AnalysisCoordinator] Script injection error:', error);
+      throw new Error(`Failed to inject content script: ${error.message}`);
+    }
   }
 
   /**
