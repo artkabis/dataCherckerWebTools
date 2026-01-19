@@ -407,6 +407,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Configuration du Web Scanner
   setupWebScanner();
+
+  // Configuration de v5.0
+  setupV5Analysis();
 });
 
 function setupTabs() {
@@ -870,16 +873,20 @@ function showNotification(message, type = "info") {
 }
 
 // ========================================
-// v5.0 ANALYSIS BUTTON HANDLER
+// v5.0 ANALYSIS SETUP
 // ========================================
 
-document.addEventListener('DOMContentLoaded', () => {
+function setupV5Analysis() {
   const analyzeV5Btn = document.getElementById('analyzeV5Btn');
   const v5Status = document.getElementById('v5Status');
 
   if (analyzeV5Btn) {
+    console.log('[Popup v5.0] Single-page analysis button attached');
+
     analyzeV5Btn.addEventListener('click', async () => {
       try {
+        console.log('[Popup v5.0] Starting single-page analysis...');
+
         // Désactiver le bouton
         analyzeV5Btn.disabled = true;
         analyzeV5Btn.innerHTML = '<span class="icon">⏳</span> Analyse en cours...';
@@ -892,10 +899,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Obtenir l'onglet actif
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        console.log('[Popup v5.0] Active tab:', tab);
 
         if (!tab || !tab.id) {
           throw new Error('Aucun onglet actif trouvé');
         }
+
+        console.log('[Popup v5.0] Sending message to service worker...');
 
         // Envoyer le message au service worker
         chrome.runtime.sendMessage(
@@ -904,11 +914,14 @@ document.addEventListener('DOMContentLoaded', () => {
             tabId: tab.id
           },
           (response) => {
+            console.log('[Popup v5.0] Response received:', response);
+
             // Réactiver le bouton
             analyzeV5Btn.disabled = false;
             analyzeV5Btn.innerHTML = '<span class="icon">🚀</span> Analyse Complète v5.0';
 
             if (chrome.runtime.lastError) {
+              console.error('[Popup v5.0] Runtime error:', chrome.runtime.lastError);
               v5Status.style.background = '#f8d7da';
               v5Status.style.color = '#721c24';
               v5Status.textContent = `Erreur: ${chrome.runtime.lastError.message}`;
@@ -916,6 +929,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (!response || !response.success) {
+              console.error('[Popup v5.0] Analysis failed:', response);
               v5Status.style.background = '#f8d7da';
               v5Status.style.color = '#721c24';
               v5Status.textContent = `Erreur: ${response?.error || 'Erreur inconnue'}`;
@@ -923,6 +937,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Succès !
+            console.log('[Popup v5.0] Analysis successful!', response.data);
             const result = response.data;
             v5Status.style.background = '#d4edda';
             v5Status.style.color = '#155724';
@@ -949,6 +964,7 @@ document.addEventListener('DOMContentLoaded', () => {
         );
 
       } catch (error) {
+        console.error('[Popup v5.0] Exception during analysis:', error);
         analyzeV5Btn.disabled = false;
         analyzeV5Btn.innerHTML = '<span class="icon">🚀</span> Analyse Complète v5.0';
 
@@ -958,6 +974,8 @@ document.addEventListener('DOMContentLoaded', () => {
         v5Status.textContent = `Erreur: ${error.message}`;
       }
     });
+  } else {
+    console.warn('[Popup v5.0] Single-page analysis button (analyzeV5Btn) not found');
   }
 
   // ========================================
@@ -968,6 +986,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const v5BatchStatus = document.getElementById('v5BatchStatus');
 
   if (analyserV5Btn) {
+    console.log('[Popup v5.0] Batch analysis button attached');
+
     analyserV5Btn.addEventListener('click', async () => {
       try {
         // Désactiver le bouton
@@ -1071,6 +1091,8 @@ document.addEventListener('DOMContentLoaded', () => {
         v5BatchStatus.innerHTML = `Erreur: ${error.message}`;
       }
     });
+  } else {
+    console.warn('[Popup v5.0] Batch analysis button (analyserV5Btn) not found');
   }
 
   // Écouter les updates de progression
@@ -1137,4 +1159,4 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   });
-});
+}
