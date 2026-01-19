@@ -70,6 +70,19 @@ class AnalysisCoordinator {
   async waitForContentScript(tabId, maxRetries = 5, delayMs = 300) {
     console.log('[AnalysisCoordinator] Checking if content script is ready...');
 
+    // Récupérer les infos de l'onglet pour vérifier l'URL
+    const tab = await chrome.tabs.get(tabId);
+    console.log('[AnalysisCoordinator] Tab URL:', tab.url);
+
+    // Vérifier si c'est une page où on ne peut pas injecter de scripts
+    if (tab.url.startsWith('chrome://') ||
+        tab.url.startsWith('about:') ||
+        tab.url.startsWith('chrome-extension://') ||
+        tab.url.startsWith('edge://') ||
+        tab.url.startsWith('devtools://')) {
+      throw new Error('Cannot analyze browser internal pages. Please navigate to a regular website.');
+    }
+
     for (let i = 0; i < maxRetries; i++) {
       try {
         const isReady = await this.pingContentScript(tabId);
@@ -85,12 +98,15 @@ class AnalysisCoordinator {
           console.log('[AnalysisCoordinator] Attempting to inject content script...');
           try {
             await this.injectContentScript(tabId);
-            console.log('[AnalysisCoordinator] Content script injected successfully');
-            // Attendre un peu plus après l'injection
-            await new Promise(resolve => setTimeout(resolve, 500));
+            console.log('[AnalysisCoordinator] Content script injection completed');
+            // Attendre plus longtemps après l'injection pour que les scripts s'initialisent
+            console.log('[AnalysisCoordinator] Waiting for scripts to initialize...');
+            await new Promise(resolve => setTimeout(resolve, 1000));
             continue;
           } catch (injectError) {
-            console.error('[AnalysisCoordinator] Failed to inject content script:', injectError);
+            console.error('[AnalysisCoordinator] Failed to inject content script:', injectError.message);
+            // Si l'injection échoue, on peut quand même continuer les pings
+            // car peut-être que le script est déjà là
           }
         }
       }
