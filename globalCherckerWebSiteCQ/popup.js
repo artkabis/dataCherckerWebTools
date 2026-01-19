@@ -959,4 +959,182 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // ========================================
+  // v5.0 BATCH ANALYSIS BUTTON HANDLER
+  // ========================================
+
+  const analyserV5Btn = document.getElementById('analyserV5Btn');
+  const v5BatchStatus = document.getElementById('v5BatchStatus');
+
+  if (analyserV5Btn) {
+    analyserV5Btn.addEventListener('click', async () => {
+      try {
+        // Désactiver le bouton
+        analyserV5Btn.disabled = true;
+        analyserV5Btn.innerHTML = '<span class="icon">⏳</span> Analyse en cours...';
+
+        // Afficher le status
+        v5BatchStatus.style.display = 'block';
+        v5BatchStatus.style.background = '#d1ecf1';
+        v5BatchStatus.style.color = '#0c5460';
+        v5BatchStatus.innerHTML = 'Démarrage de l\'analyse batch v5.0...';
+
+        // Récupérer le type d'analyse
+        const analysisType = document.querySelector('input[name="analysisType"]:checked').value;
+
+        let data;
+        if (analysisType === 'sitemap') {
+          data = document.getElementById('sitemapUrlInput').value.trim();
+          if (!data) {
+            throw new Error('Veuillez entrer une URL de sitemap');
+          }
+        } else {
+          data = document.getElementById('urlListTextarea').value.trim();
+          if (!data) {
+            throw new Error('Veuillez entrer une liste d\'URLs');
+          }
+        }
+
+        // Envoyer le message au service worker
+        chrome.runtime.sendMessage(
+          {
+            action: 'startBatchAnalysisV5',
+            type: analysisType,
+            data: data,
+            options: {
+              concurrent: 3,
+              delay: 1000,
+              preset: 'SEO_STANDARD',
+              profile: 'FULL'
+            }
+          },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              v5BatchStatus.style.background = '#f8d7da';
+              v5BatchStatus.style.color = '#721c24';
+              v5BatchStatus.innerHTML = `Erreur: ${chrome.runtime.lastError.message}`;
+              analyserV5Btn.disabled = false;
+              analyserV5Btn.innerHTML = '<span class="icon">🚀</span> Analyser avec v5.0';
+              return;
+            }
+
+            if (!response || !response.success) {
+              v5BatchStatus.style.background = '#f8d7da';
+              v5BatchStatus.style.color = '#721c24';
+              v5BatchStatus.innerHTML = `Erreur: ${response?.error || 'Erreur inconnue'}`;
+              analyserV5Btn.disabled = false;
+              analyserV5Btn.innerHTML = '<span class="icon">🚀</span> Analyser avec v5.0';
+              return;
+            }
+
+            // Analyse démarrée !
+            v5BatchStatus.style.background = '#d4edda';
+            v5BatchStatus.style.color = '#155724';
+            v5BatchStatus.innerHTML = `
+              <strong>✓ Analyse batch démarrée !</strong><br>
+              <small>ID: ${response.analysisId}</small><br>
+              <div id="batchProgress" style="margin-top: 10px;">
+                <div style="background: #e9ecef; border-radius: 5px; height: 20px; overflow: hidden;">
+                  <div id="batchProgressBar" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); height: 100%; width: 0%; transition: width 0.3s;"></div>
+                </div>
+                <div id="batchProgressText" style="margin-top: 5px; font-size: 12px;">0%</div>
+              </div>
+              <button id="stopBatchBtn" style="margin-top: 10px; padding: 5px 10px; cursor: pointer; background: #dc3545; color: white; border: none; border-radius: 5px;">
+                ⏹️ Arrêter
+              </button>
+            `;
+
+            // Handler pour arrêter l'analyse
+            const stopBtn = document.getElementById('stopBatchBtn');
+            if (stopBtn) {
+              stopBtn.addEventListener('click', () => {
+                chrome.runtime.sendMessage({ action: 'stopBatchAnalysisV5' }, (res) => {
+                  if (res && res.success) {
+                    v5BatchStatus.innerHTML = '<strong>⏹️ Analyse arrêtée</strong>';
+                    analyserV5Btn.disabled = false;
+                    analyserV5Btn.innerHTML = '<span class="icon">🚀</span> Analyser avec v5.0';
+                  }
+                });
+              });
+            }
+          }
+        );
+
+      } catch (error) {
+        analyserV5Btn.disabled = false;
+        analyserV5Btn.innerHTML = '<span class="icon">🚀</span> Analyser avec v5.0';
+
+        v5BatchStatus.style.display = 'block';
+        v5BatchStatus.style.background = '#f8d7da';
+        v5BatchStatus.style.color = '#721c24';
+        v5BatchStatus.innerHTML = `Erreur: ${error.message}`;
+      }
+    });
+  }
+
+  // Écouter les updates de progression
+  chrome.runtime.onMessage.addListener((message) => {
+    if (message.action === 'batchProgressUpdate') {
+      const progressBar = document.getElementById('batchProgressBar');
+      const progressText = document.getElementById('batchProgressText');
+
+      if (progressBar && progressText) {
+        progressBar.style.width = `${message.progress.percentage}%`;
+        progressText.textContent = `${message.progress.percentage}% (${message.progress.completed}/${message.progress.total})`;
+      }
+    }
+
+    if (message.action === 'batchAnalysisComplete') {
+      const analyserV5Btn = document.getElementById('analyserV5Btn');
+      const v5BatchStatus = document.getElementById('v5BatchStatus');
+
+      if (analyserV5Btn) {
+        analyserV5Btn.disabled = false;
+        analyserV5Btn.innerHTML = '<span class="icon">🚀</span> Analyser avec v5.0';
+      }
+
+      if (v5BatchStatus) {
+        v5BatchStatus.style.background = '#d4edda';
+        v5BatchStatus.style.color = '#155724';
+        v5BatchStatus.innerHTML = `
+          <strong>✅ Analyse terminée !</strong><br>
+          Total: ${message.results.total} pages<br>
+          Réussis: ${message.results.successful}<br>
+          Échecs: ${message.results.failed}<br>
+          Score moyen: ${message.results.summary.avgScore}/5<br>
+          <button id="viewResultsBtn" style="margin-top: 10px; padding: 5px 10px; cursor: pointer;">
+            📊 Voir les résultats
+          </button>
+        `;
+
+        // Handler pour voir les résultats
+        const viewBtn = document.getElementById('viewResultsBtn');
+        if (viewBtn) {
+          viewBtn.addEventListener('click', () => {
+            // Ouvrir le dashboard avec les résultats batch
+            chrome.tabs.create({
+              url: chrome.runtime.getURL('dashboard.html?batch=' + message.results.analysisId)
+            });
+          });
+        }
+      }
+    }
+
+    if (message.action === 'batchAnalysisError') {
+      const analyserV5Btn = document.getElementById('analyserV5Btn');
+      const v5BatchStatus = document.getElementById('v5BatchStatus');
+
+      if (analyserV5Btn) {
+        analyserV5Btn.disabled = false;
+        analyserV5Btn.innerHTML = '<span class="icon">🚀</span> Analyser avec v5.0';
+      }
+
+      if (v5BatchStatus) {
+        v5BatchStatus.style.background = '#f8d7da';
+        v5BatchStatus.style.color = '#721c24';
+        v5BatchStatus.innerHTML = `<strong>❌ Erreur:</strong> ${message.error}`;
+      }
+    }
+  });
 });

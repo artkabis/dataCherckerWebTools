@@ -12,6 +12,7 @@ import { SitemapAnalyzer } from "./Functions/sitemapAnalyzer.js";
 import { WebScanner } from "./core/WebScanner.js";
 import { CONFIG, initConfig } from "./config.js";
 import { AnalysisCoordinator } from "./api/core/AnalysisCoordinator.js";
+import { BatchAnalyzerV5 } from "./api/core/BatchAnalyzerV5.js";
 
 
 
@@ -19,6 +20,7 @@ import { AnalysisCoordinator } from "./api/core/AnalysisCoordinator.js";
 const corsManager = new CORSManager();
 let webScanner = null;
 const analysisCoordinator = new AnalysisCoordinator();
+let batchAnalyzerV5 = null;
 
 // === STATE MANAGEMENT MODERNE AVEC CLASSE ===
 class ApplicationState {
@@ -888,6 +890,19 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
 
       case 'clearAnalysisHistoryV5':
         return await handleClearAnalysisHistoryV5(sendResponse);
+
+      // === v5.0 BATCH ANALYSIS ===
+      case 'startBatchAnalysisV5':
+        return await handleStartBatchAnalysisV5(request, sendResponse);
+
+      case 'stopBatchAnalysisV5':
+        return await handleStopBatchAnalysisV5(sendResponse);
+
+      case 'getBatchStatusV5':
+        return await handleGetBatchStatusV5(sendResponse);
+
+      case 'getBatchResultsV5':
+        return await handleGetBatchResultsV5(sendResponse);
 
       // === AUTRES MESSAGES ===
       default:
@@ -1974,6 +1989,182 @@ async function handleClearAnalysisHistoryV5(sendResponse) {
 
   } catch (error) {
     console.error('[v5.0] Clear history error:', error);
+    sendResponse({
+      success: false,
+      error: error.message
+    });
+  }
+
+  return true;
+}
+
+// ========================================
+// v5.0 BATCH ANALYSIS HANDLERS
+// ========================================
+
+/**
+ * Handler pour démarrer une analyse batch v5.0
+ */
+async function handleStartBatchAnalysisV5(request, sendResponse) {
+  try {
+    console.log('[v5.0 Batch] Starting batch analysis...', request);
+
+    const { type, data, options } = request;
+
+    // Créer une nouvelle instance de BatchAnalyzerV5
+    batchAnalyzerV5 = new BatchAnalyzerV5();
+
+    // Callback pour les updates de progression
+    batchAnalyzerV5.onProgress = (progress) => {
+      // Broadcast progress à tous les onglets
+      chrome.runtime.sendMessage({
+        action: 'batchProgressUpdate',
+        progress: progress
+      });
+    };
+
+    // Démarrer l'analyse en arrière-plan
+    let analysisPromise;
+
+    if (type === 'sitemap') {
+      analysisPromise = batchAnalyzerV5.analyzeFromSitemap(data, options);
+    } else if (type === 'urlList') {
+      const urls = data.split(',').map(url => url.trim()).filter(Boolean);
+      analysisPromise = batchAnalyzerV5.analyzeFromURLList(urls, options);
+    } else {
+      throw new Error(`Unknown batch type: ${type}`);
+    }
+
+    // Répondre immédiatement que l'analyse a démarré
+    sendResponse({
+      success: true,
+      message: 'Batch analysis started',
+      analysisId: batchAnalyzerV5.analysisId
+    });
+
+    // Continuer l'analyse en arrière-plan
+    analysisPromise.then(results => {
+      console.log('[v5.0 Batch] Analysis complete:', results);
+
+      // Notifier la completion
+      chrome.runtime.sendMessage({
+        action: 'batchAnalysisComplete',
+        results: results
+      });
+
+    }).catch(error => {
+      console.error('[v5.0 Batch] Analysis error:', error);
+
+      // Notifier l'erreur
+      chrome.runtime.sendMessage({
+        action: 'batchAnalysisError',
+        error: error.message
+      });
+    });
+
+  } catch (error) {
+    console.error('[v5.0 Batch] Start error:', error);
+    sendResponse({
+      success: false,
+      error: error.message
+    });
+  }
+
+  return true;
+}
+
+/**
+ * Handler pour arrêter l'analyse batch
+ */
+async function handleStopBatchAnalysisV5(sendResponse) {
+  try {
+    if (!batchAnalyzerV5) {
+      sendResponse({
+        success: false,
+        error: 'No batch analysis in progress'
+      });
+      return true;
+    }
+
+    batchAnalyzerV5.stop();
+
+    sendResponse({
+      success: true,
+      message: 'Batch analysis stopped'
+    });
+
+  } catch (error) {
+    console.error('[v5.0 Batch] Stop error:', error);
+    sendResponse({
+      success: false,
+      error: error.message
+    });
+  }
+
+  return true;
+}
+
+/**
+ * Handler pour récupérer le status de l'analyse batch
+ */
+async function handleGetBatchStatusV5(sendResponse) {
+  try {
+    if (!batchAnalyzerV5) {
+      sendResponse({
+        success: true,
+        status: {
+          isAnalyzing: false,
+          progress: { total: 0, completed: 0, failed: 0, percentage: 0 }
+        }
+      });
+      return true;
+    }
+
+    const status = batchAnalyzerV5.getStatus();
+
+    sendResponse({
+      success: true,
+      status: status
+    });
+
+  } catch (error) {
+    console.error('[v5.0 Batch] Get status error:', error);
+    sendResponse({
+      success: false,
+      error: error.message
+    });
+  }
+
+  return true;
+}
+
+/**
+ * Handler pour récupérer les résultats de l'analyse batch
+ */
+async function handleGetBatchResultsV5(sendResponse) {
+  try {
+    if (!batchAnalyzerV5) {
+      sendResponse({
+        success: false,
+        error: 'No batch analysis results available'
+      });
+      return true;
+    }
+
+    const results = {
+      summary: batchAnalyzerV5.aggregateResults(),
+      results: batchAnalyzerV5.results,
+      errors: batchAnalyzerV5.errors,
+      progress: batchAnalyzerV5.progress
+    };
+
+    sendResponse({
+      success: true,
+      data: results
+    });
+
+  } catch (error) {
+    console.error('[v5.0 Batch] Get results error:', error);
     sendResponse({
       success: false,
       error: error.message
