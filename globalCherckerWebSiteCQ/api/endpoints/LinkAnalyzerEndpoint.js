@@ -68,6 +68,15 @@ class LinkAnalyzerEndpoint extends AnalyzerEndpoint {
     results.issues = this.collectIssues(results);
     results.recommendations = this.generateRecommendations(results, config);
 
+    // Alias pour compatibilité avec les tests
+    results.byType = {
+      internal: results.summary.internal,
+      external: results.summary.external
+    };
+
+    // Liste des liens cassés
+    results.broken = results.analyzed.filter(link => link.status?.broken);
+
     return results;
   }
 

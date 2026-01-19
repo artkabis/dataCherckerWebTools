@@ -53,6 +53,13 @@ class AccessibilityAnalyzerEndpoint extends AnalyzerEndpoint {
     results.issues = this.collectIssues(results);
     results.recommendations = this.generateRecommendations(results, config);
 
+    // Alias WCAG pour compatibilité avec les tests
+    results.wcag = {
+      level: results.wcagLevel,
+      contrastPassing: results.contrast?.summary?.aaPass || 0,
+      contrastTotal: results.contrast?.totalElements || 0
+    };
+
     return results;
   }
 

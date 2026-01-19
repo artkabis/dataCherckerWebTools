@@ -28,6 +28,18 @@ class PerformanceAnalyzerEndpoint extends AnalyzerEndpoint {
     // Analyse Lighthouse si disponible
     if (pageData.lighthouse) {
       results.lighthouse = this.analyzeLighthouse(pageData.lighthouse, config.lighthouse);
+    } else {
+      // Valeurs par défaut si pas de données Lighthouse
+      results.lighthouse = {
+        performance: 0,
+        accessibility: 0,
+        bestPractices: 0,
+        seo: 0,
+        pwa: 0,
+        globalScore: 0,
+        passed: false,
+        score: 0
+      };
     }
 
     // Core Web Vitals
@@ -36,6 +48,24 @@ class PerformanceAnalyzerEndpoint extends AnalyzerEndpoint {
         pageData.coreWebVitals || pageData.metrics,
         config
       );
+    } else {
+      // Valeurs par défaut si pas de Core Web Vitals
+      results.coreWebVitals = {
+        lcp: null,
+        fid: null,
+        cls: null,
+        fcp: null,
+        ttfb: null,
+        tti: null,
+        LCP: null,
+        FID: null,
+        CLS: null,
+        FCP: null,
+        TTFB: null,
+        TTI: null,
+        score: 0,
+        rating: 'unknown'
+      };
     }
 
     // Analyse des ressources
@@ -192,6 +222,14 @@ class PerformanceAnalyzerEndpoint extends AnalyzerEndpoint {
     if (result.score >= 4) result.rating = 'good';
     else if (result.score >= 2.5) result.rating = 'needs-improvement';
     else result.rating = 'poor';
+
+    // Alias en majuscules pour compatibilité avec les tests
+    result.LCP = result.lcp?.value || null;
+    result.FID = result.fid?.value || null;
+    result.CLS = result.cls?.value || null;
+    result.FCP = result.fcp?.value || null;
+    result.TTFB = result.ttfb?.value || null;
+    result.TTI = result.tti?.value || null;
 
     return result;
   }
