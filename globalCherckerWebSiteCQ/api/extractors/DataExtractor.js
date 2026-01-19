@@ -539,3 +539,8 @@ class DataExtractor {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = DataExtractor;
 }
+
+// Exposer dans le scope global pour le navigateur
+if (typeof window !== 'undefined') {
+  window.DataExtractor = DataExtractor;
+}
