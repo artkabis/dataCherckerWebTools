@@ -47,7 +47,20 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content-script.js"],
+      "js": [
+        "api/extractors/DataExtractor.js",
+        "api/config/ConfigurationManager.js",
+        "api/core/ScoringEngine.js",
+        "api/core/AnalyzerEndpoint.js",
+        "api/endpoints/MetaAnalyzerEndpoint.js",
+        "api/endpoints/ImageAnalyzerEndpoint.js",
+        "api/endpoints/HeadingAnalyzerEndpoint.js",
+        "api/endpoints/LinkAnalyzerEndpoint.js",
+        "api/endpoints/AccessibilityAnalyzerEndpoint.js",
+        "api/endpoints/PerformanceAnalyzerEndpoint.js",
+        "api/core/AnalysisOrchestrator.js",
+        "content-script.js"
+      ],
       "run_at": "document_idle"
     }
   ],

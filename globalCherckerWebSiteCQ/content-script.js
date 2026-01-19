@@ -1,30 +1,16 @@
 /**
  * Content Script Principal - v5.0
  * Écoute les messages du service worker et extrait les données de la page
+ * Note: Tous les scripts API sont chargés automatiquement via manifest.json
  */
 
 console.log('[Content Script] Web Quality Analyzer v5.0 loaded');
 
-// Charger tous les scripts nécessaires pour l'analyse
-const scriptsToLoad = [
-  'api/extractors/DataExtractor.js',
-  'api/config/ConfigurationManager.js',
-  'api/core/ScoringEngine.js',
-  'api/core/AnalyzerEndpoint.js',
-  'api/endpoints/MetaAnalyzerEndpoint.js',
-  'api/endpoints/ImageAnalyzerEndpoint.js',
-  'api/endpoints/HeadingAnalyzerEndpoint.js',
-  'api/endpoints/LinkAnalyzerEndpoint.js',
-  'api/endpoints/AccessibilityAnalyzerEndpoint.js',
-  'api/endpoints/PerformanceAnalyzerEndpoint.js',
-  'api/core/AnalysisOrchestrator.js'
-];
-
-// Charger tous les scripts dans l'ordre
-scriptsToLoad.forEach(scriptPath => {
-  const script = document.createElement('script');
-  script.src = chrome.runtime.getURL(scriptPath);
-  document.head.appendChild(script);
+// Vérifier que toutes les classes sont disponibles
+console.log('[Content Script] Classes disponibles:', {
+  DataExtractor: typeof DataExtractor !== 'undefined',
+  ConfigurationManager: typeof ConfigurationManager !== 'undefined',
+  AnalysisOrchestrator: typeof AnalysisOrchestrator !== 'undefined'
 });
 
 // État global
@@ -68,8 +54,10 @@ async function handleAnalyzePageRequest(sendResponse) {
     isAnalyzing = true;
     console.log('[Content Script] Starting page analysis...');
 
-    // Attendre que tous les scripts soient chargés
-    await waitForScriptsToLoad();
+    // Vérifier que les classes sont disponibles
+    if (typeof DataExtractor === 'undefined' || typeof AnalysisOrchestrator === 'undefined') {
+      throw new Error('Required classes not loaded. Please reload the page.');
+    }
 
     // Créer l'extracteur
     const extractor = new DataExtractor();
@@ -112,8 +100,10 @@ async function handleGetPageData(sendResponse) {
   try {
     console.log('[Content Script] Extracting page data...');
 
-    // Attendre que tous les scripts soient chargés
-    await waitForScriptsToLoad();
+    // Vérifier que les classes sont disponibles
+    if (typeof DataExtractor === 'undefined') {
+      throw new Error('DataExtractor not loaded. Please reload the page.');
+    }
 
     const extractor = new DataExtractor();
     const pageData = await extractor.extractAll();
@@ -133,72 +123,57 @@ async function handleGetPageData(sendResponse) {
 }
 
 /**
- * Attend que tous les scripts nécessaires soient chargés
+ * Vérifie que toutes les classes nécessaires sont chargées
  */
-function waitForScriptsToLoad(timeout = 10000) {
-  return new Promise((resolve, reject) => {
-    const startTime = Date.now();
+function checkAllClassesLoaded() {
+  const classes = {
+    DataExtractor,
+    ConfigurationManager,
+    ScoringEngine,
+    AnalyzerEndpoint,
+    MetaAnalyzerEndpoint,
+    ImageAnalyzerEndpoint,
+    HeadingAnalyzerEndpoint,
+    LinkAnalyzerEndpoint,
+    AccessibilityAnalyzerEndpoint,
+    PerformanceAnalyzerEndpoint,
+    AnalysisOrchestrator
+  };
 
-    const check = () => {
-      // Vérifier que toutes les classes nécessaires sont disponibles
-      const allLoaded =
-        typeof DataExtractor !== 'undefined' &&
-        typeof ConfigurationManager !== 'undefined' &&
-        typeof ScoringEngine !== 'undefined' &&
-        typeof AnalyzerEndpoint !== 'undefined' &&
-        typeof MetaAnalyzerEndpoint !== 'undefined' &&
-        typeof ImageAnalyzerEndpoint !== 'undefined' &&
-        typeof HeadingAnalyzerEndpoint !== 'undefined' &&
-        typeof LinkAnalyzerEndpoint !== 'undefined' &&
-        typeof AccessibilityAnalyzerEndpoint !== 'undefined' &&
-        typeof PerformanceAnalyzerEndpoint !== 'undefined' &&
-        typeof AnalysisOrchestrator !== 'undefined';
+  const missing = Object.keys(classes).filter(name => typeof classes[name] === 'undefined');
 
-      if (allLoaded) {
-        console.log('[Content Script] All scripts loaded successfully');
-        resolve();
-      } else if (Date.now() - startTime > timeout) {
-        // Lister les scripts manquants
-        const missing = [];
-        if (typeof DataExtractor === 'undefined') missing.push('DataExtractor');
-        if (typeof ConfigurationManager === 'undefined') missing.push('ConfigurationManager');
-        if (typeof ScoringEngine === 'undefined') missing.push('ScoringEngine');
-        if (typeof AnalyzerEndpoint === 'undefined') missing.push('AnalyzerEndpoint');
-        if (typeof MetaAnalyzerEndpoint === 'undefined') missing.push('MetaAnalyzerEndpoint');
-        if (typeof ImageAnalyzerEndpoint === 'undefined') missing.push('ImageAnalyzerEndpoint');
-        if (typeof HeadingAnalyzerEndpoint === 'undefined') missing.push('HeadingAnalyzerEndpoint');
-        if (typeof LinkAnalyzerEndpoint === 'undefined') missing.push('LinkAnalyzerEndpoint');
-        if (typeof AccessibilityAnalyzerEndpoint === 'undefined') missing.push('AccessibilityAnalyzerEndpoint');
-        if (typeof PerformanceAnalyzerEndpoint === 'undefined') missing.push('PerformanceAnalyzerEndpoint');
-        if (typeof AnalysisOrchestrator === 'undefined') missing.push('AnalysisOrchestrator');
+  if (missing.length > 0) {
+    console.error('[Content Script] Missing classes:', missing);
+    return false;
+  }
 
-        reject(new Error(`Scripts failed to load: ${missing.join(', ')}`));
-      } else {
-        setTimeout(check, 100);
-      }
-    };
-
-    check();
-  });
+  console.log('[Content Script] All classes loaded successfully');
+  return true;
 }
 
 /**
  * Notifier que le content script est prêt
  */
 window.addEventListener('load', () => {
-  console.log('[Content Script] Page loaded, ready for analysis');
+  console.log('[Content Script] Page loaded, checking classes...');
+  checkAllClassesLoaded();
 });
 
 // Debug helper
 window.__webQualityAnalyzer = {
   version: '5.0.0',
+  checkClasses: () => checkAllClassesLoaded(),
   extractPageData: async () => {
-    await waitForScriptsToLoad();
+    if (!checkAllClassesLoaded()) {
+      throw new Error('Required classes not loaded');
+    }
     const extractor = new DataExtractor();
     return await extractor.extractAll();
   },
   analyzeCurrentPage: async () => {
-    await waitForScriptsToLoad();
+    if (!checkAllClassesLoaded()) {
+      throw new Error('Required classes not loaded');
+    }
     const extractor = new DataExtractor();
     const pageData = await extractor.extractAll();
     const orchestrator = new AnalysisOrchestrator();

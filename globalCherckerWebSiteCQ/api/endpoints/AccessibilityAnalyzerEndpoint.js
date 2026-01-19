@@ -15,10 +15,14 @@ class AccessibilityAnalyzerEndpoint extends AnalyzerEndpoint {
   async analyze(pageData, options = {}) {
     const config = this.configManager.getConfig('accessibility');
 
+    // Gérer les deux structures de données possibles
+    const accessibilityData = pageData.accessibility || pageData;
+
     const results = {
       contrast: null,
       aria: null,
       semantics: null,
+      semantic: null,  // Alias pour compatibilité
       keyboard: null,
       globalScore: 0,
       wcagLevel: config.contrast?.wcagLevel || 'AA',
@@ -27,23 +31,26 @@ class AccessibilityAnalyzerEndpoint extends AnalyzerEndpoint {
     };
 
     // Analyse du contraste
-    if (pageData.contrast) {
-      results.contrast = this.analyzeContrast(pageData.contrast, config.contrast);
+    const contrastData = accessibilityData.wcag?.contrast || accessibilityData.contrast;
+    if (contrastData) {
+      results.contrast = this.analyzeContrast({ elements: contrastData }, config.contrast);
     }
 
     // Analyse ARIA
-    if (pageData.aria) {
-      results.aria = this.analyzeARIA(pageData.aria);
+    if (accessibilityData.aria) {
+      results.aria = this.analyzeARIA(accessibilityData.aria);
     }
 
     // Analyse sémantique
-    if (pageData.semantics) {
-      results.semantics = this.analyzeSemantics(pageData.semantics);
+    const semanticData = accessibilityData.semantic || accessibilityData.semantics;
+    if (semanticData) {
+      results.semantics = this.analyzeSemantics(semanticData);
+      results.semantic = results.semantics;  // Alias
     }
 
     // Analyse navigation clavier
-    if (pageData.keyboard) {
-      results.keyboard = this.analyzeKeyboard(pageData.keyboard);
+    if (accessibilityData.keyboard) {
+      results.keyboard = this.analyzeKeyboard(accessibilityData.keyboard);
     }
 
     // Calcul du score global
@@ -52,6 +59,13 @@ class AccessibilityAnalyzerEndpoint extends AnalyzerEndpoint {
     // Issues et recommandations
     results.issues = this.collectIssues(results);
     results.recommendations = this.generateRecommendations(results, config);
+
+    // Alias WCAG pour compatibilité avec les tests
+    results.wcag = {
+      level: results.wcagLevel,
+      contrastPassing: results.contrast?.summary?.aaPass || 0,
+      contrastTotal: results.contrast?.totalElements || 0
+    };
 
     return results;
   }
@@ -163,6 +177,20 @@ class AccessibilityAnalyzerEndpoint extends AnalyzerEndpoint {
    * Analyse des attributs ARIA
    */
   analyzeARIA(ariaData) {
+    // Si les données sont déjà au format analysé (test-dashboard), les retourner directement
+    if (ariaData.total !== undefined && ariaData.valid !== undefined) {
+      return {
+        total: ariaData.total,
+        valid: ariaData.valid,
+        invalid: ariaData.invalid || 0,
+        issues: ariaData.issues || [],
+        score: ariaData.valid && ariaData.total
+          ? Number((5 * ariaData.valid / ariaData.total).toFixed(2))
+          : 0
+      };
+    }
+
+    // Sinon, analyser les éléments
     const elements = ariaData.elements || [];
 
     const result = {
@@ -240,6 +268,27 @@ class AccessibilityAnalyzerEndpoint extends AnalyzerEndpoint {
    * Analyse de la sémantique HTML
    */
   analyzeSemantics(semanticsData) {
+    // Si les données sont déjà au format analysé (test-dashboard), les convertir
+    if (semanticsData.hasMain !== undefined || semanticsData.hasNav !== undefined) {
+      const score = [
+        semanticsData.hasMain,
+        semanticsData.hasNav,
+        semanticsData.hasHeader,
+        semanticsData.hasFooter,
+        semanticsData.headingsValid
+      ].filter(Boolean).length;
+
+      return {
+        landmarksUsed: semanticsData.hasMain && semanticsData.hasNav,
+        headingStructure: semanticsData.headingsValid || false,
+        listsProper: true,
+        tablesAccessible: true,
+        score: Number((score / 5 * 5).toFixed(2)),
+        issues: []
+      };
+    }
+
+    // Sinon, analyser les données
     const result = {
       landmarksUsed: false,
       headingStructure: false,
@@ -334,7 +383,10 @@ class AccessibilityAnalyzerEndpoint extends AnalyzerEndpoint {
 
     // Ordre de tabulation logique
     if (keyboardData.tabOrder !== undefined) {
-      result.tabOrder = keyboardData.tabOrder.valid || false;
+      // Gérer les deux formats : string 'sequential' ou object { valid: true }
+      result.tabOrder = keyboardData.tabOrder === 'sequential'
+        || keyboardData.tabOrder.valid
+        || false;
       if (!result.tabOrder) {
         result.issues.push({
           type: 'taborder',
@@ -345,7 +397,10 @@ class AccessibilityAnalyzerEndpoint extends AnalyzerEndpoint {
 
     // Skip links
     if (keyboardData.skipLinks !== undefined) {
-      result.skipLinks = keyboardData.skipLinks.present || false;
+      // Gérer les deux formats : boolean true ou object { present: true }
+      result.skipLinks = keyboardData.skipLinks === true
+        || keyboardData.skipLinks.present
+        || false;
       if (!result.skipLinks) {
         result.issues.push({
           type: 'skiplinks',
@@ -401,7 +456,7 @@ class AccessibilityAnalyzerEndpoint extends AnalyzerEndpoint {
     const issues = [];
 
     // Contraste
-    if (results.contrast && results.contrast.summary.aaFail > 0) {
+    if (results.contrast && results.contrast.summary && results.contrast.summary.aaFail > 0) {
       issues.push({
         type: 'contrast',
         severity: 'error',
@@ -410,18 +465,23 @@ class AccessibilityAnalyzerEndpoint extends AnalyzerEndpoint {
       });
     }
 
-    // ARIA
-    if (results.aria && results.aria.summary.invalid > 0) {
-      issues.push({
-        type: 'aria',
-        severity: 'error',
-        count: results.aria.summary.invalid,
-        message: `${results.aria.summary.invalid} attribut(s) ARIA invalide(s)`
-      });
+    // ARIA - gérer les deux formats de données
+    if (results.aria) {
+      // Format pré-analysé (test-dashboard): {total, valid, invalid, issues}
+      // Format brut analysé: {totalElements, summary: {valid, invalid, ...}, issues}
+      const invalidCount = results.aria.summary?.invalid || results.aria.invalid || 0;
+      if (invalidCount > 0) {
+        issues.push({
+          type: 'aria',
+          severity: 'error',
+          count: invalidCount,
+          message: `${invalidCount} attribut(s) ARIA invalide(s)`
+        });
+      }
     }
 
     // Sémantique
-    if (results.semantics && results.semantics.issues.length > 0) {
+    if (results.semantics && results.semantics.issues && results.semantics.issues.length > 0) {
       issues.push({
         type: 'semantics',
         severity: 'warning',
@@ -431,7 +491,7 @@ class AccessibilityAnalyzerEndpoint extends AnalyzerEndpoint {
     }
 
     // Clavier
-    if (results.keyboard && results.keyboard.issues.length > 0) {
+    if (results.keyboard && results.keyboard.issues && results.keyboard.issues.length > 0) {
       issues.push({
         type: 'keyboard',
         severity: 'error',
@@ -450,7 +510,7 @@ class AccessibilityAnalyzerEndpoint extends AnalyzerEndpoint {
     const recommendations = [];
 
     // Contraste
-    if (results.contrast && results.contrast.summary.lowContrast > 0) {
+    if (results.contrast && results.contrast.summary && results.contrast.summary.lowContrast > 0) {
       recommendations.push({
         type: 'contrast',
         priority: 'high',
@@ -461,19 +521,26 @@ class AccessibilityAnalyzerEndpoint extends AnalyzerEndpoint {
       });
     }
 
-    // ARIA
-    if (results.aria && (results.aria.summary.invalid > 0 || results.aria.summary.missing > 0)) {
-      recommendations.push({
-        type: 'aria',
-        priority: 'high',
-        message: 'Corrigez les attributs ARIA',
-        impact: 'Améliore l\'accessibilité pour lecteurs d\'écran',
-        effort: 'Moyen'
-      });
+    // ARIA - gérer les deux formats de données
+    if (results.aria) {
+      // Format pré-analysé (test-dashboard): {total, valid, invalid, issues}
+      // Format brut analysé: {totalElements, summary: {valid, invalid, missing, ...}, issues}
+      const invalidCount = results.aria.summary?.invalid || results.aria.invalid || 0;
+      const missingCount = results.aria.summary?.missing || 0;
+
+      if (invalidCount > 0 || missingCount > 0) {
+        recommendations.push({
+          type: 'aria',
+          priority: 'high',
+          message: 'Corrigez les attributs ARIA',
+          impact: 'Améliore l\'accessibilité pour lecteurs d\'écran',
+          effort: 'Moyen'
+        });
+      }
     }
 
     // Sémantique
-    if (results.semantics && !results.semantics.landmarksUsed) {
+    if (results.semantics && results.semantics.landmarksUsed !== undefined && !results.semantics.landmarksUsed) {
       recommendations.push({
         type: 'semantics',
         priority: 'medium',
@@ -485,7 +552,7 @@ class AccessibilityAnalyzerEndpoint extends AnalyzerEndpoint {
     }
 
     // Clavier
-    if (results.keyboard && !results.keyboard.focusVisible) {
+    if (results.keyboard && results.keyboard.focusVisible !== undefined && !results.keyboard.focusVisible) {
       recommendations.push({
         type: 'keyboard',
         priority: 'high',
