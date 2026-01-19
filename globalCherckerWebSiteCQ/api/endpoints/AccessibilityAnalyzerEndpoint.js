@@ -456,7 +456,7 @@ class AccessibilityAnalyzerEndpoint extends AnalyzerEndpoint {
     const issues = [];
 
     // Contraste
-    if (results.contrast && results.contrast.summary.aaFail > 0) {
+    if (results.contrast && results.contrast.summary && results.contrast.summary.aaFail > 0) {
       issues.push({
         type: 'contrast',
         severity: 'error',
@@ -465,18 +465,23 @@ class AccessibilityAnalyzerEndpoint extends AnalyzerEndpoint {
       });
     }
 
-    // ARIA
-    if (results.aria && results.aria.summary.invalid > 0) {
-      issues.push({
-        type: 'aria',
-        severity: 'error',
-        count: results.aria.summary.invalid,
-        message: `${results.aria.summary.invalid} attribut(s) ARIA invalide(s)`
-      });
+    // ARIA - gérer les deux formats de données
+    if (results.aria) {
+      // Format pré-analysé (test-dashboard): {total, valid, invalid, issues}
+      // Format brut analysé: {totalElements, summary: {valid, invalid, ...}, issues}
+      const invalidCount = results.aria.summary?.invalid || results.aria.invalid || 0;
+      if (invalidCount > 0) {
+        issues.push({
+          type: 'aria',
+          severity: 'error',
+          count: invalidCount,
+          message: `${invalidCount} attribut(s) ARIA invalide(s)`
+        });
+      }
     }
 
     // Sémantique
-    if (results.semantics && results.semantics.issues.length > 0) {
+    if (results.semantics && results.semantics.issues && results.semantics.issues.length > 0) {
       issues.push({
         type: 'semantics',
         severity: 'warning',
@@ -486,7 +491,7 @@ class AccessibilityAnalyzerEndpoint extends AnalyzerEndpoint {
     }
 
     // Clavier
-    if (results.keyboard && results.keyboard.issues.length > 0) {
+    if (results.keyboard && results.keyboard.issues && results.keyboard.issues.length > 0) {
       issues.push({
         type: 'keyboard',
         severity: 'error',
@@ -505,7 +510,7 @@ class AccessibilityAnalyzerEndpoint extends AnalyzerEndpoint {
     const recommendations = [];
 
     // Contraste
-    if (results.contrast && results.contrast.summary.lowContrast > 0) {
+    if (results.contrast && results.contrast.summary && results.contrast.summary.lowContrast > 0) {
       recommendations.push({
         type: 'contrast',
         priority: 'high',
@@ -516,19 +521,26 @@ class AccessibilityAnalyzerEndpoint extends AnalyzerEndpoint {
       });
     }
 
-    // ARIA
-    if (results.aria && (results.aria.summary.invalid > 0 || results.aria.summary.missing > 0)) {
-      recommendations.push({
-        type: 'aria',
-        priority: 'high',
-        message: 'Corrigez les attributs ARIA',
-        impact: 'Améliore l\'accessibilité pour lecteurs d\'écran',
-        effort: 'Moyen'
-      });
+    // ARIA - gérer les deux formats de données
+    if (results.aria) {
+      // Format pré-analysé (test-dashboard): {total, valid, invalid, issues}
+      // Format brut analysé: {totalElements, summary: {valid, invalid, missing, ...}, issues}
+      const invalidCount = results.aria.summary?.invalid || results.aria.invalid || 0;
+      const missingCount = results.aria.summary?.missing || 0;
+
+      if (invalidCount > 0 || missingCount > 0) {
+        recommendations.push({
+          type: 'aria',
+          priority: 'high',
+          message: 'Corrigez les attributs ARIA',
+          impact: 'Améliore l\'accessibilité pour lecteurs d\'écran',
+          effort: 'Moyen'
+        });
+      }
     }
 
     // Sémantique
-    if (results.semantics && !results.semantics.landmarksUsed) {
+    if (results.semantics && results.semantics.landmarksUsed !== undefined && !results.semantics.landmarksUsed) {
       recommendations.push({
         type: 'semantics',
         priority: 'medium',
@@ -540,7 +552,7 @@ class AccessibilityAnalyzerEndpoint extends AnalyzerEndpoint {
     }
 
     // Clavier
-    if (results.keyboard && !results.keyboard.focusVisible) {
+    if (results.keyboard && results.keyboard.focusVisible !== undefined && !results.keyboard.focusVisible) {
       recommendations.push({
         type: 'keyboard',
         priority: 'high',
