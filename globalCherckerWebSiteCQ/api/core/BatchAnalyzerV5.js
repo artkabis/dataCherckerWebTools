@@ -415,10 +415,13 @@ class BatchAnalyzerV5 {
   }
 }
 
-// Export
+// Export CommonJS
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = BatchAnalyzerV5;
 }
+
+// Export ES6 pour service worker
+export { BatchAnalyzerV5 };
 
 // Exposer dans le scope global pour le navigateur
 if (typeof window !== 'undefined') {
