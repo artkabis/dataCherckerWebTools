@@ -1384,6 +1384,19 @@ function injectScriptIfSoprod(tabId) {
       return;
     }
 
+    // Debug: afficher l'URL pour comprendre le problème
+    console.log(`[injectScriptIfSoprod] Checking tab ${tabId}: ${tab.url}`);
+
+    // Ignorer les pages d'extension, chrome://, about:, etc.
+    if (tab.url.startsWith('chrome://') ||
+        tab.url.startsWith('chrome-extension://') ||
+        tab.url.startsWith('about:') ||
+        tab.url.startsWith('edge://') ||
+        tab.url.startsWith('devtools://')) {
+      console.log(`[injectScriptIfSoprod] Skipping protected page: ${tab.url}`);
+      return;
+    }
+
     // On vérifie si l'URL de l'onglet correspond au pattern de Soprod
     if (tab.url.includes("solocalms.fr")) {
       console.log(`🎯 Tab ${tabId} is a Soprod tab. Injecting script...`);
@@ -1397,10 +1410,11 @@ function injectScriptIfSoprod(tabId) {
           console.log("✅ Script 'soprodDOMTime.js' injected successfully.");
         })
         .catch(err => {
-          console.error("❌ Failed to inject script:", err);
+          // Injection peut échouer si la page est en cours de chargement ou a des restrictions
+          // Ce n'est pas critique, donc on log juste en warning
+          console.warn("⚠️ Could not inject script (page may be loading or have CSP restrictions):", err.message);
+          // Note: Pas besoin de logger l'URL complète, déjà loggée plus haut
         });
-    } else {
-      console.log(`ℹ️ Tab ${tabId} is not a Soprod tab. No action taken.`);
     }
   });
 }
