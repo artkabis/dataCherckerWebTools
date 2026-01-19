@@ -1892,25 +1892,83 @@ function handleAnalyzePageV5(request, sender, sendResponse) {
     return true;
   }
 
+  // Marquer l'analyse comme en cours
+  chrome.storage.local.set({
+    v5_analysis_status: {
+      inProgress: true,
+      startTime: Date.now(),
+      tabId: tabId
+    }
+  });
+
+  // Répondre immédiatement que l'analyse a démarré
+  sendResponse({
+    success: true,
+    started: true,
+    message: 'Analysis started'
+  });
+
   // Analyser la page de manière asynchrone
   analysisCoordinator.analyzePage(tabId, request.options || {})
     .then(result => {
-      console.log('[v5.0] Analysis complete, sending response');
-      sendResponse({
-        success: true,
-        data: result
+      console.log('[v5.0] Analysis complete, notifying popup');
+
+      // Sauvegarder le statut de fin d'analyse
+      chrome.storage.local.set({
+        v5_analysis_status: {
+          inProgress: false,
+          completed: true,
+          endTime: Date.now(),
+          tabId: tabId,
+          result: {
+            url: result.url,
+            globalScore: result.globalScore,
+            level: result.level,
+            timestamp: result.timestamp
+          }
+        }
+      });
+
+      // Envoyer un message aux popups/pages ouvertes
+      chrome.runtime.sendMessage({
+        action: 'analysisV5Complete',
+        tabId: tabId,
+        result: {
+          url: result.url,
+          globalScore: result.globalScore,
+          level: result.level,
+          timestamp: result.timestamp
+        }
+      }).catch(err => {
+        // Pas grave si aucun listener (popup fermé)
+        console.log('[v5.0] No listeners for completion message:', err.message);
       });
     })
     .catch(error => {
       console.error('[v5.0] Analysis error:', error);
-      sendResponse({
-        success: false,
-        error: error.message,
-        stack: error.stack
+
+      // Sauvegarder l'erreur
+      chrome.storage.local.set({
+        v5_analysis_status: {
+          inProgress: false,
+          error: true,
+          errorMessage: error.message,
+          endTime: Date.now(),
+          tabId: tabId
+        }
+      });
+
+      // Envoyer un message d'erreur
+      chrome.runtime.sendMessage({
+        action: 'analysisV5Error',
+        tabId: tabId,
+        error: error.message
+      }).catch(err => {
+        console.log('[v5.0] No listeners for error message:', err.message);
       });
     });
 
-  // Retourner true pour garder le canal ouvert
+  // Retourner true pour garder le canal ouvert (même si on a déjà répondu)
   return true;
 }
 
