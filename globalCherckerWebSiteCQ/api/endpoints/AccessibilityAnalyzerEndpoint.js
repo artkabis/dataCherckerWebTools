@@ -15,10 +15,14 @@ class AccessibilityAnalyzerEndpoint extends AnalyzerEndpoint {
   async analyze(pageData, options = {}) {
     const config = this.configManager.getConfig('accessibility');
 
+    // Gérer les deux structures de données possibles
+    const accessibilityData = pageData.accessibility || pageData;
+
     const results = {
       contrast: null,
       aria: null,
       semantics: null,
+      semantic: null,  // Alias pour compatibilité
       keyboard: null,
       globalScore: 0,
       wcagLevel: config.contrast?.wcagLevel || 'AA',
@@ -27,23 +31,26 @@ class AccessibilityAnalyzerEndpoint extends AnalyzerEndpoint {
     };
 
     // Analyse du contraste
-    if (pageData.contrast) {
-      results.contrast = this.analyzeContrast(pageData.contrast, config.contrast);
+    const contrastData = accessibilityData.wcag?.contrast || accessibilityData.contrast;
+    if (contrastData) {
+      results.contrast = this.analyzeContrast({ elements: contrastData }, config.contrast);
     }
 
     // Analyse ARIA
-    if (pageData.aria) {
-      results.aria = this.analyzeARIA(pageData.aria);
+    if (accessibilityData.aria) {
+      results.aria = this.analyzeARIA(accessibilityData.aria);
     }
 
     // Analyse sémantique
-    if (pageData.semantics) {
-      results.semantics = this.analyzeSemantics(pageData.semantics);
+    const semanticData = accessibilityData.semantic || accessibilityData.semantics;
+    if (semanticData) {
+      results.semantics = this.analyzeSemantics(semanticData);
+      results.semantic = results.semantics;  // Alias
     }
 
     // Analyse navigation clavier
-    if (pageData.keyboard) {
-      results.keyboard = this.analyzeKeyboard(pageData.keyboard);
+    if (accessibilityData.keyboard) {
+      results.keyboard = this.analyzeKeyboard(accessibilityData.keyboard);
     }
 
     // Calcul du score global
@@ -170,6 +177,20 @@ class AccessibilityAnalyzerEndpoint extends AnalyzerEndpoint {
    * Analyse des attributs ARIA
    */
   analyzeARIA(ariaData) {
+    // Si les données sont déjà au format analysé (test-dashboard), les retourner directement
+    if (ariaData.total !== undefined && ariaData.valid !== undefined) {
+      return {
+        total: ariaData.total,
+        valid: ariaData.valid,
+        invalid: ariaData.invalid || 0,
+        issues: ariaData.issues || [],
+        score: ariaData.valid && ariaData.total
+          ? Number((5 * ariaData.valid / ariaData.total).toFixed(2))
+          : 0
+      };
+    }
+
+    // Sinon, analyser les éléments
     const elements = ariaData.elements || [];
 
     const result = {
@@ -247,6 +268,27 @@ class AccessibilityAnalyzerEndpoint extends AnalyzerEndpoint {
    * Analyse de la sémantique HTML
    */
   analyzeSemantics(semanticsData) {
+    // Si les données sont déjà au format analysé (test-dashboard), les convertir
+    if (semanticsData.hasMain !== undefined || semanticsData.hasNav !== undefined) {
+      const score = [
+        semanticsData.hasMain,
+        semanticsData.hasNav,
+        semanticsData.hasHeader,
+        semanticsData.hasFooter,
+        semanticsData.headingsValid
+      ].filter(Boolean).length;
+
+      return {
+        landmarksUsed: semanticsData.hasMain && semanticsData.hasNav,
+        headingStructure: semanticsData.headingsValid || false,
+        listsProper: true,
+        tablesAccessible: true,
+        score: Number((score / 5 * 5).toFixed(2)),
+        issues: []
+      };
+    }
+
+    // Sinon, analyser les données
     const result = {
       landmarksUsed: false,
       headingStructure: false,
@@ -341,7 +383,10 @@ class AccessibilityAnalyzerEndpoint extends AnalyzerEndpoint {
 
     // Ordre de tabulation logique
     if (keyboardData.tabOrder !== undefined) {
-      result.tabOrder = keyboardData.tabOrder.valid || false;
+      // Gérer les deux formats : string 'sequential' ou object { valid: true }
+      result.tabOrder = keyboardData.tabOrder === 'sequential'
+        || keyboardData.tabOrder.valid
+        || false;
       if (!result.tabOrder) {
         result.issues.push({
           type: 'taborder',
@@ -352,7 +397,10 @@ class AccessibilityAnalyzerEndpoint extends AnalyzerEndpoint {
 
     // Skip links
     if (keyboardData.skipLinks !== undefined) {
-      result.skipLinks = keyboardData.skipLinks.present || false;
+      // Gérer les deux formats : boolean true ou object { present: true }
+      result.skipLinks = keyboardData.skipLinks === true
+        || keyboardData.skipLinks.present
+        || false;
       if (!result.skipLinks) {
         result.issues.push({
           type: 'skiplinks',
