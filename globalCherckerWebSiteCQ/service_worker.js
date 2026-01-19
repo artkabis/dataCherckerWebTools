@@ -880,7 +880,7 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
 
       // === v5.0 ENDPOINTS ANALYSIS ===
       case 'analyzePageV5':
-        return await handleAnalyzePageV5(request, sender, sendResponse);
+        return handleAnalyzePageV5(request, sender, sendResponse);
 
       case 'getAnalysisResultV5':
         return await handleGetAnalysisResultV5(request, sendResponse);
@@ -1879,37 +1879,38 @@ setTimeout(async () => {
 /**
  * Handler pour analyser une page avec la v5.0
  */
-async function handleAnalyzePageV5(request, sender, sendResponse) {
-  try {
-    console.log('[v5.0] Starting page analysis...', request);
+function handleAnalyzePageV5(request, sender, sendResponse) {
+  console.log('[v5.0] Starting page analysis...', request);
 
-    const tabId = sender.tab?.id || request.tabId;
+  const tabId = sender.tab?.id || request.tabId;
 
-    if (!tabId) {
-      sendResponse({
-        success: false,
-        error: 'No tab ID provided'
-      });
-      return true;
-    }
-
-    // Analyser la page
-    const result = await analysisCoordinator.analyzePage(tabId, request.options || {});
-
-    sendResponse({
-      success: true,
-      data: result
-    });
-
-  } catch (error) {
-    console.error('[v5.0] Analysis error:', error);
+  if (!tabId) {
     sendResponse({
       success: false,
-      error: error.message,
-      stack: error.stack
+      error: 'No tab ID provided'
     });
+    return true;
   }
 
+  // Analyser la page de manière asynchrone
+  analysisCoordinator.analyzePage(tabId, request.options || {})
+    .then(result => {
+      console.log('[v5.0] Analysis complete, sending response');
+      sendResponse({
+        success: true,
+        data: result
+      });
+    })
+    .catch(error => {
+      console.error('[v5.0] Analysis error:', error);
+      sendResponse({
+        success: false,
+        error: error.message,
+        stack: error.stack
+      });
+    });
+
+  // Retourner true pour garder le canal ouvert
   return true;
 }
 
