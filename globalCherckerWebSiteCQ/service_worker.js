@@ -1384,6 +1384,15 @@ function injectScriptIfSoprod(tabId) {
       return;
     }
 
+    // Ignorer les pages d'extension, chrome://, about:, etc.
+    if (tab.url.startsWith('chrome://') ||
+        tab.url.startsWith('chrome-extension://') ||
+        tab.url.startsWith('about:') ||
+        tab.url.startsWith('edge://') ||
+        tab.url.startsWith('devtools://')) {
+      return;
+    }
+
     // On vérifie si l'URL de l'onglet correspond au pattern de Soprod
     if (tab.url.includes("solocalms.fr")) {
       console.log(`🎯 Tab ${tabId} is a Soprod tab. Injecting script...`);
