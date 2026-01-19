@@ -128,12 +128,32 @@ class DashboardController {
     this.showLoading(true);
 
     try {
-      // Charger la dernière analyse depuis IndexedDB
-      const lastAnalysis = await this.getLastAnalysisFromDB();
-      if (lastAnalysis) {
-        this.currentAnalysis = lastAnalysis;
-        this.updateDashboard(lastAnalysis);
+      // Récupérer l'URL depuis les paramètres de l'URL du dashboard
+      const urlParams = new URLSearchParams(window.location.search);
+      const pageUrl = urlParams.get('url');
+
+      console.log('[Dashboard] Page URL from params:', pageUrl);
+
+      let analysisData = null;
+
+      // Si une URL est fournie, charger depuis chrome.storage.local (v5.0)
+      if (pageUrl) {
+        analysisData = await this.getAnalysisFromStorage(pageUrl);
+        console.log('[Dashboard] Analysis from storage:', analysisData);
+      }
+
+      // Fallback: charger la dernière analyse depuis IndexedDB
+      if (!analysisData) {
+        console.log('[Dashboard] No data from storage, trying IndexedDB...');
+        analysisData = await this.getLastAnalysisFromDB();
+      }
+
+      if (analysisData) {
+        this.currentAnalysis = analysisData;
+        this.updateDashboard(analysisData);
+        console.log('[Dashboard] Dashboard updated with analysis data');
       } else {
+        console.warn('[Dashboard] No analysis data found');
         this.showEmptyState();
       }
 
@@ -146,6 +166,44 @@ class DashboardController {
       this.showError('Erreur de chargement des données');
     } finally {
       this.showLoading(false);
+    }
+  }
+
+  /**
+   * Récupère une analyse depuis chrome.storage.local (v5.0)
+   */
+  async getAnalysisFromStorage(url) {
+    try {
+      // Générer la clé de cache (même logique que AnalysisCoordinator)
+      const cacheKey = this.getCacheKey(url);
+      const storageKey = `analysis_${cacheKey}`;
+
+      console.log('[Dashboard] Looking for storage key:', storageKey);
+
+      const result = await chrome.storage.local.get(storageKey);
+
+      if (result[storageKey]) {
+        console.log('[Dashboard] Found analysis in storage');
+        return result[storageKey].result;
+      }
+
+      console.warn('[Dashboard] No analysis found for key:', storageKey);
+      return null;
+    } catch (error) {
+      console.error('[Dashboard] Error getting analysis from storage:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Génère une clé de cache depuis une URL (même logique que AnalysisCoordinator)
+   */
+  getCacheKey(url) {
+    try {
+      const urlObj = new URL(url);
+      return `${urlObj.origin}${urlObj.pathname}`;
+    } catch {
+      return url;
     }
   }
 
