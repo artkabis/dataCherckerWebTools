@@ -21,7 +21,7 @@
     "128": "icons/HCW-logo-128.png"
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; object-src 'self'"
+    "extension_pages": "script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'self'"
   },
   "permissions": [
     "storage",
