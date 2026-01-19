@@ -70,6 +70,19 @@ class AnalysisCoordinator {
   async waitForContentScript(tabId, maxRetries = 5, delayMs = 300) {
     console.log('[AnalysisCoordinator] Checking if content script is ready...');
 
+    // Récupérer les infos de l'onglet pour vérifier l'URL
+    const tab = await chrome.tabs.get(tabId);
+    console.log('[AnalysisCoordinator] Tab URL:', tab.url);
+
+    // Vérifier si c'est une page où on ne peut pas injecter de scripts
+    if (tab.url.startsWith('chrome://') ||
+        tab.url.startsWith('about:') ||
+        tab.url.startsWith('chrome-extension://') ||
+        tab.url.startsWith('edge://') ||
+        tab.url.startsWith('devtools://')) {
+      throw new Error('Cannot analyze browser internal pages. Please navigate to a regular website.');
+    }
+
     for (let i = 0; i < maxRetries; i++) {
       try {
         const isReady = await this.pingContentScript(tabId);
@@ -79,6 +92,23 @@ class AnalysisCoordinator {
         }
       } catch (error) {
         console.log(`[AnalysisCoordinator] Ping attempt ${i + 1}/${maxRetries} failed:`, error.message);
+
+        // Si premier échec, tenter d'injecter le content script
+        if (i === 0) {
+          console.log('[AnalysisCoordinator] Attempting to inject content script...');
+          try {
+            await this.injectContentScript(tabId);
+            console.log('[AnalysisCoordinator] Content script injection completed');
+            // Attendre plus longtemps après l'injection pour que les scripts s'initialisent
+            console.log('[AnalysisCoordinator] Waiting for scripts to initialize...');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            continue;
+          } catch (injectError) {
+            console.error('[AnalysisCoordinator] Failed to inject content script:', injectError.message);
+            // Si l'injection échoue, on peut quand même continuer les pings
+            // car peut-être que le script est déjà là
+          }
+        }
       }
 
       // Attendre avant de réessayer
@@ -89,6 +119,40 @@ class AnalysisCoordinator {
 
     console.error('[AnalysisCoordinator] Content script failed to respond after', maxRetries, 'attempts');
     return false;
+  }
+
+  /**
+   * Injecte le content script programmatiquement dans l'onglet
+   */
+  async injectContentScript(tabId) {
+    // Liste des scripts à injecter dans l'ordre
+    const scripts = [
+      'api/extractors/DataExtractor.js',
+      'api/config/ConfigurationManager.js',
+      'api/core/ScoringEngine.js',
+      'api/core/AnalyzerEndpoint.js',
+      'api/endpoints/MetaAnalyzerEndpoint.js',
+      'api/endpoints/ImageAnalyzerEndpoint.js',
+      'api/endpoints/HeadingAnalyzerEndpoint.js',
+      'api/endpoints/LinkAnalyzerEndpoint.js',
+      'api/endpoints/AccessibilityAnalyzerEndpoint.js',
+      'api/endpoints/PerformanceAnalyzerEndpoint.js',
+      'api/core/AnalysisOrchestrator.js',
+      'content-script.js'
+    ];
+
+    try {
+      // Injecter tous les scripts
+      await chrome.scripting.executeScript({
+        target: { tabId: tabId },
+        files: scripts
+      });
+
+      console.log('[AnalysisCoordinator] All scripts injected');
+    } catch (error) {
+      console.error('[AnalysisCoordinator] Script injection error:', error);
+      throw new Error(`Failed to inject content script: ${error.message}`);
+    }
   }
 
   /**

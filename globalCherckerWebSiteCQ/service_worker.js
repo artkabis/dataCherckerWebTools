@@ -809,110 +809,144 @@ function handleGetWebScannerStats(sendResponse) {
 }
 
 // === GESTIONNAIRE DE MESSAGES MODERNISÉ ===
-chrome.runtime.onMessage.addListener(async function (request, sender, sendResponse) {
-  try {
-    // Déléguer la gestion CORS au manager moderne
-    if (corsManager.handleMessage(request, sender, sendResponse)) {
-      return true;
+chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+  // IMPORTANT: Ne pas utiliser async directement sur le listener
+  // car cela ferme le canal prématurément. Utiliser une IIFE async à l'intérieur.
+
+  (async () => {
+    try {
+      // Déléguer la gestion CORS au manager moderne
+      if (corsManager.handleMessage(request, sender, sendResponse)) {
+        return;
+      }
+
+      // Gestion des analyses avec switch moderne
+      switch (request.action) {
+        case 'startWebScanner':
+          await handleStartWebScanner(request, sendResponse);
+          break;
+
+        case 'stopWebScanner':
+          await handleStopWebScanner(sendResponse);
+          break;
+
+        case 'getWebScannerStatus':
+          handleGetWebScannerStatus(sendResponse);
+          break;
+
+        case 'getWebScannerResults':
+          await handleGetWebScannerResults(sendResponse);
+          break;
+
+        case 'clearWebScannerResults':
+          await handleClearWebScannerResults(sendResponse);
+          break;
+
+        case 'getWebScannerStats':
+          handleGetWebScannerStats(sendResponse);
+          break;
+
+        case 'startSitemapAnalysis':
+          await handleSitemapAnalysis(request, sendResponse);
+          break;
+
+        case 'diagnoseWebScanner':
+          const diagnosis = await diagnoseWebScanner();
+          sendResponse(diagnosis);
+          break;
+
+        case 'verifyWebScannerResults':
+          await handleVerifyWebScannerResults(sendResponse);
+          break;
+
+
+        case 'startUrlListAnalysis':
+          await handleUrlListAnalysis(request, sendResponse);
+          break;
+
+        case 'startCurrentPageAnalysis':
+          await handleCurrentPageAnalysis(request, sendResponse);
+          break;
+
+        case 'getAnalysisStatus':
+          handleGetAnalysisStatus(sendResponse);
+          break;
+
+        case 'pauseAnalysis':
+          handlePauseAnalysis(sendResponse);
+          break;
+
+        case 'resumeAnalysis':
+          handleResumeAnalysis(sendResponse);
+          break;
+
+        case 'cancelAnalysis':
+          await handleCancelAnalysis(sendResponse);
+          break;
+
+        case 'linksAnalysisComplete':
+          await handleLinksAnalysisComplete(request, sendResponse);
+          break;
+
+        case 'getLinksAnalysisStatus':
+          handleGetLinksAnalysisStatus(sendResponse);
+          break;
+
+        case 'diagnoseCORS':
+          await handleCORSDiagnosis(sendResponse);
+          break;
+
+        case 'open_interface':
+          await handleOpenInterface(request);
+          break;
+
+        // === v5.0 ENDPOINTS ANALYSIS ===
+        case 'analyzePageV5':
+          handleAnalyzePageV5(request, sender, sendResponse);
+          break;
+
+        case 'getAnalysisResultV5':
+          await handleGetAnalysisResultV5(request, sendResponse);
+          break;
+
+        case 'getAnalysisHistoryV5':
+          await handleGetAnalysisHistoryV5(sendResponse);
+          break;
+
+        case 'clearAnalysisHistoryV5':
+          await handleClearAnalysisHistoryV5(sendResponse);
+          break;
+
+        // === v5.0 BATCH ANALYSIS ===
+        case 'startBatchAnalysisV5':
+          await handleStartBatchAnalysisV5(request, sendResponse);
+          break;
+
+        case 'stopBatchAnalysisV5':
+          await handleStopBatchAnalysisV5(sendResponse);
+          break;
+
+        case 'getBatchStatusV5':
+          await handleGetBatchStatusV5(sendResponse);
+          break;
+
+        case 'getBatchResultsV5':
+          await handleGetBatchResultsV5(sendResponse);
+          break;
+
+        // === AUTRES MESSAGES ===
+        default:
+          handleOtherMessages(request, sender, sendResponse);
+          break;
+      }
+    } catch (error) {
+      console.error("[Messages] Error handling message:", error);
+      sendResponse?.({ status: 'error', message: error.message });
     }
+  })();
 
-    // Gestion des analyses avec switch moderne
-    switch (request.action) {
-      case 'startWebScanner':
-        return await handleStartWebScanner(request, sendResponse);
-
-      case 'stopWebScanner':
-        return await handleStopWebScanner(sendResponse);
-
-      case 'getWebScannerStatus':
-        return handleGetWebScannerStatus(sendResponse);
-
-      case 'getWebScannerResults':
-        return await handleGetWebScannerResults(sendResponse);
-
-      case 'clearWebScannerResults':
-        return await handleClearWebScannerResults(sendResponse);
-
-      case 'getWebScannerStats':
-        return handleGetWebScannerStats(sendResponse);
-
-      case 'startSitemapAnalysis':
-        return await handleSitemapAnalysis(request, sendResponse);
-
-      case 'diagnoseWebScanner':
-        const diagnosis = await diagnoseWebScanner();
-        sendResponse(diagnosis);
-        return true;
-
-      case 'verifyWebScannerResults':
-        return await handleVerifyWebScannerResults(sendResponse);
-
-
-      case 'startUrlListAnalysis':
-        return await handleUrlListAnalysis(request, sendResponse);
-
-      case 'startCurrentPageAnalysis':
-        return await handleCurrentPageAnalysis(request, sendResponse);
-
-      case 'getAnalysisStatus':
-        return handleGetAnalysisStatus(sendResponse);
-
-      case 'pauseAnalysis':
-        return handlePauseAnalysis(sendResponse);
-
-      case 'resumeAnalysis':
-        return handleResumeAnalysis(sendResponse);
-
-      case 'cancelAnalysis':
-        return await handleCancelAnalysis(sendResponse);
-
-      case 'linksAnalysisComplete':
-        return await handleLinksAnalysisComplete(request, sendResponse);
-
-      case 'getLinksAnalysisStatus':
-        return handleGetLinksAnalysisStatus(sendResponse);
-
-      case 'diagnoseCORS':
-        return await handleCORSDiagnosis(sendResponse);
-
-      case 'open_interface':
-        return await handleOpenInterface(request);
-
-      // === v5.0 ENDPOINTS ANALYSIS ===
-      case 'analyzePageV5':
-        return handleAnalyzePageV5(request, sender, sendResponse);
-
-      case 'getAnalysisResultV5':
-        return await handleGetAnalysisResultV5(request, sendResponse);
-
-      case 'getAnalysisHistoryV5':
-        return await handleGetAnalysisHistoryV5(sendResponse);
-
-      case 'clearAnalysisHistoryV5':
-        return await handleClearAnalysisHistoryV5(sendResponse);
-
-      // === v5.0 BATCH ANALYSIS ===
-      case 'startBatchAnalysisV5':
-        return await handleStartBatchAnalysisV5(request, sendResponse);
-
-      case 'stopBatchAnalysisV5':
-        return await handleStopBatchAnalysisV5(sendResponse);
-
-      case 'getBatchStatusV5':
-        return await handleGetBatchStatusV5(sendResponse);
-
-      case 'getBatchResultsV5':
-        return await handleGetBatchResultsV5(sendResponse);
-
-      // === AUTRES MESSAGES ===
-      default:
-        return handleOtherMessages(request, sender, sendResponse);
-    }
-  } catch (error) {
-    console.error("[Messages] Error handling message:", error);
-    sendResponse?.({ status: 'error', message: error.message });
-    return true;
-  }
+  // Retourner true pour indiquer une réponse asynchrone
+  return true;
 });
 
 chrome.runtime.onSuspend.addListener(async () => {
@@ -1787,7 +1821,7 @@ async function repairCORSState() {
 }
 
 
-chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'diagnoseCORS') {
     // Réponse immédiate pour confirmer réception
     sendResponse({ received: true });
@@ -1833,8 +1867,10 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   }
 
   if (request.action === 'repairCORS') {
-    const result = await repairCORSState();
-    sendResponse(result);
+    (async () => {
+      const result = await repairCORSState();
+      sendResponse(result);
+    })();
     return true;
   }
 
@@ -1892,25 +1928,83 @@ function handleAnalyzePageV5(request, sender, sendResponse) {
     return true;
   }
 
+  // Marquer l'analyse comme en cours
+  chrome.storage.local.set({
+    v5_analysis_status: {
+      inProgress: true,
+      startTime: Date.now(),
+      tabId: tabId
+    }
+  });
+
+  // Répondre immédiatement que l'analyse a démarré
+  sendResponse({
+    success: true,
+    started: true,
+    message: 'Analysis started'
+  });
+
   // Analyser la page de manière asynchrone
   analysisCoordinator.analyzePage(tabId, request.options || {})
     .then(result => {
-      console.log('[v5.0] Analysis complete, sending response');
-      sendResponse({
-        success: true,
-        data: result
+      console.log('[v5.0] Analysis complete, notifying popup');
+
+      // Sauvegarder le statut de fin d'analyse
+      chrome.storage.local.set({
+        v5_analysis_status: {
+          inProgress: false,
+          completed: true,
+          endTime: Date.now(),
+          tabId: tabId,
+          result: {
+            url: result.url,
+            globalScore: result.globalScore,
+            level: result.level,
+            timestamp: result.timestamp
+          }
+        }
+      });
+
+      // Envoyer un message aux popups/pages ouvertes
+      chrome.runtime.sendMessage({
+        action: 'analysisV5Complete',
+        tabId: tabId,
+        result: {
+          url: result.url,
+          globalScore: result.globalScore,
+          level: result.level,
+          timestamp: result.timestamp
+        }
+      }).catch(err => {
+        // Pas grave si aucun listener (popup fermé)
+        console.log('[v5.0] No listeners for completion message:', err.message);
       });
     })
     .catch(error => {
       console.error('[v5.0] Analysis error:', error);
-      sendResponse({
-        success: false,
-        error: error.message,
-        stack: error.stack
+
+      // Sauvegarder l'erreur
+      chrome.storage.local.set({
+        v5_analysis_status: {
+          inProgress: false,
+          error: true,
+          errorMessage: error.message,
+          endTime: Date.now(),
+          tabId: tabId
+        }
+      });
+
+      // Envoyer un message d'erreur
+      chrome.runtime.sendMessage({
+        action: 'analysisV5Error',
+        tabId: tabId,
+        error: error.message
+      }).catch(err => {
+        console.log('[v5.0] No listeners for error message:', err.message);
       });
     });
 
-  // Retourner true pour garder le canal ouvert
+  // Retourner true pour garder le canal ouvert (même si on a déjà répondu)
   return true;
 }
 

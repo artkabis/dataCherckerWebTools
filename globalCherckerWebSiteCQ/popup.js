@@ -880,6 +880,62 @@ function setupV5Analysis() {
   const analyzeV5Btn = document.getElementById('analyzeV5Btn');
   const v5Status = document.getElementById('v5Status');
 
+  // Écouter les notifications de fin d'analyse
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === 'analysisV5Complete') {
+      console.log('[Popup v5.0] Analysis complete notification received:', message);
+
+      const result = message.result;
+
+      // Réactiver le bouton
+      if (analyzeV5Btn) {
+        analyzeV5Btn.disabled = false;
+        analyzeV5Btn.innerHTML = '<span class="icon">🚀</span> Analyse Complète v5.0';
+      }
+
+      // Afficher le succès
+      if (v5Status) {
+        v5Status.style.display = 'block';
+        v5Status.style.background = '#d4edda';
+        v5Status.style.color = '#155724';
+        v5Status.innerHTML = `
+          <strong>✓ Analyse terminée !</strong><br>
+          Score global: ${result.globalScore}/5 (${result.level})<br>
+          <small>URL: ${result.url}</small><br>
+          <button id="openDashboardV5" style="margin-top: 10px; padding: 5px 10px; cursor: pointer;">
+            📊 Voir le Dashboard
+          </button>
+        `;
+
+        // Handler pour ouvrir le dashboard
+        const openBtn = document.getElementById('openDashboardV5');
+        if (openBtn) {
+          openBtn.addEventListener('click', () => {
+            chrome.tabs.create({
+              url: chrome.runtime.getURL(`dashboard.html?url=${encodeURIComponent(result.url)}`)
+            });
+          });
+        }
+      }
+    } else if (message.action === 'analysisV5Error') {
+      console.error('[Popup v5.0] Analysis error notification received:', message);
+
+      // Réactiver le bouton
+      if (analyzeV5Btn) {
+        analyzeV5Btn.disabled = false;
+        analyzeV5Btn.innerHTML = '<span class="icon">🚀</span> Analyse Complète v5.0';
+      }
+
+      // Afficher l'erreur
+      if (v5Status) {
+        v5Status.style.display = 'block';
+        v5Status.style.background = '#f8d7da';
+        v5Status.style.color = '#721c24';
+        v5Status.textContent = `Erreur: ${message.error}`;
+      }
+    }
+  });
+
   if (analyzeV5Btn) {
     console.log('[Popup v5.0] Single-page analysis button attached');
 
@@ -916,12 +972,10 @@ function setupV5Analysis() {
           (response) => {
             console.log('[Popup v5.0] Response received:', response);
 
-            // Réactiver le bouton
-            analyzeV5Btn.disabled = false;
-            analyzeV5Btn.innerHTML = '<span class="icon">🚀</span> Analyse Complète v5.0';
-
             if (chrome.runtime.lastError) {
               console.error('[Popup v5.0] Runtime error:', chrome.runtime.lastError);
+              analyzeV5Btn.disabled = false;
+              analyzeV5Btn.innerHTML = '<span class="icon">🚀</span> Analyse Complète v5.0';
               v5Status.style.background = '#f8d7da';
               v5Status.style.color = '#721c24';
               v5Status.textContent = `Erreur: ${chrome.runtime.lastError.message}`;
@@ -929,37 +983,17 @@ function setupV5Analysis() {
             }
 
             if (!response || !response.success) {
-              console.error('[Popup v5.0] Analysis failed:', response);
+              console.error('[Popup v5.0] Analysis failed to start:', response);
+              analyzeV5Btn.disabled = false;
+              analyzeV5Btn.innerHTML = '<span class="icon">🚀</span> Analyse Complète v5.0';
               v5Status.style.background = '#f8d7da';
               v5Status.style.color = '#721c24';
               v5Status.textContent = `Erreur: ${response?.error || 'Erreur inconnue'}`;
               return;
             }
 
-            // Succès !
-            console.log('[Popup v5.0] Analysis successful!', response.data);
-            const result = response.data;
-            v5Status.style.background = '#d4edda';
-            v5Status.style.color = '#155724';
-            v5Status.innerHTML = `
-              <strong>✓ Analyse terminée !</strong><br>
-              Score global: ${result.globalScore}/5 (${result.level})<br>
-              <small>URL: ${result.url}</small><br>
-              <button id="openDashboardV5" style="margin-top: 10px; padding: 5px 10px; cursor: pointer;">
-                📊 Voir le Dashboard
-              </button>
-            `;
-
-            // Handler pour ouvrir le dashboard
-            const openBtn = document.getElementById('openDashboardV5');
-            if (openBtn) {
-              openBtn.addEventListener('click', () => {
-                // Ouvrir le dashboard avec les résultats
-                chrome.tabs.create({
-                  url: chrome.runtime.getURL(`dashboard.html?url=${encodeURIComponent(result.url)}`)
-                });
-              });
-            }
+            // L'analyse a démarré, on attend la notification de fin via onMessage
+            console.log('[Popup v5.0] Analysis started, waiting for completion...');
           }
         );
 
