@@ -1384,12 +1384,16 @@ function injectScriptIfSoprod(tabId) {
       return;
     }
 
+    // Debug: afficher l'URL pour comprendre le problème
+    console.log(`[injectScriptIfSoprod] Checking tab ${tabId}: ${tab.url}`);
+
     // Ignorer les pages d'extension, chrome://, about:, etc.
     if (tab.url.startsWith('chrome://') ||
         tab.url.startsWith('chrome-extension://') ||
         tab.url.startsWith('about:') ||
         tab.url.startsWith('edge://') ||
         tab.url.startsWith('devtools://')) {
+      console.log(`[injectScriptIfSoprod] Skipping protected page: ${tab.url}`);
       return;
     }
 
@@ -1407,9 +1411,8 @@ function injectScriptIfSoprod(tabId) {
         })
         .catch(err => {
           console.error("❌ Failed to inject script:", err);
+          console.error("   Tab URL was:", tab.url);
         });
-    } else {
-      console.log(`ℹ️ Tab ${tabId} is not a Soprod tab. No action taken.`);
     }
   });
 }
