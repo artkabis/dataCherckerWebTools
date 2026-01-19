@@ -40,6 +40,12 @@ class AnalysisCoordinator {
     console.log('[AnalysisCoordinator] Starting analysis for tab:', tabId);
 
     try {
+      // Vérifier que le content script est prêt
+      const isReady = await this.waitForContentScript(tabId);
+      if (!isReady) {
+        throw new Error('Content script not ready. Please reload the page and try again.');
+      }
+
       // Demander au content script de faire l'analyse complète
       const analysisResult = await this.requestAnalysis(tabId, options);
 
@@ -56,6 +62,57 @@ class AnalysisCoordinator {
       console.error('[AnalysisCoordinator] Analysis error:', error);
       throw error;
     }
+  }
+
+  /**
+   * Vérifie que le content script est prêt avec plusieurs tentatives
+   */
+  async waitForContentScript(tabId, maxRetries = 5, delayMs = 300) {
+    console.log('[AnalysisCoordinator] Checking if content script is ready...');
+
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        const isReady = await this.pingContentScript(tabId);
+        if (isReady) {
+          console.log('[AnalysisCoordinator] Content script is ready');
+          return true;
+        }
+      } catch (error) {
+        console.log(`[AnalysisCoordinator] Ping attempt ${i + 1}/${maxRetries} failed:`, error.message);
+      }
+
+      // Attendre avant de réessayer
+      if (i < maxRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+
+    console.error('[AnalysisCoordinator] Content script failed to respond after', maxRetries, 'attempts');
+    return false;
+  }
+
+  /**
+   * Envoie un ping au content script pour vérifier qu'il est prêt
+   */
+  async pingContentScript(tabId) {
+    return new Promise((resolve, reject) => {
+      chrome.tabs.sendMessage(
+        tabId,
+        { action: 'ping' },
+        response => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+            return;
+          }
+
+          if (response && response.status === 'ready') {
+            resolve(true);
+          } else {
+            resolve(false);
+          }
+        }
+      );
+    });
   }
 
   /**
