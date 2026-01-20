@@ -2323,82 +2323,111 @@ async function handleGetBatchResultsV5(sendResponse) {
  * Handler pour démarrer une analyse batch avec offscreen
  */
 async function handleStartOffscreenBatchAnalysis(request, sendResponse) {
-  try {
-    const { urls, sitemapUrl, config = {} } = request;
+  const { urls, sitemapUrl, config = {} } = request;
 
-    console.log('[Offscreen Batch] Starting analysis...', {
-      urlCount: urls?.length,
-      sitemapUrl
+  // Générer un ID d'analyse unique
+  const analysisId = `offscreen-batch-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+  console.log('[Offscreen Batch] Starting analysis...', {
+    analysisId,
+    urlCount: urls?.length,
+    sitemapUrl
+  });
+
+  // Créer l'instance si nécessaire
+  if (!offscreenBatchAnalyzer) {
+    offscreenBatchAnalyzer = new OffscreenBatchAnalyzer({
+      autoDetect: true,
+      preferOffscreen: true,
+      maxConcurrentOffscreen: 5,
+      maxConcurrentTabs: 3
     });
 
-    // Créer l'instance si nécessaire
-    if (!offscreenBatchAnalyzer) {
-      offscreenBatchAnalyzer = new OffscreenBatchAnalyzer({
-        autoDetect: true,
-        preferOffscreen: true,
-        maxConcurrentOffscreen: 5,
-        maxConcurrentTabs: 3
+    // Configurer les listeners
+    offscreenBatchAnalyzer.on('progress', (progress) => {
+      console.log('[Offscreen Batch] Progress:', progress);
+      // Notifier le popup
+      chrome.runtime.sendMessage({
+        action: 'offscreenBatchProgress',
+        progress
+      }).catch(() => {
+        // Popup peut être fermé, ignorer l'erreur
       });
-
-      // Configurer les listeners
-      offscreenBatchAnalyzer.on('progress', (progress) => {
-        console.log('[Offscreen Batch] Progress:', progress);
-        // Notifier le popup
-        chrome.runtime.sendMessage({
-          action: 'offscreenBatchProgress',
-          progress
-        }).catch(() => {
-          // Popup peut être fermé, ignorer l'erreur
-        });
-      });
-
-      offscreenBatchAnalyzer.on('methodSelected', (detection) => {
-        console.log('[Offscreen Batch] Method selection:', detection.stats);
-      });
-
-      offscreenBatchAnalyzer.on('error', (error) => {
-        console.error('[Offscreen Batch] Error:', error);
-      });
-    }
-
-    // Activer CORS
-    await corsManager.enable('offscreen-batch');
-
-    // Lancer l'analyse
-    let results;
-    if (sitemapUrl) {
-      results = await offscreenBatchAnalyzer.analyzeFromSitemap(sitemapUrl, config);
-    } else if (urls && urls.length > 0) {
-      results = await offscreenBatchAnalyzer.analyzeBatch(urls, config);
-    } else {
-      throw new Error('URLs or sitemap URL required');
-    }
-
-    // Sauvegarder les résultats
-    await chrome.storage.local.set({
-      offscreenBatchResults: results,
-      offscreenBatchTimestamp: Date.now()
     });
 
-    console.log('[Offscreen Batch] Analysis complete:', results.stats);
-
-    sendResponse({
-      success: true,
-      results: results.success,
-      errors: results.errors,
-      stats: results.stats
+    offscreenBatchAnalyzer.on('methodSelected', (detection) => {
+      console.log('[Offscreen Batch] Method selection:', detection.stats);
     });
 
-  } catch (error) {
-    console.error('[Offscreen Batch] Analysis error:', error);
-    sendResponse({
-      success: false,
-      error: error.message
+    offscreenBatchAnalyzer.on('error', (error) => {
+      console.error('[Offscreen Batch] Error:', error);
+      // Notifier le popup de l'erreur
+      chrome.runtime.sendMessage({
+        action: 'batchAnalysisError',
+        error: error.message
+      }).catch(() => {});
     });
-  } finally {
-    // Désactiver CORS
-    await corsManager.disable('offscreen-batch');
   }
+
+  // ✅ RÉPONDRE IMMÉDIATEMENT au popup (ne pas bloquer)
+  sendResponse({
+    success: true,
+    analysisId
+  });
+
+  // 🚀 Lancer l'analyse en arrière-plan (async, non-bloquant)
+  (async () => {
+    try {
+      // Activer CORS
+      await corsManager.enable('offscreen-batch');
+
+      // Lancer l'analyse
+      let results;
+      if (sitemapUrl) {
+        results = await offscreenBatchAnalyzer.analyzeFromSitemap(sitemapUrl, config);
+      } else if (urls && urls.length > 0) {
+        results = await offscreenBatchAnalyzer.analyzeBatch(urls, config);
+      } else {
+        throw new Error('URLs or sitemap URL required');
+      }
+
+      // Sauvegarder les résultats
+      await chrome.storage.local.set({
+        offscreenBatchResults: results,
+        offscreenBatchTimestamp: Date.now(),
+        lastAnalysisId: analysisId
+      });
+
+      console.log('[Offscreen Batch] Analysis complete:', results.stats);
+
+      // Notifier le popup de la complétion
+      chrome.runtime.sendMessage({
+        action: 'batchAnalysisComplete',
+        results: {
+          analysisId,
+          total: results.stats.total,
+          successful: results.stats.success,
+          failed: results.stats.errors,
+          duration: results.stats.duration
+        }
+      }).catch(() => {
+        // Popup peut être fermé
+      });
+
+    } catch (error) {
+      console.error('[Offscreen Batch] Analysis error:', error);
+
+      // Notifier le popup de l'erreur
+      chrome.runtime.sendMessage({
+        action: 'batchAnalysisError',
+        error: error.message
+      }).catch(() => {});
+
+    } finally {
+      // Désactiver CORS
+      await corsManager.disable('offscreen-batch');
+    }
+  })();
 
   return true;
 }
