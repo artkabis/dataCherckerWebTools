@@ -815,6 +815,12 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   // IMPORTANT: Ne pas utiliser async directement sur le listener
   // car cela ferme le canal prématurément. Utiliser une IIFE async à l'intérieur.
 
+  // Laisser passer les messages destinés à l'offscreen document sans les intercepter
+  if (request.action === 'analyzeUrls' && request.target === 'offscreen') {
+    // Ne pas traiter ce message ici, le laisser atteindre l'offscreen document
+    return false;
+  }
+
   (async () => {
     try {
       // Déléguer la gestion CORS au manager moderne
@@ -952,13 +958,6 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         // Messages de l'offscreen document
         case 'offscreenProgress':
           handleOffscreenProgress(request);
-          break;
-
-        case 'analyzeUrls':
-          // Router vers l'offscreen document
-          if (request.target === 'offscreen') {
-            await routeToOffscreen(request, sendResponse);
-          }
           break;
 
         case 'analyzeWithTabs':
@@ -2392,8 +2391,12 @@ async function handleStartOffscreenBatchAnalysis(request, sendResponse) {
 
     console.log('[Offscreen Batch] Analysis complete:', results.stats);
 
+    // Générer un ID d'analyse pour le tracking
+    const analysisId = `offscreen-${Date.now()}`;
+
     sendResponse({
       success: true,
+      analysisId,
       results: results.success,
       errors: results.errors,
       stats: results.stats
