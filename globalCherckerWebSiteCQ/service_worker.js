@@ -2319,6 +2319,86 @@ async function handleGetBatchResultsV5(sendResponse) {
 // ============================================================================
 
 /**
+ * Transformer les données de l'offscreen analyzer au format attendu par results.js
+ */
+function transformOffscreenDataToResultsFormat(offscreenResults) {
+  const transformedResults = {};
+
+  // Convertir le tableau d'objets en objet avec URLs comme clés
+  offscreenResults.forEach(pageAnalysis => {
+    const url = pageAnalysis.url;
+
+    // Transformer la structure pour correspondre au format attendu
+    transformedResults[url] = {
+      url_analyzed: url,
+
+      // Meta check - transformer meta en meta_check
+      meta_check: {
+        title: pageAnalysis.meta?.title || '',
+        title_length: pageAnalysis.meta?.title?.length || 0,
+        description: pageAnalysis.meta?.description || '',
+        description_length: pageAnalysis.meta?.description?.length || 0,
+        keywords: pageAnalysis.meta?.keywords || '',
+        viewport: pageAnalysis.meta?.viewport || '',
+        canonical: pageAnalysis.meta?.canonical || '',
+        ogTags: pageAnalysis.meta?.ogTags || {},
+        twitterTags: pageAnalysis.meta?.twitterTags || {},
+        issues: pageAnalysis.meta?.issues || []
+      },
+
+      // Images check - transformer images en alt_img_check
+      alt_img_check: {
+        total: pageAnalysis.images?.count || 0,
+        with_alt: (pageAnalysis.images?.count || 0) - (pageAnalysis.images?.withoutAlt || 0),
+        without_alt: pageAnalysis.images?.withoutAlt || 0,
+        with_dimensions: (pageAnalysis.images?.count || 0) - (pageAnalysis.images?.withoutDimensions || 0),
+        with_lazy_loading: pageAnalysis.images?.withLazyLoading || 0,
+        images: pageAnalysis.images?.images || []
+      },
+
+      // Links check - transformer links en link_check
+      link_check: {
+        total: pageAnalysis.links?.count || 0,
+        internal: pageAnalysis.links?.internal || 0,
+        external: pageAnalysis.links?.external || 0,
+        anchors: pageAnalysis.links?.anchors || 0,
+        with_issues: pageAnalysis.links?.withIssues || 0,
+        links: pageAnalysis.links?.links || []
+      },
+
+      // Headings - transformer headings en hn
+      hn: {
+        h1: pageAnalysis.headings?.h1 || [],
+        h2: pageAnalysis.headings?.h2 || [],
+        h3: pageAnalysis.headings?.h3 || [],
+        h4: pageAnalysis.headings?.h4 || [],
+        h5: pageAnalysis.headings?.h5 || [],
+        h6: pageAnalysis.headings?.h6 || [],
+        issues: pageAnalysis.headings?.issues || []
+      },
+
+      // Bold check - pas disponible dans offscreen, créer structure vide
+      bold_check: {
+        total: 0,
+        texts: []
+      },
+
+      // Scores - convertir le score de 0-100 en 0-5
+      cdp_global_score: pageAnalysis.score ? (pageAnalysis.score / 20).toFixed(1) : 0,
+      webdesigner_global_score: pageAnalysis.score ? (pageAnalysis.score / 20).toFixed(1) : 0,
+
+      // Données supplémentaires
+      accessibility: pageAnalysis.accessibility || {},
+      structure: pageAnalysis.structure || {},
+      seo: pageAnalysis.seo || {},
+      timestamp: pageAnalysis.timestamp || Date.now()
+    };
+  });
+
+  return transformedResults;
+}
+
+/**
  * Handler pour démarrer une analyse batch avec offscreen
  */
 async function handleStartOffscreenBatchAnalysis(request, sendResponse) {
@@ -2385,14 +2465,20 @@ async function handleStartOffscreenBatchAnalysis(request, sendResponse) {
           throw new Error('URLs or sitemap URL required');
         }
 
-        // Mapper les résultats pour compatibilité avec results.js
-        // OffscreenBatchAnalyzer retourne { success: [...], errors: [...], stats: {...} }
-        // results.js attend { results: [...], errors: [...], stats: {...} }
+        // Transformer les résultats pour compatibilité avec results.js
+        // OffscreenBatchAnalyzer retourne { success: [array], errors: [...], stats: {...} }
+        // results.js attend { results: {url: object}, errors: [...], stats: {...} }
+        console.log('[Offscreen Batch] Transforming results for results.js compatibility');
+
+        const transformedResults = transformOffscreenDataToResultsFormat(results.success);
+
         const mappedResults = {
-          results: results.success,  // Mapper success → results
+          results: transformedResults,  // Objet avec URLs comme clés
           errors: results.errors,
           stats: results.stats
         };
+
+        console.log('[Offscreen Batch] Transformed', results.success.length, 'results');
 
         // Sauvegarder les résultats dans les deux formats
         await chrome.storage.local.set({
