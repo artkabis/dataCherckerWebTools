@@ -57,18 +57,17 @@ class BatchAnalyzerV5 {
       }
 
       const xmlText = await response.text();
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
 
-      // Vérifier si c'est un sitemap index
-      const sitemapTags = xmlDoc.getElementsByTagName('sitemap');
-      if (sitemapTags.length > 0) {
-        // C'est un sitemap index, récupérer tous les sitemaps
-        const sitemapUrls = Array.from(sitemapTags).map(sitemap => {
-          const loc = sitemap.getElementsByTagName('loc')[0];
-          return loc ? loc.textContent : null;
-        }).filter(Boolean);
+      // Parser XML manuellement avec RegEx (Service Worker compatible - pas de DOMParser)
+      const urls = [];
 
+      // Détecter si c'est un sitemap index
+      const sitemapIndexPattern = /<sitemap>[\s\S]*?<loc>(.*?)<\/loc>[\s\S]*?<\/sitemap>/g;
+      const sitemapMatches = [...xmlText.matchAll(sitemapIndexPattern)];
+
+      if (sitemapMatches.length > 0) {
+        // C'est un sitemap index
+        const sitemapUrls = sitemapMatches.map(match => match[1].trim());
         console.log(`[BatchAnalyzerV5] Found ${sitemapUrls.length} sitemaps in index`);
 
         // Récupérer toutes les URLs de tous les sitemaps
@@ -81,13 +80,10 @@ class BatchAnalyzerV5 {
       }
 
       // Parser les URLs normalement
-      const urlTags = xmlDoc.getElementsByTagName('url');
-      const urls = Array.from(urlTags).map(urlTag => {
-        const loc = urlTag.getElementsByTagName('loc')[0];
-        return loc ? loc.textContent : null;
-      }).filter(Boolean);
+      const urlPattern = /<url>[\s\S]*?<loc>(.*?)<\/loc>[\s\S]*?<\/url>/g;
+      const urlMatches = [...xmlText.matchAll(urlPattern)];
 
-      return urls;
+      return urlMatches.map(match => match[1].trim());
 
     } catch (error) {
       console.error('[BatchAnalyzerV5] Sitemap parsing error:', error);

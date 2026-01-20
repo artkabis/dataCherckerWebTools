@@ -372,39 +372,35 @@ export class OffscreenBatchAnalyzer {
     }
 
     /**
-     * Fetch et parse un sitemap
+     * Fetch et parse un sitemap (sans DOMParser - Service Worker compatible)
      */
     async #fetchSitemapUrls(sitemapUrl) {
         const response = await fetch(sitemapUrl);
         const xmlText = await response.text();
 
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-
         const urls = [];
 
-        // Vérifier si c'est un sitemap index
-        const sitemapTags = xmlDoc.getElementsByTagName('sitemap');
-        if (sitemapTags.length > 0) {
+        // Parser XML manuellement avec RegEx (Service Worker compatible)
+        // Détecter si c'est un sitemap index
+        const sitemapIndexPattern = /<sitemap>[\s\S]*?<loc>(.*?)<\/loc>[\s\S]*?<\/sitemap>/g;
+        const sitemapMatches = [...xmlText.matchAll(sitemapIndexPattern)];
+
+        if (sitemapMatches.length > 0) {
             console.log('[OffscreenBatchAnalyzer] Sitemap index detected, fetching sub-sitemaps');
 
             // Récupérer tous les sitemaps
-            for (const sitemapTag of sitemapTags) {
-                const locTag = sitemapTag.getElementsByTagName('loc')[0];
-                if (locTag) {
-                    const subSitemapUrl = locTag.textContent;
-                    const subUrls = await this.#fetchSitemapUrls(subSitemapUrl);
-                    urls.push(...subUrls);
-                }
+            for (const match of sitemapMatches) {
+                const subSitemapUrl = match[1];
+                const subUrls = await this.#fetchSitemapUrls(subSitemapUrl);
+                urls.push(...subUrls);
             }
         } else {
-            // Sitemap normal
-            const urlTags = xmlDoc.getElementsByTagName('url');
-            for (const urlTag of urlTags) {
-                const locTag = urlTag.getElementsByTagName('loc')[0];
-                if (locTag) {
-                    urls.push(locTag.textContent);
-                }
+            // Sitemap normal - extraire les URLs
+            const urlPattern = /<url>[\s\S]*?<loc>(.*?)<\/loc>[\s\S]*?<\/url>/g;
+            const urlMatches = [...xmlText.matchAll(urlPattern)];
+
+            for (const match of urlMatches) {
+                urls.push(match[1].trim());
             }
         }
 
