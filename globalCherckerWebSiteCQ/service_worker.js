@@ -2374,9 +2374,19 @@ async function handleStartOffscreenBatchAnalysis(request, sendResponse) {
       throw new Error('URLs or sitemap URL required');
     }
 
-    // Sauvegarder les résultats
+    // Mapper les résultats pour compatibilité avec results.js
+    // OffscreenBatchAnalyzer retourne { success: [...], errors: [...], stats: {...} }
+    // results.js attend { results: [...], errors: [...], stats: {...} }
+    const mappedResults = {
+      results: results.success,  // Mapper success → results
+      errors: results.errors,
+      stats: results.stats
+    };
+
+    // Sauvegarder les résultats dans les deux formats
     await chrome.storage.local.set({
-      offscreenBatchResults: results,
+      sitemapAnalysis: mappedResults,        // Format attendu par results.js
+      offscreenBatchResults: results,        // Format natif pour référence
       offscreenBatchTimestamp: Date.now()
     });
 
