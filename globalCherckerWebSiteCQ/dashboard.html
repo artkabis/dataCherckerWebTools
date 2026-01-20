@@ -4,387 +4,29 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard - Health Checker Website v5.0</title>
-  <!-- Manifest V3: Tous les scripts et styles doivent être locaux -->
   <link rel="stylesheet" href="libs/bootstrap.min.css">
   <link rel="stylesheet" href="libs/font-awesome.min.css">
-  <style>
-    :root {
-      --primary-color: #667eea;
-      --secondary-color: #764ba2;
-      --success-color: #28a745;
-      --warning-color: #ffc107;
-      --danger-color: #dc3545;
-      --info-color: #17a2b8;
-      --dark-color: #2d3748;
-      --light-color: #f7fafc;
-    }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      padding: 20px;
-    }
-
-    .dashboard-container {
-      max-width: 1400px;
-      margin: 0 auto;
-    }
-
-    .dashboard-header {
-      background: white;
-      border-radius: 15px;
-      padding: 30px;
-      margin-bottom: 20px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-    }
-
-    .dashboard-header h1 {
-      color: var(--dark-color);
-      font-size: 2.5rem;
-      font-weight: 700;
-      margin-bottom: 10px;
-    }
-
-    .dashboard-header .subtitle {
-      color: #718096;
-      font-size: 1.1rem;
-    }
-
-    .config-bar {
-      background: white;
-      border-radius: 15px;
-      padding: 20px;
-      margin-bottom: 20px;
-      box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-      display: flex;
-      gap: 20px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-
-    .config-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .config-item label {
-      font-weight: 600;
-      color: var(--dark-color);
-    }
-
-    .config-item select {
-      padding: 8px 15px;
-      border: 2px solid #e2e8f0;
-      border-radius: 8px;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-
-    .config-item select:focus {
-      outline: none;
-      border-color: var(--primary-color);
-    }
-
-    .config-item button {
-      padding: 8px 20px;
-      background: var(--primary-color);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: all 0.3s;
-    }
-
-    .config-item button:hover {
-      background: var(--secondary-color);
-      transform: translateY(-2px);
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 20px;
-      margin-bottom: 20px;
-    }
-
-    .stat-card {
-      background: white;
-      border-radius: 15px;
-      padding: 25px;
-      box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-      position: relative;
-      overflow: hidden;
-      transition: transform 0.3s;
-    }
-
-    .stat-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-    }
-
-    .stat-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 4px;
-      background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-    }
-
-    .stat-icon {
-      width: 60px;
-      height: 60px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      margin-bottom: 15px;
-    }
-
-    .stat-value {
-      font-size: 2.5rem;
-      font-weight: 700;
-      color: var(--dark-color);
-      margin-bottom: 5px;
-    }
-
-    .stat-label {
-      color: #718096;
-      font-size: 0.95rem;
-      font-weight: 500;
-    }
-
-    .chart-container {
-      background: white;
-      border-radius: 15px;
-      padding: 25px;
-      margin-bottom: 20px;
-      box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-    }
-
-    .chart-header {
-      margin-bottom: 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .chart-title {
-      font-size: 1.3rem;
-      font-weight: 700;
-      color: var(--dark-color);
-    }
-
-    .chart-canvas {
-      max-height: 300px;
-    }
-
-    .analysis-list {
-      background: white;
-      border-radius: 15px;
-      padding: 25px;
-      box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-    }
-
-    .analysis-item {
-      padding: 20px;
-      border-left: 4px solid var(--primary-color);
-      background: #f7fafc;
-      border-radius: 8px;
-      margin-bottom: 15px;
-      transition: all 0.3s;
-    }
-
-    .analysis-item:hover {
-      background: #edf2f7;
-      transform: translateX(5px);
-    }
-
-    .analysis-item.excellent {
-      border-left-color: var(--success-color);
-    }
-
-    .analysis-item.good {
-      border-left-color: var(--info-color);
-    }
-
-    .analysis-item.warning {
-      border-left-color: var(--warning-color);
-    }
-
-    .analysis-item.error {
-      border-left-color: var(--danger-color);
-    }
-
-    .score-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: white;
-    }
-
-    .score-badge.excellent {
-      background: var(--success-color);
-    }
-
-    .score-badge.good {
-      background: var(--info-color);
-    }
-
-    .score-badge.warning {
-      background: var(--warning-color);
-    }
-
-    .score-badge.error {
-      background: var(--danger-color);
-    }
-
-    .progress-bar-custom {
-      height: 8px;
-      background: #e2e8f0;
-      border-radius: 10px;
-      overflow: hidden;
-      margin-top: 10px;
-    }
-
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-      transition: width 0.5s ease;
-    }
-
-    .export-buttons {
-      display: flex;
-      gap: 10px;
-      margin-top: 20px;
-    }
-
-    .export-btn {
-      padding: 10px 20px;
-      border: 2px solid var(--primary-color);
-      background: white;
-      color: var(--primary-color);
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: all 0.3s;
-    }
-
-    .export-btn:hover {
-      background: var(--primary-color);
-      color: white;
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: #718096;
-    }
-
-    .empty-state i {
-      font-size: 4rem;
-      margin-bottom: 20px;
-      opacity: 0.3;
-    }
-
-    .loading {
-      display: none;
-      text-align: center;
-      padding: 40px;
-    }
-
-    .loading.active {
-      display: block;
-    }
-
-    .spinner {
-      border: 4px solid #f3f3f3;
-      border-top: 4px solid var(--primary-color);
-      border-radius: 50%;
-      width: 50px;
-      height: 50px;
-      animation: spin 1s linear infinite;
-      margin: 0 auto;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .tabs {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-      border-bottom: 2px solid #e2e8f0;
-    }
-
-    .tab {
-      padding: 12px 24px;
-      background: transparent;
-      border: none;
-      border-bottom: 3px solid transparent;
-      cursor: pointer;
-      font-weight: 600;
-      color: #718096;
-      transition: all 0.3s;
-    }
-
-    .tab.active {
-      color: var(--primary-color);
-      border-bottom-color: var(--primary-color);
-    }
-
-    .tab-content {
-      display: none;
-    }
-
-    .tab-content.active {
-      display: block;
-    }
-
-    .comparison-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 20px;
-    }
-
-    @media (max-width: 768px) {
-      .stats-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .config-bar {
-        flex-direction: column;
-        align-items: stretch;
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="dashboard/dashboard-v2.css">
 </head>
 <body>
   <div class="dashboard-container">
     <!-- Header -->
-    <div class="dashboard-header">
-      <h1><i class="fas fa-chart-line"></i> Dashboard Professionnel</h1>
-      <p class="subtitle">Analyse complète et insights détaillés de vos pages web</p>
-    </div>
+    <header class="dashboard-header">
+      <div class="header-content">
+        <div class="header-left">
+          <h1><i class="fas fa-chart-line"></i> Health Checker v5.0</h1>
+          <p class="subtitle">Analyse complète et professionnelle de vos pages web</p>
+        </div>
+        <div class="header-right">
+          <button class="btn-action" id="new-analysis-btn">
+            <i class="fas fa-plus"></i> Nouvelle analyse
+          </button>
+          <button class="btn-action btn-secondary" id="export-report-btn">
+            <i class="fas fa-download"></i> Exporter
+          </button>
+        </div>
+      </div>
+    </header>
 
     <!-- Configuration Bar -->
     <div class="config-bar">
@@ -411,102 +53,439 @@
         </select>
       </div>
 
-      <div class="config-item">
-        <button id="settings-btn"><i class="fas fa-sliders-h"></i> Paramètres avancés</button>
-      </div>
-
-      <div class="config-item" style="margin-left: auto;">
-        <button id="new-analysis-btn"><i class="fas fa-plus"></i> Nouvelle analyse</button>
+      <div class="config-item url-display">
+        <i class="fas fa-link"></i>
+        <span id="current-url">Aucune page analysée</span>
       </div>
     </div>
 
-    <!-- Tabs -->
-    <div class="tabs">
-      <button class="tab active" data-tab="overview"><i class="fas fa-home"></i> Vue d'ensemble</button>
-      <button class="tab" data-tab="history"><i class="fas fa-history"></i> Historique</button>
-      <button class="tab" data-tab="comparison"><i class="fas fa-balance-scale"></i> Comparaison</button>
-      <button class="tab" data-tab="settings"><i class="fas fa-cog"></i> Configuration</button>
-    </div>
+    <!-- Navigation Tabs -->
+    <nav class="tabs">
+      <button class="tab active" data-tab="overview">
+        <i class="fas fa-home"></i>
+        <span>Vue d'ensemble</span>
+      </button>
+      <button class="tab" data-tab="seo">
+        <i class="fas fa-search"></i>
+        <span>SEO</span>
+      </button>
+      <button class="tab" data-tab="images">
+        <i class="fas fa-image"></i>
+        <span>Images</span>
+      </button>
+      <button class="tab" data-tab="accessibility">
+        <i class="fas fa-universal-access"></i>
+        <span>Accessibilité</span>
+      </button>
+      <button class="tab" data-tab="performance">
+        <i class="fas fa-tachometer-alt"></i>
+        <span>Performance</span>
+      </button>
+      <button class="tab" data-tab="settings">
+        <i class="fas fa-cog"></i>
+        <span>Paramètres</span>
+      </button>
+    </nav>
 
-    <!-- Tab: Overview -->
+    <!-- Tab Content: Overview -->
     <div class="tab-content active" id="tab-overview">
-      <!-- Stats Grid -->
-      <div class="stats-grid" id="stats-grid">
-        <!-- Sera rempli dynamiquement -->
+      <!-- Global Score Hero -->
+      <div class="hero-score">
+        <div class="score-display">
+          <div class="circular-gauge" id="global-gauge"></div>
+          <div class="score-info">
+            <div class="score-value" id="global-score-value">-</div>
+            <div class="score-label">Score Global</div>
+            <div class="score-level" id="global-level">-</div>
+          </div>
+        </div>
+        <div class="quick-stats">
+          <div class="quick-stat">
+            <i class="fas fa-calendar-alt"></i>
+            <div>
+              <div class="stat-value" id="analysis-date">-</div>
+              <div class="stat-label">Date d'analyse</div>
+            </div>
+          </div>
+          <div class="quick-stat">
+            <i class="fas fa-clock"></i>
+            <div>
+              <div class="stat-value" id="analysis-duration">-</div>
+              <div class="stat-label">Durée</div>
+            </div>
+          </div>
+          <div class="quick-stat">
+            <i class="fas fa-check-circle"></i>
+            <div>
+              <div class="stat-value" id="tests-passed">-</div>
+              <div class="stat-label">Tests réussis</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category Scores -->
+      <div class="section">
+        <h2 class="section-title"><i class="fas fa-chart-pie"></i> Scores par catégorie</h2>
+        <div class="stats-grid" id="category-scores-grid">
+          <!-- Rempli dynamiquement -->
+        </div>
+      </div>
+
+      <!-- Radar Chart -->
+      <div class="section">
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-spider"></i> Vue 360°</h3>
+          </div>
+          <div class="card-body">
+            <canvas id="radar-chart" height="300"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Critical Issues -->
+      <div class="section">
+        <h2 class="section-title"><i class="fas fa-exclamation-triangle"></i> Problèmes critiques</h2>
+        <div id="critical-issues-list">
+          <!-- Rempli dynamiquement -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Content: SEO -->
+    <div class="tab-content" id="tab-seo">
+      <!-- Meta Tags -->
+      <div class="section">
+        <h2 class="section-title"><i class="fas fa-tags"></i> Meta Tags</h2>
+
+        <!-- Meta Score Card -->
+        <div class="card">
+          <div class="card-header">
+            <h3>Score SEO Meta</h3>
+            <div class="score-badge" id="meta-score-badge">-</div>
+          </div>
+          <div class="card-body">
+            <div class="meta-preview" id="meta-preview">
+              <!-- Google preview -->
+            </div>
+            <div class="meta-details" id="meta-details">
+              <!-- Détails des balises -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Open Graph & Twitter Cards -->
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fab fa-facebook"></i> Open Graph</h3>
+            </div>
+            <div class="card-body" id="og-tags">
+              <!-- Open Graph tags -->
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fab fa-twitter"></i> Twitter Card</h3>
+            </div>
+            <div class="card-body" id="twitter-tags">
+              <!-- Twitter Card tags -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Headings Structure -->
+      <div class="section">
+        <h2 class="section-title"><i class="fas fa-heading"></i> Structure des titres</h2>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <h3>Distribution des titres</h3>
+            </div>
+            <div class="card-body">
+              <canvas id="headings-chart"></canvas>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3>Hiérarchie</h3>
+            </div>
+            <div class="card-body" id="headings-tree">
+              <!-- Tree view -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Links Analysis -->
+      <div class="section">
+        <h2 class="section-title"><i class="fas fa-link"></i> Analyse des liens</h2>
+        <div class="stats-grid-4" id="links-stats">
+          <!-- Stats des liens -->
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <h3>Répartition des liens</h3>
+            </div>
+            <div class="card-body">
+              <canvas id="links-chart"></canvas>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3>Liens cassés & problèmes</h3>
+            </div>
+            <div class="card-body" id="links-issues">
+              <!-- Liste des problèmes -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Content: Images -->
+    <div class="tab-content" id="tab-images">
+      <!-- Image Stats -->
+      <div class="section">
+        <h2 class="section-title"><i class="fas fa-image"></i> Statistiques des images</h2>
+        <div class="stats-grid" id="images-stats">
+          <!-- Stats images -->
+        </div>
       </div>
 
       <!-- Charts -->
-      <div class="chart-container">
-        <div class="chart-header">
-          <h3 class="chart-title"><i class="fas fa-chart-bar"></i> Scores par catégorie</h3>
+      <div class="section">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <h3>Formats d'images</h3>
+            </div>
+            <div class="card-body">
+              <canvas id="images-format-chart"></canvas>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3>Optimisation</h3>
+            </div>
+            <div class="card-body">
+              <canvas id="images-optimization-chart"></canvas>
+            </div>
+          </div>
         </div>
-        <canvas id="category-chart" class="chart-canvas"></canvas>
       </div>
 
-      <!-- Recent Analyses -->
-      <div class="analysis-list">
-        <div class="chart-header">
-          <h3 class="chart-title"><i class="fas fa-list"></i> Analyses récentes</h3>
-        </div>
-        <div id="recent-analyses">
-          <div class="empty-state">
-            <i class="fas fa-inbox"></i>
-            <h3>Aucune analyse</h3>
-            <p>Lancez une nouvelle analyse pour voir les résultats ici</p>
-          </div>
+      <!-- Issues List -->
+      <div class="section">
+        <h2 class="section-title"><i class="fas fa-exclamation-circle"></i> Problèmes détectés</h2>
+        <div id="images-issues-list">
+          <!-- Liste des problèmes images -->
         </div>
       </div>
     </div>
 
-    <!-- Tab: History -->
-    <div class="tab-content" id="tab-history">
-      <div class="chart-container">
-        <div class="chart-header">
-          <h3 class="chart-title"><i class="fas fa-chart-line"></i> Évolution des scores</h3>
-          <div class="export-buttons">
-            <button class="export-btn" id="export-csv"><i class="fas fa-file-csv"></i> CSV</button>
-            <button class="export-btn" id="export-json"><i class="fas fa-file-code"></i> JSON</button>
+    <!-- Tab Content: Accessibility -->
+    <div class="tab-content" id="tab-accessibility">
+      <!-- WCAG Level -->
+      <div class="section">
+        <div class="wcag-banner">
+          <div class="wcag-badge" id="wcag-badge">
+            <div class="badge-level">AA</div>
+            <div class="badge-label">WCAG 2.1</div>
           </div>
-        </div>
-        <canvas id="history-chart" class="chart-canvas"></canvas>
-      </div>
-      <div class="analysis-list" id="history-list">
-        <!-- Sera rempli dynamiquement -->
-      </div>
-    </div>
-
-    <!-- Tab: Comparison -->
-    <div class="tab-content" id="tab-comparison">
-      <div class="chart-container">
-        <div class="chart-header">
-          <h3 class="chart-title"><i class="fas fa-balance-scale"></i> Comparaison de pages</h3>
-        </div>
-        <div class="comparison-grid" id="comparison-grid">
-          <div class="empty-state">
-            <i class="fas fa-balance-scale"></i>
-            <h3>Comparaison indisponible</h3>
-            <p>Analysez au moins 2 pages pour les comparer</p>
+          <div class="wcag-stats">
+            <div class="wcag-stat">
+              <div class="stat-value" id="wcag-compliance">-</div>
+              <div class="stat-label">Conformité</div>
+            </div>
+            <div class="wcag-stat">
+              <div class="stat-value" id="a11y-score">-</div>
+              <div class="stat-label">Score global</div>
+            </div>
           </div>
         </div>
       </div>
+
+      <!-- Contrast Analysis -->
+      <div class="section">
+        <h2 class="section-title"><i class="fas fa-adjust"></i> Analyse du contraste</h2>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <h3>WCAG AA</h3>
+            </div>
+            <div class="card-body">
+              <div class="circular-gauge" id="contrast-aa-gauge"></div>
+              <div id="contrast-aa-details"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3>WCAG AAA</h3>
+            </div>
+            <div class="card-body">
+              <div class="circular-gauge" id="contrast-aaa-gauge"></div>
+              <div id="contrast-aaa-details"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ARIA & Semantics -->
+      <div class="section">
+        <h2 class="section-title"><i class="fas fa-code"></i> ARIA et Sémantique</h2>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <h3>Attributs ARIA</h3>
+            </div>
+            <div class="card-body" id="aria-details">
+              <!-- ARIA stats -->
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3>HTML Sémantique</h3>
+            </div>
+            <div class="card-body" id="semantics-details">
+              <!-- Semantics -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Issues List -->
+      <div class="section">
+        <h2 class="section-title"><i class="fas fa-list-ul"></i> Problèmes d'accessibilité</h2>
+        <div id="a11y-issues-list">
+          <!-- Liste des problèmes -->
+        </div>
+      </div>
     </div>
 
-    <!-- Tab: Settings -->
+    <!-- Tab Content: Performance -->
+    <div class="tab-content" id="tab-performance">
+      <!-- Lighthouse Scores -->
+      <div class="section">
+        <h2 class="section-title"><i class="fas fa-lighthouse"></i> Scores Lighthouse</h2>
+        <div class="lighthouse-grid">
+          <div class="lighthouse-gauge">
+            <div class="circular-gauge" id="lighthouse-perf-gauge"></div>
+            <div class="gauge-label">Performance</div>
+          </div>
+          <div class="lighthouse-gauge">
+            <div class="circular-gauge" id="lighthouse-a11y-gauge"></div>
+            <div class="gauge-label">Accessibilité</div>
+          </div>
+          <div class="lighthouse-gauge">
+            <div class="circular-gauge" id="lighthouse-bp-gauge"></div>
+            <div class="gauge-label">Best Practices</div>
+          </div>
+          <div class="lighthouse-gauge">
+            <div class="circular-gauge" id="lighthouse-seo-gauge"></div>
+            <div class="gauge-label">SEO</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Core Web Vitals -->
+      <div class="section">
+        <h2 class="section-title"><i class="fas fa-heartbeat"></i> Core Web Vitals</h2>
+        <div class="stats-grid-3">
+          <div class="vital-card" id="lcp-card">
+            <div class="vital-icon"><i class="fas fa-hourglass-half"></i></div>
+            <div class="vital-value" id="lcp-value">-</div>
+            <div class="vital-label">LCP</div>
+            <div class="vital-description">Largest Contentful Paint</div>
+          </div>
+          <div class="vital-card" id="fid-card">
+            <div class="vital-icon"><i class="fas fa-mouse-pointer"></i></div>
+            <div class="vital-value" id="fid-value">-</div>
+            <div class="vital-label">FID</div>
+            <div class="vital-description">First Input Delay</div>
+          </div>
+          <div class="vital-card" id="cls-card">
+            <div class="vital-icon"><i class="fas fa-compress-arrows-alt"></i></div>
+            <div class="vital-value" id="cls-value">-</div>
+            <div class="vital-label">CLS</div>
+            <div class="vital-description">Cumulative Layout Shift</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resources Breakdown -->
+      <div class="section">
+        <h2 class="section-title"><i class="fas fa-folder-open"></i> Ressources</h2>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <h3>Répartition des ressources</h3>
+            </div>
+            <div class="card-body">
+              <canvas id="resources-chart"></canvas>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3>Statistiques</h3>
+            </div>
+            <div class="card-body" id="resources-stats">
+              <!-- Stats ressources -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recommendations -->
+      <div class="section">
+        <h2 class="section-title"><i class="fas fa-lightbulb"></i> Recommandations</h2>
+        <div id="perf-recommendations">
+          <!-- Liste des recommandations -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Content: Settings -->
     <div class="tab-content" id="tab-settings">
-      <div class="chart-container">
-        <div class="chart-header">
-          <h3 class="chart-title"><i class="fas fa-cog"></i> Gestion des configurations</h3>
+      <div class="section">
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-cog"></i> Gestion des configurations</h3>
+          </div>
+          <div class="card-body" id="settings-manager">
+            <!-- Configuration settings -->
+          </div>
         </div>
-        <div id="settings-manager">
-          <!-- Sera rempli par settings-manager.js -->
+      </div>
+
+      <!-- History -->
+      <div class="section">
+        <h2 class="section-title"><i class="fas fa-history"></i> Historique des analyses</h2>
+        <div class="card">
+          <div class="card-header">
+            <h3>Dernières analyses</h3>
+            <div class="export-buttons">
+              <button class="btn-small" id="export-csv"><i class="fas fa-file-csv"></i> CSV</button>
+              <button class="btn-small" id="export-json"><i class="fas fa-file-code"></i> JSON</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <canvas id="history-chart"></canvas>
+            <div id="history-list" class="history-list">
+              <!-- Liste historique -->
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Loading -->
-    <div class="loading" id="loading">
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading">
       <div class="spinner"></div>
-      <p>Chargement...</p>
+      <p>Chargement des données...</p>
     </div>
   </div>
 
@@ -521,9 +500,12 @@
   <script src="api/endpoints/MetaAnalyzerEndpoint.js"></script>
   <script src="api/endpoints/ImageAnalyzerEndpoint.js"></script>
   <script src="api/endpoints/HeadingAnalyzerEndpoint.js"></script>
+  <script src="api/endpoints/LinkAnalyzerEndpoint.js"></script>
+  <script src="api/endpoints/AccessibilityAnalyzerEndpoint.js"></script>
+  <script src="api/endpoints/PerformanceAnalyzerEndpoint.js"></script>
   <script src="api/core/AnalysisOrchestrator.js"></script>
 
   <!-- Dashboard -->
-  <script src="dashboard/dashboard.js"></script>
+  <script src="dashboard/dashboard-v2.js"></script>
 </body>
 </html>
