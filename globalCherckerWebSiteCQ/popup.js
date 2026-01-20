@@ -1188,8 +1188,16 @@ function setupV5Analysis() {
 
     // Nouveau: progression offscreen batch
     if (message.action === 'offscreenBatchProgress') {
+      console.log('[Popup] Received offscreenBatchProgress:', message.progress);
+
       const progressBar = document.getElementById('batchProgressBar');
       const progressText = document.getElementById('batchProgressText');
+
+      console.log('[Popup] Progress elements:', {
+        progressBar: !!progressBar,
+        progressText: !!progressText,
+        progress: message.progress
+      });
 
       if (progressBar && progressText && message.progress) {
         const percentage = Math.round((message.progress.processed / message.progress.total) * 100);
@@ -1199,10 +1207,16 @@ function setupV5Analysis() {
         if (message.progress.errors > 0) {
           progressText.textContent += ` - ${message.progress.errors} erreurs`;
         }
+
+        console.log('[Popup] Progress updated:', percentage + '%');
+      } else {
+        console.warn('[Popup] Cannot update progress - elements not found');
       }
     }
 
     if (message.action === 'batchAnalysisComplete') {
+      console.log('[Popup] Received batchAnalysisComplete:', message.results);
+
       const analyserV5Btn = document.getElementById('analyserV5Btn');
       const v5BatchStatus = document.getElementById('v5BatchStatus');
 
@@ -1219,7 +1233,6 @@ function setupV5Analysis() {
           Total: ${message.results.total} pages<br>
           Réussis: ${message.results.successful}<br>
           Échecs: ${message.results.failed}<br>
-          Score moyen: ${message.results.summary.avgScore}/5<br>
           <button id="viewResultsBtn" style="margin-top: 10px; padding: 5px 10px; cursor: pointer;">
             📊 Voir les résultats
           </button>
