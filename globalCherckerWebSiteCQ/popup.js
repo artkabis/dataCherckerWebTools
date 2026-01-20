@@ -1202,6 +1202,66 @@ function setupV5Analysis() {
       }
     }
 
+    // Gestion de la fin d'analyse offscreen batch
+    if (message.action === 'offscreenBatchComplete') {
+      const analyserV5Btn = document.getElementById('analyserV5Btn');
+      const v5BatchStatus = document.getElementById('v5BatchStatus');
+      const progressBar = document.getElementById('batchProgressBar');
+      const progressText = document.getElementById('batchProgressText');
+
+      // Mettre à jour la barre de progression à 100%
+      if (progressBar && progressText) {
+        progressBar.style.width = '100%';
+        progressText.textContent = '100% - Terminé !';
+      }
+
+      if (analyserV5Btn) {
+        analyserV5Btn.disabled = false;
+        analyserV5Btn.innerHTML = '<span class="icon">🚀</span> Analyser avec v5.0';
+      }
+
+      if (v5BatchStatus && message.stats) {
+        v5BatchStatus.style.background = '#d4edda';
+        v5BatchStatus.style.color = '#155724';
+        v5BatchStatus.innerHTML = `
+          <strong>✅ Analyse terminée !</strong><br>
+          Succès: ${message.stats.success} pages<br>
+          Erreurs: ${message.stats.errors}<br>
+          ${message.stats.averageScore ? `Score moyen: ${message.stats.averageScore}/100<br>` : ''}
+          <button id="viewOffscreenResultsBtn" style="margin-top: 10px; padding: 5px 10px; cursor: pointer; background: #667eea; color: white; border: none; border-radius: 5px;">
+            📊 Voir les résultats
+          </button>
+        `;
+
+        // Handler pour voir les résultats
+        const viewBtn = document.getElementById('viewOffscreenResultsBtn');
+        if (viewBtn) {
+          viewBtn.addEventListener('click', () => {
+            chrome.tabs.create({
+              url: chrome.runtime.getURL('results.html')
+            });
+          });
+        }
+      }
+    }
+
+    // Gestion des erreurs d'analyse offscreen
+    if (message.action === 'offscreenBatchError') {
+      const analyserV5Btn = document.getElementById('analyserV5Btn');
+      const v5BatchStatus = document.getElementById('v5BatchStatus');
+
+      if (analyserV5Btn) {
+        analyserV5Btn.disabled = false;
+        analyserV5Btn.innerHTML = '<span class="icon">🚀</span> Analyser avec v5.0';
+      }
+
+      if (v5BatchStatus) {
+        v5BatchStatus.style.background = '#f8d7da';
+        v5BatchStatus.style.color = '#721c24';
+        v5BatchStatus.innerHTML = `<strong>❌ Erreur:</strong> ${message.error}`;
+      }
+    }
+
     if (message.action === 'batchAnalysisComplete') {
       const analyserV5Btn = document.getElementById('analyserV5Btn');
       const v5BatchStatus = document.getElementById('v5BatchStatus');
