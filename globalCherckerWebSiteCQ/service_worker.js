@@ -2334,18 +2334,79 @@ function transformOffscreenDataToResultsFormat(offscreenResults) {
     const linksScore = calculateLinksScore(pageAnalysis.links);
     const headingsScore = calculateHeadingsScore(pageAnalysis.headings);
 
-    // Transformer les liens en ajoutant link_score à chaque lien
-    const transformedLinks = (pageAnalysis.links?.links || []).map(link => ({
-      ...link,
-      link_score: link.issues && link.issues.length > 0 ? 3 : 5 // Score basé sur les issues
+    // Créer le tableau meta avec le format attendu par results.js
+    const metaArray = [];
+    if (pageAnalysis.meta?.title) {
+      metaArray.push({
+        meta_type: 'title',
+        meta_txt: pageAnalysis.meta.title,
+        meta_size: pageAnalysis.meta.title.length,
+        meta_score: calculateSingleMetaScore('title', pageAnalysis.meta.title.length),
+        isDuplicate: false
+      });
+    }
+    if (pageAnalysis.meta?.description) {
+      metaArray.push({
+        meta_type: 'description',
+        meta_txt: pageAnalysis.meta.description,
+        meta_size: pageAnalysis.meta.description.length,
+        meta_score: calculateSingleMetaScore('description', pageAnalysis.meta.description.length),
+        isDuplicate: false
+      });
+    }
+    if (pageAnalysis.meta?.keywords) {
+      metaArray.push({
+        meta_type: 'keywords',
+        meta_txt: pageAnalysis.meta.keywords,
+        meta_size: pageAnalysis.meta.keywords.length,
+        meta_score: 5,
+        isDuplicate: false
+      });
+    }
+
+    // Créer le tableau d'images avec le format attendu
+    const altImgArray = (pageAnalysis.images?.images || []).map(img => ({
+      alt_img_src: img.src,
+      alt_img_state: img.hasAlt,
+      alt_img_score: img.hasAlt ? 5 : 0
     }));
+
+    // Créer le tableau de liens avec le format attendu
+    const transformedLinks = (pageAnalysis.links?.links || []).map(link => ({
+      link_url: link.href,
+      link_text: link.text,
+      link_status: 'OK',  // Statut non vérifié dans offscreen
+      link_type: {
+        isExternalLink: link.type === 'external',
+        isMenuLink: false,
+        isContentLink: link.type === 'internal',
+        isFooterLink: false,
+        isImageLink: false,
+        isCTA: false
+      },
+      link_score: link.issues && link.issues.length > 0 ? 3 : 5
+    }));
+
+    // Créer le tableau des headings pour hn_reco
+    const allHeadings = [];
+    ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].forEach(tag => {
+      (pageAnalysis.headings?.[tag] || []).forEach(heading => {
+        allHeadings.push({
+          hn_type: tag.toUpperCase(),
+          hn_text: heading.text,
+          hn_length: heading.length,
+          hn_score: heading.length >= 30 && heading.length <= 70 ? 5 : 3
+        });
+      });
+    });
 
     // Transformer la structure pour correspondre au format attendu
     transformedResults[url] = {
       url_analyzed: url,
 
-      // Meta check - transformer meta en meta_check
+      // Meta check - avec tableau meta pour l'affichage
       meta_check: {
+        meta: metaArray,  // IMPORTANT: tableau pour l'affichage
         title: pageAnalysis.meta?.title || '',
         title_length: pageAnalysis.meta?.title?.length || 0,
         description: pageAnalysis.meta?.description || '',
@@ -2359,8 +2420,9 @@ function transformOffscreenDataToResultsFormat(offscreenResults) {
         global_score: metaScore
       },
 
-      // Images check - transformer images en alt_img_check
+      // Images check - avec tableau alt_img pour l'affichage
       alt_img_check: {
+        alt_img: altImgArray,  // IMPORTANT: tableau pour l'affichage
         total: pageAnalysis.images?.count || 0,
         with_alt: (pageAnalysis.images?.count || 0) - (pageAnalysis.images?.withoutAlt || 0),
         without_alt: pageAnalysis.images?.withoutAlt || 0,
@@ -2370,19 +2432,25 @@ function transformOffscreenDataToResultsFormat(offscreenResults) {
         global_score: imagesScore
       },
 
-      // Links check - transformer links en link_check (ATTENTION: "link" au singulier!)
+      // Links check - avec tableau link pour l'affichage
       link_check: {
+        link: transformedLinks,  // IMPORTANT: "link" au singulier avec propriétés complètes
         total: pageAnalysis.links?.count || 0,
         internal: pageAnalysis.links?.internal || 0,
         external: pageAnalysis.links?.external || 0,
         anchors: pageAnalysis.links?.anchors || 0,
         with_issues: pageAnalysis.links?.withIssues || 0,
-        link: transformedLinks,  // IMPORTANT: "link" au singulier avec link_score
         global_score: linksScore
       },
 
-      // Headings - transformer headings en hn
+      // Headings - avec hn_reco pour l'affichage
       hn: {
+        hn_reco: {
+          hn: allHeadings,  // IMPORTANT: tableau pour l'affichage de la longueur
+          hn_preco: pageAnalysis.headings?.issues?.length > 0
+            ? pageAnalysis.headings.issues.join(', ')
+            : 'Structure de titres correcte'
+        },
         h1: pageAnalysis.headings?.h1 || [],
         h2: pageAnalysis.headings?.h2 || [],
         h3: pageAnalysis.headings?.h3 || [],
@@ -2417,6 +2485,29 @@ function transformOffscreenDataToResultsFormat(offscreenResults) {
   });
 
   return transformedResults;
+}
+
+/**
+ * Calculer le score d'une meta individuelle basé sur sa longueur
+ */
+function calculateSingleMetaScore(type, length) {
+  if (type === 'title') {
+    if (length >= 30 && length <= 60) return 5;
+    if (length >= 20 && length < 30) return 4;
+    if (length > 60 && length <= 70) return 4;
+    if (length >= 10 && length < 20) return 3;
+    if (length > 70 && length <= 80) return 3;
+    return 2;
+  }
+  if (type === 'description') {
+    if (length >= 120 && length <= 160) return 5;
+    if (length >= 100 && length < 120) return 4;
+    if (length > 160 && length <= 180) return 4;
+    if (length >= 80 && length < 100) return 3;
+    if (length > 180 && length <= 200) return 3;
+    return 2;
+  }
+  return 5;
 }
 
 /**
