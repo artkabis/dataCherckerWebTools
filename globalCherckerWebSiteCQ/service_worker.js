@@ -2328,6 +2328,18 @@ function transformOffscreenDataToResultsFormat(offscreenResults) {
   offscreenResults.forEach(pageAnalysis => {
     const url = pageAnalysis.url;
 
+    // Calculer les scores pour chaque section (0-5)
+    const metaScore = calculateMetaScore(pageAnalysis.meta);
+    const imagesScore = calculateImagesScore(pageAnalysis.images);
+    const linksScore = calculateLinksScore(pageAnalysis.links);
+    const headingsScore = calculateHeadingsScore(pageAnalysis.headings);
+
+    // Transformer les liens en ajoutant link_score à chaque lien
+    const transformedLinks = (pageAnalysis.links?.links || []).map(link => ({
+      ...link,
+      link_score: link.issues && link.issues.length > 0 ? 3 : 5 // Score basé sur les issues
+    }));
+
     // Transformer la structure pour correspondre au format attendu
     transformedResults[url] = {
       url_analyzed: url,
@@ -2343,7 +2355,8 @@ function transformOffscreenDataToResultsFormat(offscreenResults) {
         canonical: pageAnalysis.meta?.canonical || '',
         ogTags: pageAnalysis.meta?.ogTags || {},
         twitterTags: pageAnalysis.meta?.twitterTags || {},
-        issues: pageAnalysis.meta?.issues || []
+        issues: pageAnalysis.meta?.issues || [],
+        global_score: metaScore
       },
 
       // Images check - transformer images en alt_img_check
@@ -2353,17 +2366,19 @@ function transformOffscreenDataToResultsFormat(offscreenResults) {
         without_alt: pageAnalysis.images?.withoutAlt || 0,
         with_dimensions: (pageAnalysis.images?.count || 0) - (pageAnalysis.images?.withoutDimensions || 0),
         with_lazy_loading: pageAnalysis.images?.withLazyLoading || 0,
-        images: pageAnalysis.images?.images || []
+        images: pageAnalysis.images?.images || [],
+        global_score: imagesScore
       },
 
-      // Links check - transformer links en link_check
+      // Links check - transformer links en link_check (ATTENTION: "link" au singulier!)
       link_check: {
         total: pageAnalysis.links?.count || 0,
         internal: pageAnalysis.links?.internal || 0,
         external: pageAnalysis.links?.external || 0,
         anchors: pageAnalysis.links?.anchors || 0,
         with_issues: pageAnalysis.links?.withIssues || 0,
-        links: pageAnalysis.links?.links || []
+        link: transformedLinks,  // IMPORTANT: "link" au singulier avec link_score
+        global_score: linksScore
       },
 
       // Headings - transformer headings en hn
@@ -2374,18 +2389,24 @@ function transformOffscreenDataToResultsFormat(offscreenResults) {
         h4: pageAnalysis.headings?.h4 || [],
         h5: pageAnalysis.headings?.h5 || [],
         h6: pageAnalysis.headings?.h6 || [],
-        issues: pageAnalysis.headings?.issues || []
+        issues: pageAnalysis.headings?.issues || [],
+        global_score: headingsScore
       },
 
       // Bold check - pas disponible dans offscreen, créer structure vide
       bold_check: {
         total: 0,
-        texts: []
+        texts: [],
+        global_score: 0
       },
 
-      // Scores - convertir le score de 0-100 en 0-5
-      cdp_global_score: pageAnalysis.score ? (pageAnalysis.score / 20).toFixed(1) : 0,
-      webdesigner_global_score: pageAnalysis.score ? (pageAnalysis.score / 20).toFixed(1) : 0,
+      // Scores globaux - convertir le score de 0-100 en 0-5
+      cdp_global_score: {
+        global_score: pageAnalysis.score ? (pageAnalysis.score / 20).toFixed(1) : 0
+      },
+      webdesigner_global_score: {
+        global_score: pageAnalysis.score ? (pageAnalysis.score / 20).toFixed(1) : 0
+      },
 
       // Données supplémentaires
       accessibility: pageAnalysis.accessibility || {},
@@ -2396,6 +2417,64 @@ function transformOffscreenDataToResultsFormat(offscreenResults) {
   });
 
   return transformedResults;
+}
+
+/**
+ * Calculer le score meta (0-5) basé sur les issues
+ */
+function calculateMetaScore(meta) {
+  if (!meta) return 0;
+
+  let score = 5;
+  const issues = meta.issues || [];
+
+  // Déduire 0.5 point par issue (max 5 points perdus)
+  score -= Math.min(5, issues.length * 0.5);
+
+  return Math.max(0, score).toFixed(1);
+}
+
+/**
+ * Calculer le score images (0-5) basé sur le ratio alt/total
+ */
+function calculateImagesScore(images) {
+  if (!images || !images.count) return 5;
+
+  const totalImages = images.count;
+  const imagesWithAlt = totalImages - (images.withoutAlt || 0);
+  const ratio = imagesWithAlt / totalImages;
+
+  // Score basé sur le ratio (0-5)
+  return (ratio * 5).toFixed(1);
+}
+
+/**
+ * Calculer le score liens (0-5) basé sur les issues
+ */
+function calculateLinksScore(links) {
+  if (!links || !links.count) return 5;
+
+  const totalLinks = links.count;
+  const linksWithIssues = links.withIssues || 0;
+  const ratio = 1 - (linksWithIssues / totalLinks);
+
+  // Score basé sur le ratio (0-5)
+  return (ratio * 5).toFixed(1);
+}
+
+/**
+ * Calculer le score headings (0-5) basé sur les issues
+ */
+function calculateHeadingsScore(headings) {
+  if (!headings) return 5;
+
+  let score = 5;
+  const issues = headings.issues || [];
+
+  // Déduire 0.5 point par issue
+  score -= Math.min(5, issues.length * 0.5);
+
+  return Math.max(0, score).toFixed(1);
 }
 
 /**
