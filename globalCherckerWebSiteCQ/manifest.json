@@ -33,7 +33,8 @@
     "declarativeNetRequestFeedback",
     "webRequest",
     "debugger",
-    "webNavigation"
+    "webNavigation",
+    "offscreen"
   ],
   "options_page": "options.html",
   "host_permissions": [
@@ -78,6 +79,8 @@
         "api/core/ScoringEngine.js",
         "api/core/AnalyzerEndpoint.js",
         "api/core/AnalysisOrchestrator.js",
+        "api/core/OffscreenBatchAnalyzer.js",
+        "api/utils/PageTypeDetector.js",
         "api/endpoints/MetaAnalyzerEndpoint.js",
         "api/endpoints/ImageAnalyzerEndpoint.js",
         "api/endpoints/HeadingAnalyzerEndpoint.js",
@@ -86,7 +89,9 @@
         "api/endpoints/PerformanceAnalyzerEndpoint.js",
         "dashboard.html",
         "dashboard/dashboard.js",
-        "dashboard/dashboard.css"
+        "dashboard/dashboard.css",
+        "offscreen-analyzer.html",
+        "offscreen-analyzer.js"
       ],
       "matches": [
         "<all_urls>"
