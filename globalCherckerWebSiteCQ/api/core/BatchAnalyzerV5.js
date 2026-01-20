@@ -46,6 +46,7 @@ class BatchAnalyzerV5 {
 
   /**
    * Récupère et parse un sitemap XML
+   * MANIFEST V3 COMPATIBLE: N'utilise pas DOMParser (indisponible dans service workers)
    * @param {string} sitemapUrl - URL du sitemap
    * @returns {Promise<Array<string>>} - Liste des URLs
    */
@@ -72,8 +73,8 @@ class BatchAnalyzerV5 {
 
         // Récupérer toutes les URLs de tous les sitemaps
         const allUrls = [];
-        for (const sitemapUrl of sitemapUrls) {
-          const urls = await this.fetchAndParseSitemap(sitemapUrl);
+        for (const childSitemapUrl of sitemapUrls) {
+          const urls = await this.fetchAndParseSitemap(childSitemapUrl);
           allUrls.push(...urls);
         }
         return allUrls;
@@ -89,6 +90,68 @@ class BatchAnalyzerV5 {
       console.error('[BatchAnalyzerV5] Sitemap parsing error:', error);
       throw new Error(`Failed to parse sitemap: ${error.message}`);
     }
+  }
+
+  /**
+   * Extrait les URLs de sitemap depuis un sitemap index
+   * @param {string} xmlText - Contenu XML
+   * @returns {Array<string>} - URLs des sitemaps
+   */
+  extractSitemapUrls(xmlText) {
+    const urls = [];
+
+    // Regex pour matcher <sitemap><loc>URL</loc></sitemap>
+    const sitemapRegex = /<sitemap[^>]*>[\s\S]*?<loc[^>]*>(.*?)<\/loc>[\s\S]*?<\/sitemap>/gi;
+
+    let match;
+    while ((match = sitemapRegex.exec(xmlText)) !== null) {
+      const url = match[1].trim();
+      if (url) {
+        // Décoder les entités HTML si nécessaire
+        const decodedUrl = this.decodeXmlEntities(url);
+        urls.push(decodedUrl);
+      }
+    }
+
+    return urls;
+  }
+
+  /**
+   * Extrait les URLs depuis un sitemap standard
+   * @param {string} xmlText - Contenu XML
+   * @returns {Array<string>} - URLs de pages
+   */
+  extractUrlsFromSitemap(xmlText) {
+    const urls = [];
+
+    // Regex pour matcher <url><loc>URL</loc>...</url>
+    const urlRegex = /<url[^>]*>[\s\S]*?<loc[^>]*>(.*?)<\/loc>[\s\S]*?<\/url>/gi;
+
+    let match;
+    while ((match = urlRegex.exec(xmlText)) !== null) {
+      const url = match[1].trim();
+      if (url) {
+        // Décoder les entités HTML si nécessaire
+        const decodedUrl = this.decodeXmlEntities(url);
+        urls.push(decodedUrl);
+      }
+    }
+
+    return urls;
+  }
+
+  /**
+   * Décode les entités XML communes
+   * @param {string} text - Texte à décoder
+   * @returns {string} - Texte décodé
+   */
+  decodeXmlEntities(text) {
+    return text
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'");
   }
 
   /**
