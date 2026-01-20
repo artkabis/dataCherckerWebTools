@@ -81,6 +81,31 @@
               ></textarea>
             </div>
 
+            <!-- Méthode d'analyse (nouveau v5.0) -->
+            <div class="analysis-method-group" style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+              <label style="font-weight: bold; color: #667eea; margin-bottom: 8px; display: block;">
+                <span class="icon">⚙️</span> Méthode d'analyse multi-pages :
+              </label>
+              <div class="radio-group">
+                <label class="radio-label" title="Analyse invisible ultra-rapide (recommandé pour pages statiques)">
+                  <input type="radio" name="analysisMethod" value="offscreen" checked />
+                  <span>🚀 Offscreen (Rapide & Invisible)</span>
+                </label>
+                <label class="radio-label" title="Méthode classique avec onglets visibles (pour pages dynamiques)">
+                  <input type="radio" name="analysisMethod" value="tabs" />
+                  <span>🔖 Tabs (Classique)</span>
+                </label>
+                <label class="radio-label" title="Détection automatique de la meilleure méthode">
+                  <input type="radio" name="analysisMethod" value="auto" />
+                  <span>🤖 Auto (Intelligent)</span>
+                </label>
+              </div>
+              <small style="color: #666; display: block; margin-top: 5px;">
+                <strong>Offscreen:</strong> Analyse jusqu'à 5 pages simultanées sans ouvrir d'onglets<br/>
+                <strong>Auto:</strong> Détecte les sites React/Vue et choisit la meilleure méthode
+              </small>
+            </div>
+
             <button type="button" class="btn primary-btn" id="analyserBtn">
               <span class="icon">🔍</span> Analyser (v4)
             </button>

@@ -1034,8 +1034,9 @@ function setupV5Analysis() {
         v5BatchStatus.style.color = '#0c5460';
         v5BatchStatus.innerHTML = 'Démarrage de l\'analyse batch v5.0...';
 
-        // Récupérer le type d'analyse
+        // Récupérer le type d'analyse et la méthode
         const analysisType = document.querySelector('input[name="analysisType"]:checked').value;
+        const analysisMethod = document.querySelector('input[name="analysisMethod"]:checked')?.value || 'auto';
 
         let data;
         if (analysisType === 'sitemap') {
@@ -1050,10 +1051,15 @@ function setupV5Analysis() {
           }
         }
 
-        // Envoyer le message au service worker
-        chrome.runtime.sendMessage(
-          {
-            action: 'startBatchAnalysisV5',
+        // Choisir l'action selon la méthode
+        let action;
+        let messageData = {};
+
+        if (analysisMethod === 'tabs') {
+          // Méthode classique avec tabs
+          action = 'startBatchAnalysisV5';
+          messageData = {
+            action,
             type: analysisType,
             data: data,
             options: {
@@ -1062,7 +1068,46 @@ function setupV5Analysis() {
               preset: 'SEO_STANDARD',
               profile: 'FULL'
             }
-          },
+          };
+        } else {
+          // Méthode offscreen ou auto
+          action = 'startOffscreenBatchAnalysis';
+
+          if (analysisType === 'sitemap') {
+            messageData = {
+              action,
+              sitemapUrl: data,
+              config: {
+                autoDetect: analysisMethod === 'auto',
+                preferOffscreen: true,
+                maxConcurrentOffscreen: 5,
+                maxConcurrentTabs: 3
+              }
+            };
+          } else {
+            // Liste d'URLs
+            const urls = data.split(',').map(url => url.trim()).filter(url => url.length > 0);
+            messageData = {
+              action,
+              urls,
+              config: {
+                autoDetect: analysisMethod === 'auto',
+                preferOffscreen: true,
+                maxConcurrentOffscreen: 5,
+                maxConcurrentTabs: 3
+              }
+            };
+          }
+        }
+
+        // Mettre à jour le status avec la méthode choisie
+        const methodLabel = analysisMethod === 'offscreen' ? 'Offscreen (rapide)' :
+                          analysisMethod === 'tabs' ? 'Tabs (classique)' :
+                          'Auto (détection intelligente)';
+        v5BatchStatus.innerHTML = `Démarrage de l'analyse v5.0...<br><small>Méthode: ${methodLabel}</small>`;
+
+        // Envoyer le message au service worker
+        chrome.runtime.sendMessage(messageData,
           (response) => {
             if (chrome.runtime.lastError) {
               v5BatchStatus.style.background = '#f8d7da';
@@ -1138,6 +1183,22 @@ function setupV5Analysis() {
       if (progressBar && progressText) {
         progressBar.style.width = `${message.progress.percentage}%`;
         progressText.textContent = `${message.progress.percentage}% (${message.progress.completed}/${message.progress.total})`;
+      }
+    }
+
+    // Nouveau: progression offscreen batch
+    if (message.action === 'offscreenBatchProgress') {
+      const progressBar = document.getElementById('batchProgressBar');
+      const progressText = document.getElementById('batchProgressText');
+
+      if (progressBar && progressText && message.progress) {
+        const percentage = Math.round((message.progress.processed / message.progress.total) * 100);
+        progressBar.style.width = `${percentage}%`;
+        progressText.textContent = `${percentage}% (${message.progress.processed}/${message.progress.total})`;
+
+        if (message.progress.errors > 0) {
+          progressText.textContent += ` - ${message.progress.errors} erreurs`;
+        }
       }
     }
 

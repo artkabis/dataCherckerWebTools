@@ -13,6 +13,7 @@ import { WebScanner } from "./core/WebScanner.js";
 import { CONFIG, initConfig } from "./config.js";
 import { AnalysisCoordinator } from "./api/core/AnalysisCoordinator.js";
 import { BatchAnalyzerV5 } from "./api/core/BatchAnalyzerV5.js";
+import { OffscreenBatchAnalyzer } from "./api/core/OffscreenBatchAnalyzer.js";
 
 
 
@@ -21,6 +22,7 @@ const corsManager = new CORSManager();
 let webScanner = null;
 const analysisCoordinator = new AnalysisCoordinator();
 let batchAnalyzerV5 = null;
+let offscreenBatchAnalyzer = null;
 
 // === STATE MANAGEMENT MODERNE AVEC CLASSE ===
 class ApplicationState {
@@ -932,6 +934,36 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
         case 'getBatchResultsV5':
           await handleGetBatchResultsV5(sendResponse);
+          break;
+
+        // === v5.0 OFFSCREEN BATCH ANALYSIS (NOUVEAU) ===
+        case 'startOffscreenBatchAnalysis':
+          await handleStartOffscreenBatchAnalysis(request, sendResponse);
+          break;
+
+        case 'stopOffscreenBatchAnalysis':
+          await handleStopOffscreenBatchAnalysis(sendResponse);
+          break;
+
+        case 'getOffscreenBatchStatus':
+          handleGetOffscreenBatchStatus(sendResponse);
+          break;
+
+        // Messages de l'offscreen document
+        case 'offscreenProgress':
+          handleOffscreenProgress(request);
+          break;
+
+        case 'analyzeUrls':
+          // Router vers l'offscreen document
+          if (request.target === 'offscreen') {
+            await routeToOffscreen(request, sendResponse);
+          }
+          break;
+
+        case 'analyzeWithTabs':
+          // Fallback vers l'ancien système tabs
+          await handleAnalyzeWithTabs(request, sendResponse);
           break;
 
         // === AUTRES MESSAGES ===
@@ -2277,6 +2309,220 @@ async function handleGetBatchResultsV5(sendResponse) {
     sendResponse({
       success: false,
       error: error.message
+    });
+  }
+
+  return true;
+}
+
+// ============================================================================
+// OFFSCREEN BATCH ANALYSIS HANDLERS (v5.0 - NEW)
+// ============================================================================
+
+/**
+ * Handler pour démarrer une analyse batch avec offscreen
+ */
+async function handleStartOffscreenBatchAnalysis(request, sendResponse) {
+  try {
+    const { urls, sitemapUrl, config = {} } = request;
+
+    console.log('[Offscreen Batch] Starting analysis...', {
+      urlCount: urls?.length,
+      sitemapUrl
+    });
+
+    // Créer l'instance si nécessaire
+    if (!offscreenBatchAnalyzer) {
+      offscreenBatchAnalyzer = new OffscreenBatchAnalyzer({
+        autoDetect: true,
+        preferOffscreen: true,
+        maxConcurrentOffscreen: 5,
+        maxConcurrentTabs: 3
+      });
+
+      // Configurer les listeners
+      offscreenBatchAnalyzer.on('progress', (progress) => {
+        console.log('[Offscreen Batch] Progress:', progress);
+        // Notifier le popup
+        chrome.runtime.sendMessage({
+          action: 'offscreenBatchProgress',
+          progress
+        }).catch(() => {
+          // Popup peut être fermé, ignorer l'erreur
+        });
+      });
+
+      offscreenBatchAnalyzer.on('methodSelected', (detection) => {
+        console.log('[Offscreen Batch] Method selection:', detection.stats);
+      });
+
+      offscreenBatchAnalyzer.on('error', (error) => {
+        console.error('[Offscreen Batch] Error:', error);
+      });
+    }
+
+    // Activer CORS
+    await corsManager.enable('offscreen-batch');
+
+    // Lancer l'analyse
+    let results;
+    if (sitemapUrl) {
+      results = await offscreenBatchAnalyzer.analyzeFromSitemap(sitemapUrl, config);
+    } else if (urls && urls.length > 0) {
+      results = await offscreenBatchAnalyzer.analyzeBatch(urls, config);
+    } else {
+      throw new Error('URLs or sitemap URL required');
+    }
+
+    // Sauvegarder les résultats
+    await chrome.storage.local.set({
+      offscreenBatchResults: results,
+      offscreenBatchTimestamp: Date.now()
+    });
+
+    console.log('[Offscreen Batch] Analysis complete:', results.stats);
+
+    sendResponse({
+      success: true,
+      results: results.success,
+      errors: results.errors,
+      stats: results.stats
+    });
+
+  } catch (error) {
+    console.error('[Offscreen Batch] Analysis error:', error);
+    sendResponse({
+      success: false,
+      error: error.message
+    });
+  } finally {
+    // Désactiver CORS
+    await corsManager.disable('offscreen-batch');
+  }
+
+  return true;
+}
+
+/**
+ * Handler pour arrêter l'analyse offscreen
+ */
+async function handleStopOffscreenBatchAnalysis(sendResponse) {
+  try {
+    if (offscreenBatchAnalyzer) {
+      await offscreenBatchAnalyzer.cancel();
+      console.log('[Offscreen Batch] Analysis cancelled');
+    }
+
+    sendResponse({ success: true });
+
+  } catch (error) {
+    console.error('[Offscreen Batch] Stop error:', error);
+    sendResponse({
+      success: false,
+      error: error.message
+    });
+  }
+
+  return true;
+}
+
+/**
+ * Handler pour obtenir le statut de l'analyse offscreen
+ */
+function handleGetOffscreenBatchStatus(sendResponse) {
+  try {
+    const status = offscreenBatchAnalyzer
+      ? offscreenBatchAnalyzer.getStatus()
+      : { isAnalyzing: false };
+
+    sendResponse({
+      success: true,
+      status
+    });
+
+  } catch (error) {
+    console.error('[Offscreen Batch] Get status error:', error);
+    sendResponse({
+      success: false,
+      error: error.message
+    });
+  }
+
+  return false; // Sync response
+}
+
+/**
+ * Handler pour les messages de progression de l'offscreen document
+ */
+function handleOffscreenProgress(request) {
+  const { progress } = request;
+
+  console.log('[Offscreen] Progress update:', progress);
+
+  // Relayer au popup si ouvert
+  chrome.runtime.sendMessage({
+    action: 'offscreenBatchProgress',
+    progress
+  }).catch(() => {
+    // Ignorer si popup fermé
+  });
+}
+
+/**
+ * Router un message vers l'offscreen document
+ */
+async function routeToOffscreen(request, sendResponse) {
+  try {
+    // Vérifier que l'offscreen document existe
+    const contexts = await chrome.runtime.getContexts({
+      contextTypes: ['OFFSCREEN_DOCUMENT']
+    });
+
+    if (contexts.length === 0) {
+      throw new Error('Offscreen document not available');
+    }
+
+    // Le message sera reçu par l'offscreen document
+    // La réponse sera gérée par le listener dans offscreen-analyzer.js
+
+  } catch (error) {
+    console.error('[Offscreen] Route error:', error);
+    sendResponse({
+      success: false,
+      error: error.message
+    });
+  }
+}
+
+/**
+ * Handler pour analyser avec tabs (fallback)
+ */
+async function handleAnalyzeWithTabs(request, sendResponse) {
+  try {
+    const { urls, config = {} } = request;
+
+    console.log('[Tab Analysis] Analyzing', urls.length, 'URLs with tabs (fallback)');
+
+    // Utiliser le BatchAnalyzerV5 existant
+    if (!batchAnalyzerV5) {
+      batchAnalyzerV5 = new BatchAnalyzerV5();
+    }
+
+    const results = await batchAnalyzerV5.analyzeFromURLList(urls, config);
+
+    sendResponse({
+      success: true,
+      results: results.results || [],
+      errors: results.errors || []
+    });
+
+  } catch (error) {
+    console.error('[Tab Analysis] Error:', error);
+    sendResponse({
+      success: false,
+      error: error.message,
+      results: [],
+      errors: []
     });
   }
 
