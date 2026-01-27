@@ -79,28 +79,19 @@ export const soprodConsultLinks = (tab) => {
 
           firstTD.style.cssText = 'position: relative !important';
 
-          // Extraire l'EPJ depuis la deuxième cellule
+          // Extraire l'ID depuis la première cellule
+          const id = firstTD.textContent?.trim();
+          if (!id) {
+            errors.push(`Ligne ${index + 1}: ID vide`);
+            return;
+          }
+
+          // Extraire l'EPJ depuis la deuxième cellule (pour le log)
           const secondTD = row.querySelector('td:nth-child(2)');
-          if (!secondTD) {
-            errors.push(`Ligne ${index + 1}: deuxième cellule non trouvée`);
-            return;
-          }
+          const epj = secondTD?.textContent?.split(' / ')[1]?.trim() || 'N/A';
 
-          const cellContent = secondTD.textContent;
-          const epjParts = cellContent.split(' / ');
-
-          if (epjParts.length < 2) {
-            errors.push(`Ligne ${index + 1}: format EPJ invalide (${cellContent})`);
-            return;
-          }
-
-          const epj = epjParts[1].trim();
-          if (!epj) {
-            errors.push(`Ligne ${index + 1}: EPJ vide`);
-            return;
-          }
-
-          const consultUrl = `https://soprod.solocalms.fr/Consultation/Record/${epj}?redirect=true`;
+          // Construire l'URL avec l'ID
+          const consultUrl = `https://soprod.solocalms.fr/Consultation/Record/${id}?redirect=false`;
 
           // Ajouter le bouton à la cellule
           firstTD.appendChild(consultBtn);
@@ -124,7 +115,7 @@ export const soprodConsultLinks = (tab) => {
           });
 
           buttonsAdded++;
-          console.log(`[SoprodConsult] Ligne ${index + 1}: EPJ=${epj}, URL=${consultUrl}`);
+          console.log(`[SoprodConsult] Ligne ${index + 1}: ID=${id}, EPJ=${epj}, URL=${consultUrl}`);
         } catch (error) {
           errors.push(`Ligne ${index + 1}: ${error.message}`);
         }
