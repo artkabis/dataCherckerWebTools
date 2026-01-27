@@ -8,6 +8,7 @@ import { downloaderWPMedia } from "./Functions/downloaderWPMedias.js";
 import { analyzeMetas } from "./Functions/metaAnalyzer.js";
 import { semanticLinks } from "./Functions/semanticLinksAnalyzer.js";
 import { CheckRatioImages } from "./Functions/CheckRatioImages.js";
+import { soprodConsultLinks } from "./Functions/soprodConsultLinks.js";
 
 
 function setupWebScanner() {
@@ -715,6 +716,13 @@ function setupTools() {
   document.getElementById("openHnValidity").addEventListener("click", function () {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       HnOutlineValidity(tabs[0]);
+    });
+  });
+
+  // Outil Soprod Consult Links (EPJ)
+  document.getElementById("soprodConsultLinks").addEventListener("click", function () {
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      soprodConsultLinks(tabs[0]);
     });
   });
 
