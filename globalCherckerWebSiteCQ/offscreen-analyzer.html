@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offscreen Analyzer - Background Analysis</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: #0f0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        #status {
+            padding: 10px;
+            border-bottom: 1px solid #0f0;
+        }
+        #logs {
+            padding: 10px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 5px;
+        }
+        .log-info { color: #0ff; }
+        .log-success { color: #0f0; }
+        .log-error { color: #f00; }
+        .log-warning { color: #ff0; }
+    </style>
+</head>
+<body>
+    <div id="status">
+        <strong>Offscreen Analyzer v5.0</strong> - Status: <span id="status-text">Initializing...</span>
+    </div>
+    <div id="logs"></div>
+
+    <!-- Chargement des modules nécessaires -->
+    <script type="module" src="offscreen-analyzer.js"></script>
+</body>
+</html>

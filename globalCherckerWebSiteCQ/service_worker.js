@@ -11,12 +11,18 @@ import { createDB } from "./Functions/createIndexDB.js";
 import { SitemapAnalyzer } from "./Functions/sitemapAnalyzer.js";
 import { WebScanner } from "./core/WebScanner.js";
 import { CONFIG, initConfig } from "./config.js";
+import { AnalysisCoordinator } from "./api/core/AnalysisCoordinator.js";
+import { BatchAnalyzerV5 } from "./api/core/BatchAnalyzerV5.js";
+import { OffscreenBatchAnalyzer } from "./api/core/OffscreenBatchAnalyzer.js";
 
 
 
 // === INSTANCES GLOBALES ===
 const corsManager = new CORSManager();
 let webScanner = null;
+const analysisCoordinator = new AnalysisCoordinator();
+let batchAnalyzerV5 = null;
+let offscreenBatchAnalyzer = null;
 
 // === STATE MANAGEMENT MODERNE AVEC CLASSE ===
 class ApplicationState {
@@ -805,84 +811,174 @@ function handleGetWebScannerStats(sendResponse) {
 }
 
 // === GESTIONNAIRE DE MESSAGES MODERNISÉ ===
-chrome.runtime.onMessage.addListener(async function (request, sender, sendResponse) {
-  try {
-    // Déléguer la gestion CORS au manager moderne
-    if (corsManager.handleMessage(request, sender, sendResponse)) {
-      return true;
+chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+  // IMPORTANT: Ne pas utiliser async directement sur le listener
+  // car cela ferme le canal prématurément. Utiliser une IIFE async à l'intérieur.
+
+  (async () => {
+    try {
+      // Déléguer la gestion CORS au manager moderne
+      if (corsManager.handleMessage(request, sender, sendResponse)) {
+        return;
+      }
+
+      // Gestion des analyses avec switch moderne
+      switch (request.action) {
+        case 'startWebScanner':
+          await handleStartWebScanner(request, sendResponse);
+          break;
+
+        case 'stopWebScanner':
+          await handleStopWebScanner(sendResponse);
+          break;
+
+        case 'getWebScannerStatus':
+          handleGetWebScannerStatus(sendResponse);
+          break;
+
+        case 'getWebScannerResults':
+          await handleGetWebScannerResults(sendResponse);
+          break;
+
+        case 'clearWebScannerResults':
+          await handleClearWebScannerResults(sendResponse);
+          break;
+
+        case 'getWebScannerStats':
+          handleGetWebScannerStats(sendResponse);
+          break;
+
+        case 'startSitemapAnalysis':
+          await handleSitemapAnalysis(request, sendResponse);
+          break;
+
+        case 'diagnoseWebScanner':
+          const diagnosis = await diagnoseWebScanner();
+          sendResponse(diagnosis);
+          break;
+
+        case 'verifyWebScannerResults':
+          await handleVerifyWebScannerResults(sendResponse);
+          break;
+
+
+        case 'startUrlListAnalysis':
+          await handleUrlListAnalysis(request, sendResponse);
+          break;
+
+        case 'startCurrentPageAnalysis':
+          await handleCurrentPageAnalysis(request, sendResponse);
+          break;
+
+        case 'getAnalysisStatus':
+          handleGetAnalysisStatus(sendResponse);
+          break;
+
+        case 'pauseAnalysis':
+          handlePauseAnalysis(sendResponse);
+          break;
+
+        case 'resumeAnalysis':
+          handleResumeAnalysis(sendResponse);
+          break;
+
+        case 'cancelAnalysis':
+          await handleCancelAnalysis(sendResponse);
+          break;
+
+        case 'linksAnalysisComplete':
+          await handleLinksAnalysisComplete(request, sendResponse);
+          break;
+
+        case 'getLinksAnalysisStatus':
+          handleGetLinksAnalysisStatus(sendResponse);
+          break;
+
+        case 'diagnoseCORS':
+          await handleCORSDiagnosis(sendResponse);
+          break;
+
+        case 'open_interface':
+          await handleOpenInterface(request);
+          break;
+
+        // === v5.0 ENDPOINTS ANALYSIS ===
+        case 'analyzePageV5':
+          handleAnalyzePageV5(request, sender, sendResponse);
+          break;
+
+        case 'getAnalysisResultV5':
+          await handleGetAnalysisResultV5(request, sendResponse);
+          break;
+
+        case 'getAnalysisHistoryV5':
+          await handleGetAnalysisHistoryV5(sendResponse);
+          break;
+
+        case 'clearAnalysisHistoryV5':
+          await handleClearAnalysisHistoryV5(sendResponse);
+          break;
+
+        // === v5.0 BATCH ANALYSIS ===
+        case 'startBatchAnalysisV5':
+          await handleStartBatchAnalysisV5(request, sendResponse);
+          break;
+
+        case 'stopBatchAnalysisV5':
+          await handleStopBatchAnalysisV5(sendResponse);
+          break;
+
+        case 'getBatchStatusV5':
+          await handleGetBatchStatusV5(sendResponse);
+          break;
+
+        case 'getBatchResultsV5':
+          await handleGetBatchResultsV5(sendResponse);
+          break;
+
+        // === v5.0 OFFSCREEN BATCH ANALYSIS (NOUVEAU) ===
+        case 'startOffscreenBatchAnalysis':
+          await handleStartOffscreenBatchAnalysis(request, sendResponse);
+          break;
+
+        case 'stopOffscreenBatchAnalysis':
+          await handleStopOffscreenBatchAnalysis(sendResponse);
+          break;
+
+        case 'getOffscreenBatchStatus':
+          handleGetOffscreenBatchStatus(sendResponse);
+          break;
+
+        // Messages de l'offscreen document
+        case 'offscreenProgress':
+          handleOffscreenProgress(request);
+          break;
+
+        case 'analyzeUrls':
+          // Router vers l'offscreen document
+          if (request.target === 'offscreen') {
+            await routeToOffscreen(request, sendResponse);
+          }
+          break;
+
+        case 'analyzeWithTabs':
+          // Fallback vers l'ancien système tabs
+          await handleAnalyzeWithTabs(request, sendResponse);
+          break;
+
+        // === AUTRES MESSAGES ===
+        default:
+          handleOtherMessages(request, sender, sendResponse);
+          break;
+      }
+    } catch (error) {
+      console.error("[Messages] Error handling message:", error);
+      sendResponse?.({ status: 'error', message: error.message });
     }
+  })();
 
-    // Gestion des analyses avec switch moderne
-    switch (request.action) {
-      case 'startWebScanner':
-        return await handleStartWebScanner(request, sendResponse);
-
-      case 'stopWebScanner':
-        return await handleStopWebScanner(sendResponse);
-
-      case 'getWebScannerStatus':
-        return handleGetWebScannerStatus(sendResponse);
-
-      case 'getWebScannerResults':
-        return await handleGetWebScannerResults(sendResponse);
-
-      case 'clearWebScannerResults':
-        return await handleClearWebScannerResults(sendResponse);
-
-      case 'getWebScannerStats':
-        return handleGetWebScannerStats(sendResponse);
-
-      case 'startSitemapAnalysis':
-        return await handleSitemapAnalysis(request, sendResponse);
-
-      case 'diagnoseWebScanner':
-        const diagnosis = await diagnoseWebScanner();
-        sendResponse(diagnosis);
-        return true;
-
-      case 'verifyWebScannerResults':
-        return await handleVerifyWebScannerResults(sendResponse);
-
-
-      case 'startUrlListAnalysis':
-        return await handleUrlListAnalysis(request, sendResponse);
-
-      case 'startCurrentPageAnalysis':
-        return await handleCurrentPageAnalysis(request, sendResponse);
-
-      case 'getAnalysisStatus':
-        return handleGetAnalysisStatus(sendResponse);
-
-      case 'pauseAnalysis':
-        return handlePauseAnalysis(sendResponse);
-
-      case 'resumeAnalysis':
-        return handleResumeAnalysis(sendResponse);
-
-      case 'cancelAnalysis':
-        return await handleCancelAnalysis(sendResponse);
-
-      case 'linksAnalysisComplete':
-        return await handleLinksAnalysisComplete(request, sendResponse);
-
-      case 'getLinksAnalysisStatus':
-        return handleGetLinksAnalysisStatus(sendResponse);
-
-      case 'diagnoseCORS':
-        return await handleCORSDiagnosis(sendResponse);
-
-      case 'open_interface':
-        return await handleOpenInterface(request);
-
-      // === AUTRES MESSAGES ===
-      default:
-        return handleOtherMessages(request, sender, sendResponse);
-    }
-  } catch (error) {
-    console.error("[Messages] Error handling message:", error);
-    sendResponse?.({ status: 'error', message: error.message });
-    return true;
-  }
+  // Retourner true pour indiquer une réponse asynchrone
+  return true;
 });
 
 chrome.runtime.onSuspend.addListener(async () => {
@@ -1320,6 +1416,19 @@ function injectScriptIfSoprod(tabId) {
       return;
     }
 
+    // Debug: afficher l'URL pour comprendre le problème
+    console.log(`[injectScriptIfSoprod] Checking tab ${tabId}: ${tab.url}`);
+
+    // Ignorer les pages d'extension, chrome://, about:, etc.
+    if (tab.url.startsWith('chrome://') ||
+        tab.url.startsWith('chrome-extension://') ||
+        tab.url.startsWith('about:') ||
+        tab.url.startsWith('edge://') ||
+        tab.url.startsWith('devtools://')) {
+      console.log(`[injectScriptIfSoprod] Skipping protected page: ${tab.url}`);
+      return;
+    }
+
     // On vérifie si l'URL de l'onglet correspond au pattern de Soprod
     if (tab.url.includes("solocalms.fr")) {
       console.log(`🎯 Tab ${tabId} is a Soprod tab. Injecting script...`);
@@ -1333,10 +1442,11 @@ function injectScriptIfSoprod(tabId) {
           console.log("✅ Script 'soprodDOMTime.js' injected successfully.");
         })
         .catch(err => {
-          console.error("❌ Failed to inject script:", err);
+          // Injection peut échouer si la page est en cours de chargement ou a des restrictions
+          // Ce n'est pas critique, donc on log juste en warning
+          console.warn("⚠️ Could not inject script (page may be loading or have CSP restrictions):", err.message);
+          // Note: Pas besoin de logger l'URL complète, déjà loggée plus haut
         });
-    } else {
-      console.log(`ℹ️ Tab ${tabId} is not a Soprod tab. No action taken.`);
     }
   });
 }
@@ -1757,7 +1867,7 @@ async function repairCORSState() {
 }
 
 
-chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'diagnoseCORS') {
     // Réponse immédiate pour confirmer réception
     sendResponse({ received: true });
@@ -1803,8 +1913,10 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   }
 
   if (request.action === 'repairCORS') {
-    const result = await repairCORSState();
-    sendResponse(result);
+    (async () => {
+      const result = await repairCORSState();
+      sendResponse(result);
+    })();
     return true;
   }
 
@@ -1829,4 +1941,601 @@ setTimeout(async () => {
   console.log("Performing startup CORS diagnosis...");
   await diagnoseCORSIssues();
 }, 3000);
+
+// ========================================
+// v5.0 HANDLERS - NEW ENDPOINTS ARCHITECTURE
+// ========================================
+
+/**
+ * Initialise l'AnalysisCoordinator au démarrage
+ */
+(async () => {
+  try {
+    await analysisCoordinator.init();
+    console.log('[v5.0] AnalysisCoordinator initialized successfully');
+  } catch (error) {
+    console.error('[v5.0] Failed to initialize AnalysisCoordinator:', error);
+  }
+})();
+
+/**
+ * Handler pour analyser une page avec la v5.0
+ */
+function handleAnalyzePageV5(request, sender, sendResponse) {
+  console.log('[v5.0] Starting page analysis...', request);
+
+  const tabId = sender.tab?.id || request.tabId;
+
+  if (!tabId) {
+    sendResponse({
+      success: false,
+      error: 'No tab ID provided'
+    });
+    return true;
+  }
+
+  // Marquer l'analyse comme en cours
+  chrome.storage.local.set({
+    v5_analysis_status: {
+      inProgress: true,
+      startTime: Date.now(),
+      tabId: tabId
+    }
+  });
+
+  // Répondre immédiatement que l'analyse a démarré
+  sendResponse({
+    success: true,
+    started: true,
+    message: 'Analysis started'
+  });
+
+  // Analyser la page de manière asynchrone
+  analysisCoordinator.analyzePage(tabId, request.options || {})
+    .then(result => {
+      console.log('[v5.0] Analysis complete, notifying popup');
+
+      // Sauvegarder le statut de fin d'analyse
+      chrome.storage.local.set({
+        v5_analysis_status: {
+          inProgress: false,
+          completed: true,
+          endTime: Date.now(),
+          tabId: tabId,
+          result: {
+            url: result.url,
+            globalScore: result.globalScore,
+            level: result.level,
+            timestamp: result.timestamp
+          }
+        }
+      });
+
+      // Envoyer un message aux popups/pages ouvertes
+      chrome.runtime.sendMessage({
+        action: 'analysisV5Complete',
+        tabId: tabId,
+        result: {
+          url: result.url,
+          globalScore: result.globalScore,
+          level: result.level,
+          timestamp: result.timestamp
+        }
+      }).catch(err => {
+        // Pas grave si aucun listener (popup fermé)
+        console.log('[v5.0] No listeners for completion message:', err.message);
+      });
+    })
+    .catch(error => {
+      console.error('[v5.0] Analysis error:', error);
+
+      // Sauvegarder l'erreur
+      chrome.storage.local.set({
+        v5_analysis_status: {
+          inProgress: false,
+          error: true,
+          errorMessage: error.message,
+          endTime: Date.now(),
+          tabId: tabId
+        }
+      });
+
+      // Envoyer un message d'erreur
+      chrome.runtime.sendMessage({
+        action: 'analysisV5Error',
+        tabId: tabId,
+        error: error.message
+      }).catch(err => {
+        console.log('[v5.0] No listeners for error message:', err.message);
+      });
+    });
+
+  // Retourner true pour garder le canal ouvert (même si on a déjà répondu)
+  return true;
+}
+
+/**
+ * Handler pour récupérer un résultat d'analyse
+ */
+async function handleGetAnalysisResultV5(request, sendResponse) {
+  try {
+    const { url } = request;
+
+    if (!url) {
+      sendResponse({
+        success: false,
+        error: 'URL is required'
+      });
+      return true;
+    }
+
+    // Essayer le cache d'abord
+    let result = analysisCoordinator.getCachedResult(url);
+
+    // Sinon, essayer le storage
+    if (!result) {
+      result = await analysisCoordinator.getFromStorage(url);
+    }
+
+    sendResponse({
+      success: !!result,
+      data: result
+    });
+
+  } catch (error) {
+    console.error('[v5.0] Get result error:', error);
+    sendResponse({
+      success: false,
+      error: error.message
+    });
+  }
+
+  return true;
+}
+
+/**
+ * Handler pour récupérer l'historique des analyses
+ */
+async function handleGetAnalysisHistoryV5(sendResponse) {
+  try {
+    const history = await analysisCoordinator.getAllStoredResults();
+
+    sendResponse({
+      success: true,
+      data: history
+    });
+
+  } catch (error) {
+    console.error('[v5.0] Get history error:', error);
+    sendResponse({
+      success: false,
+      error: error.message
+    });
+  }
+
+  return true;
+}
+
+/**
+ * Handler pour effacer l'historique des analyses
+ */
+async function handleClearAnalysisHistoryV5(sendResponse) {
+  try {
+    await analysisCoordinator.clearAllResults();
+
+    sendResponse({
+      success: true,
+      message: 'Analysis history cleared'
+    });
+
+  } catch (error) {
+    console.error('[v5.0] Clear history error:', error);
+    sendResponse({
+      success: false,
+      error: error.message
+    });
+  }
+
+  return true;
+}
+
+// ========================================
+// v5.0 BATCH ANALYSIS HANDLERS
+// ========================================
+
+/**
+ * Handler pour démarrer une analyse batch v5.0
+ */
+async function handleStartBatchAnalysisV5(request, sendResponse) {
+  try {
+    console.log('[v5.0 Batch] Starting batch analysis...', request);
+
+    const { type, data, options } = request;
+
+    // Créer une nouvelle instance de BatchAnalyzerV5
+    batchAnalyzerV5 = new BatchAnalyzerV5();
+
+    // Callback pour les updates de progression
+    batchAnalyzerV5.onProgress = (progress) => {
+      // Broadcast progress à tous les onglets
+      chrome.runtime.sendMessage({
+        action: 'batchProgressUpdate',
+        progress: progress
+      });
+    };
+
+    // Démarrer l'analyse en arrière-plan
+    let analysisPromise;
+
+    if (type === 'sitemap') {
+      analysisPromise = batchAnalyzerV5.analyzeFromSitemap(data, options);
+    } else if (type === 'urlList') {
+      const urls = data.split(',').map(url => url.trim()).filter(Boolean);
+      analysisPromise = batchAnalyzerV5.analyzeFromURLList(urls, options);
+    } else {
+      throw new Error(`Unknown batch type: ${type}`);
+    }
+
+    // Répondre immédiatement que l'analyse a démarré
+    sendResponse({
+      success: true,
+      message: 'Batch analysis started',
+      analysisId: batchAnalyzerV5.analysisId
+    });
+
+    // Continuer l'analyse en arrière-plan
+    analysisPromise.then(results => {
+      console.log('[v5.0 Batch] Analysis complete:', results);
+
+      // Notifier la completion
+      chrome.runtime.sendMessage({
+        action: 'batchAnalysisComplete',
+        results: results
+      });
+
+    }).catch(error => {
+      console.error('[v5.0 Batch] Analysis error:', error);
+
+      // Notifier l'erreur
+      chrome.runtime.sendMessage({
+        action: 'batchAnalysisError',
+        error: error.message
+      });
+    });
+
+  } catch (error) {
+    console.error('[v5.0 Batch] Start error:', error);
+    sendResponse({
+      success: false,
+      error: error.message
+    });
+  }
+
+  return true;
+}
+
+/**
+ * Handler pour arrêter l'analyse batch
+ */
+async function handleStopBatchAnalysisV5(sendResponse) {
+  try {
+    if (!batchAnalyzerV5) {
+      sendResponse({
+        success: false,
+        error: 'No batch analysis in progress'
+      });
+      return true;
+    }
+
+    batchAnalyzerV5.stop();
+
+    sendResponse({
+      success: true,
+      message: 'Batch analysis stopped'
+    });
+
+  } catch (error) {
+    console.error('[v5.0 Batch] Stop error:', error);
+    sendResponse({
+      success: false,
+      error: error.message
+    });
+  }
+
+  return true;
+}
+
+/**
+ * Handler pour récupérer le status de l'analyse batch
+ */
+async function handleGetBatchStatusV5(sendResponse) {
+  try {
+    if (!batchAnalyzerV5) {
+      sendResponse({
+        success: true,
+        status: {
+          isAnalyzing: false,
+          progress: { total: 0, completed: 0, failed: 0, percentage: 0 }
+        }
+      });
+      return true;
+    }
+
+    const status = batchAnalyzerV5.getStatus();
+
+    sendResponse({
+      success: true,
+      status: status
+    });
+
+  } catch (error) {
+    console.error('[v5.0 Batch] Get status error:', error);
+    sendResponse({
+      success: false,
+      error: error.message
+    });
+  }
+
+  return true;
+}
+
+/**
+ * Handler pour récupérer les résultats de l'analyse batch
+ */
+async function handleGetBatchResultsV5(sendResponse) {
+  try {
+    if (!batchAnalyzerV5) {
+      sendResponse({
+        success: false,
+        error: 'No batch analysis results available'
+      });
+      return true;
+    }
+
+    const results = {
+      summary: batchAnalyzerV5.aggregateResults(),
+      results: batchAnalyzerV5.results,
+      errors: batchAnalyzerV5.errors,
+      progress: batchAnalyzerV5.progress
+    };
+
+    sendResponse({
+      success: true,
+      data: results
+    });
+
+  } catch (error) {
+    console.error('[v5.0 Batch] Get results error:', error);
+    sendResponse({
+      success: false,
+      error: error.message
+    });
+  }
+
+  return true;
+}
+
+// ============================================================================
+// OFFSCREEN BATCH ANALYSIS HANDLERS (v5.0 - NEW)
+// ============================================================================
+
+/**
+ * Handler pour démarrer une analyse batch avec offscreen
+ */
+async function handleStartOffscreenBatchAnalysis(request, sendResponse) {
+  try {
+    const { urls, sitemapUrl, config = {} } = request;
+
+    console.log('[Offscreen Batch] Starting analysis...', {
+      urlCount: urls?.length,
+      sitemapUrl
+    });
+
+    // Créer l'instance si nécessaire
+    if (!offscreenBatchAnalyzer) {
+      offscreenBatchAnalyzer = new OffscreenBatchAnalyzer({
+        autoDetect: true,
+        preferOffscreen: true,
+        maxConcurrentOffscreen: 5,
+        maxConcurrentTabs: 3
+      });
+
+      // Configurer les listeners
+      offscreenBatchAnalyzer.on('progress', (progress) => {
+        console.log('[Offscreen Batch] Progress:', progress);
+        // Notifier le popup
+        chrome.runtime.sendMessage({
+          action: 'offscreenBatchProgress',
+          progress
+        }).catch(() => {
+          // Popup peut être fermé, ignorer l'erreur
+        });
+      });
+
+      offscreenBatchAnalyzer.on('methodSelected', (detection) => {
+        console.log('[Offscreen Batch] Method selection:', detection.stats);
+      });
+
+      offscreenBatchAnalyzer.on('error', (error) => {
+        console.error('[Offscreen Batch] Error:', error);
+      });
+    }
+
+    // Activer CORS
+    await corsManager.enable('offscreen-batch');
+
+    // Lancer l'analyse
+    let results;
+    if (sitemapUrl) {
+      results = await offscreenBatchAnalyzer.analyzeFromSitemap(sitemapUrl, config);
+    } else if (urls && urls.length > 0) {
+      results = await offscreenBatchAnalyzer.analyzeBatch(urls, config);
+    } else {
+      throw new Error('URLs or sitemap URL required');
+    }
+
+    // Mapper les résultats pour compatibilité avec results.js
+    // OffscreenBatchAnalyzer retourne { success: [...], errors: [...], stats: {...} }
+    // results.js attend { results: [...], errors: [...], stats: {...} }
+    const mappedResults = {
+      results: results.success,  // Mapper success → results
+      errors: results.errors,
+      stats: results.stats
+    };
+
+    // Sauvegarder les résultats dans les deux formats
+    await chrome.storage.local.set({
+      sitemapAnalysis: mappedResults,        // Format attendu par results.js
+      offscreenBatchResults: results,        // Format natif pour référence
+      offscreenBatchTimestamp: Date.now()
+    });
+
+    console.log('[Offscreen Batch] Analysis complete:', results.stats);
+
+    sendResponse({
+      success: true,
+      results: results.success,
+      errors: results.errors,
+      stats: results.stats
+    });
+
+  } catch (error) {
+    console.error('[Offscreen Batch] Analysis error:', error);
+    sendResponse({
+      success: false,
+      error: error.message
+    });
+  } finally {
+    // Désactiver CORS
+    await corsManager.disable('offscreen-batch');
+  }
+
+  return true;
+}
+
+/**
+ * Handler pour arrêter l'analyse offscreen
+ */
+async function handleStopOffscreenBatchAnalysis(sendResponse) {
+  try {
+    if (offscreenBatchAnalyzer) {
+      await offscreenBatchAnalyzer.cancel();
+      console.log('[Offscreen Batch] Analysis cancelled');
+    }
+
+    sendResponse({ success: true });
+
+  } catch (error) {
+    console.error('[Offscreen Batch] Stop error:', error);
+    sendResponse({
+      success: false,
+      error: error.message
+    });
+  }
+
+  return true;
+}
+
+/**
+ * Handler pour obtenir le statut de l'analyse offscreen
+ */
+function handleGetOffscreenBatchStatus(sendResponse) {
+  try {
+    const status = offscreenBatchAnalyzer
+      ? offscreenBatchAnalyzer.getStatus()
+      : { isAnalyzing: false };
+
+    sendResponse({
+      success: true,
+      status
+    });
+
+  } catch (error) {
+    console.error('[Offscreen Batch] Get status error:', error);
+    sendResponse({
+      success: false,
+      error: error.message
+    });
+  }
+
+  return false; // Sync response
+}
+
+/**
+ * Handler pour les messages de progression de l'offscreen document
+ */
+function handleOffscreenProgress(request) {
+  const { progress } = request;
+
+  console.log('[Offscreen] Progress update:', progress);
+
+  // Relayer au popup si ouvert
+  chrome.runtime.sendMessage({
+    action: 'offscreenBatchProgress',
+    progress
+  }).catch(() => {
+    // Ignorer si popup fermé
+  });
+}
+
+/**
+ * Router un message vers l'offscreen document
+ */
+async function routeToOffscreen(request, sendResponse) {
+  try {
+    // Vérifier que l'offscreen document existe
+    const contexts = await chrome.runtime.getContexts({
+      contextTypes: ['OFFSCREEN_DOCUMENT']
+    });
+
+    if (contexts.length === 0) {
+      throw new Error('Offscreen document not available');
+    }
+
+    // Le message sera reçu par l'offscreen document
+    // La réponse sera gérée par le listener dans offscreen-analyzer.js
+
+  } catch (error) {
+    console.error('[Offscreen] Route error:', error);
+    sendResponse({
+      success: false,
+      error: error.message
+    });
+  }
+}
+
+/**
+ * Handler pour analyser avec tabs (fallback)
+ */
+async function handleAnalyzeWithTabs(request, sendResponse) {
+  try {
+    const { urls, config = {} } = request;
+
+    console.log('[Tab Analysis] Analyzing', urls.length, 'URLs with tabs (fallback)');
+
+    // Utiliser le BatchAnalyzerV5 existant
+    if (!batchAnalyzerV5) {
+      batchAnalyzerV5 = new BatchAnalyzerV5();
+    }
+
+    const results = await batchAnalyzerV5.analyzeFromURLList(urls, config);
+
+    sendResponse({
+      success: true,
+      results: results.results || [],
+      errors: results.errors || []
+    });
+
+  } catch (error) {
+    console.error('[Tab Analysis] Error:', error);
+    sendResponse({
+      success: false,
+      error: error.message,
+      results: [],
+      errors: []
+    });
+  }
+
+  return true;
+}
 

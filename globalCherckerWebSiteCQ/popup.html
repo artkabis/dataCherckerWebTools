@@ -39,8 +39,12 @@
         <div class="tab-panel active" id="single-tab">
           <p class="info-text">Analyser la page web courante</p>
           <button type="button" class="btn primary-btn" id="currentPageBtn">
-            <span class="icon">📊</span> Analyser cette page
+            <span class="icon">📊</span> Analyser cette page (v4)
           </button>
+          <button type="button" class="btn primary-btn" id="analyzeV5Btn" style="margin-top: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <span class="icon">🚀</span> Analyse Complète v5.0
+          </button>
+          <div id="v5Status" style="display: none; margin-top: 10px; padding: 10px; border-radius: 5px;"></div>
         </div>
 
         <!-- Multi-page analysis panel -->
@@ -77,10 +81,39 @@
               ></textarea>
             </div>
 
+            <!-- Méthode d'analyse (nouveau v5.0) -->
+            <div class="analysis-method-group" style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+              <label style="font-weight: bold; color: #667eea; margin-bottom: 8px; display: block;">
+                <span class="icon">⚙️</span> Méthode d'analyse multi-pages :
+              </label>
+              <div class="radio-group">
+                <label class="radio-label" title="Analyse invisible ultra-rapide (recommandé pour pages statiques)">
+                  <input type="radio" name="analysisMethod" value="offscreen" checked />
+                  <span>🚀 Offscreen (Rapide & Invisible)</span>
+                </label>
+                <label class="radio-label" title="Méthode classique avec onglets visibles (pour pages dynamiques)">
+                  <input type="radio" name="analysisMethod" value="tabs" />
+                  <span>🔖 Tabs (Classique)</span>
+                </label>
+                <label class="radio-label" title="Détection automatique de la meilleure méthode">
+                  <input type="radio" name="analysisMethod" value="auto" />
+                  <span>🤖 Auto (Intelligent)</span>
+                </label>
+              </div>
+              <small style="color: #666; display: block; margin-top: 5px;">
+                <strong>Offscreen:</strong> Analyse jusqu'à 5 pages simultanées sans ouvrir d'onglets<br/>
+                <strong>Auto:</strong> Détecte les sites React/Vue et choisit la meilleure méthode
+              </small>
+            </div>
+
             <button type="button" class="btn primary-btn" id="analyserBtn">
-              <span class="icon">🔍</span> Analyser
+              <span class="icon">🔍</span> Analyser (v4)
+            </button>
+            <button type="button" class="btn primary-btn" id="analyserV5Btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+              <span class="icon">🚀</span> Analyser avec v5.0
             </button>
           </div>
+          <div id="v5BatchStatus" style="display: none; margin-top: 15px; padding: 10px; border-radius: 5px; border-left: 4px solid #667eea;"></div>
         </div>
         <div class="tab-panel" id="scanner-tab">
           <div class="input-group">
@@ -247,6 +280,15 @@
           >
             <span class="tool-icon">🛡️</span>
             <span class="tool-name">CORS</span>
+          </button>
+
+          <button
+            id="soprodConsultLinks"
+            class="tool-btn"
+            title="Ajouter boutons CONSULT aux lignes Soprod (soprod.solocalms.fr)"
+          >
+            <span class="tool-icon">🔍</span>
+            <span class="tool-name">Consult EPJ</span>
           </button>
         </div>
       </section>
