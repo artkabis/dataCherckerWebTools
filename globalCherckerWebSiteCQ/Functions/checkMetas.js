@@ -6,7 +6,7 @@
   MAX_META_DESC_CARACTERES = currentSettings.MAX_META_DESC_CARACTERE || 156;
 
   const title = $('meta[property="og:title"]').attr("content") || $('head title').text();
-  const desc = $('meta[name="description"]').attr("content");
+  const desc = $('meta[name="description"], meta[property="og:description"]').attr("content");
   dataChecker.hn.hn_reco.hn = [];
   let titleLength,
     checkTitle,

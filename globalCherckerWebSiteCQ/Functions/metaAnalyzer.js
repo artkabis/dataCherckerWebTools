@@ -25,7 +25,7 @@ export const analyzeMetas = async (tab) => {
 
             // Récupération des balises meta
             const metaTitle = document.querySelector('title')?.innerText || document.querySelector('meta[property="og:title"]')?.getAttribute('content') || '';
-            const metaDesc = document.querySelector('meta[name="description"]')?.getAttribute('content') || '';
+            const metaDesc = document.querySelector('meta[name="description"], meta[property="og:description"]')?.getAttribute('content') || '';
 
             // Analyse des balises meta
             const titleLength = metaTitle.trim().length;
